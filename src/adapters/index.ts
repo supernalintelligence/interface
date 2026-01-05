@@ -28,7 +28,10 @@ export * from './types';
 export { ChatUIProvider, ChatUI, useChatUI, useChatUIOptional, withChatUI } from './ChatUIProvider';
 
 // Adapters
-export { CopilotKitAdapter, createCopilotKitAdapter } from './copilotkit';
+// CopilotKit adapter temporarily disabled due to ESM bundling issues in Next.js 15
+// To use: import directly from @supernal/interface/adapters/copilotkit
+// export { CopilotKitAdapter, createCopilotKitAdapter } from './copilotkit';
+// export type { CopilotKitAdapterConfig } from './copilotkit';
 export type { CopilotKitAdapterConfig } from './copilotkit';
 
 export { NativeAdapter, createNativeAdapter } from './native';
