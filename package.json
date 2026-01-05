@@ -26,6 +26,21 @@
       "require": "./dist/cjs/src/testing/index.js",
       "types": "./dist/esm/src/testing/index.d.ts"
     },
+    "./browser": {
+      "import": "./dist/esm/src/browser.js",
+      "require": "./dist/cjs/src/browser.js",
+      "types": "./dist/esm/src/browser.d.ts"
+    },
+    "./react": {
+      "import": "./dist/esm/src/react/index.js",
+      "require": "./dist/cjs/src/react/index.js",
+      "types": "./dist/esm/src/react/index.d.ts"
+    },
+    "./testing": {
+      "import": "./dist/esm/src/testing/index.js",
+      "require": "./dist/cjs/src/testing/index.js",
+      "types": "./dist/esm/src/testing/index.d.ts"
+    },
     "./testing/ComponentStateHelpers": {
       "import": "./dist/esm/src/testing/ComponentStateHelpers.js",
       "require": "./dist/cjs/src/testing/ComponentStateHelpers.js",
