@@ -7,32 +7,21 @@
  * Visit https://supernal.ai/enterprise for more information.
  */
 
-export interface NavigationNode {
-  id: string;
-  type: string;
-  children?: NavigationNode[];
+import { INavigationGraph, NavigationNode, RouteInfo, ContextData } from './INavigationGraph';
+
+// Global singleton key to ensure cross-package singleton behavior
+const GLOBAL_SINGLETON_KEY = '__SUPERNAL_NAVIGATION_GRAPH__';
+
+// Extend Window interface for TypeScript
+declare global {
+  interface Window {
+    [GLOBAL_SINGLETON_KEY]?: INavigationGraph;
+  }
 }
 
-export interface RouteInfo {
-  path?: string;
-  name?: string;
-  from?: string;
-  to?: string;
-  navigationTool?: string;
-  cost?: number;
-  metadata?: unknown;
-}
+export { NavigationNode, RouteInfo, ContextData } from './INavigationGraph';
 
-export interface ContextData {
-  id: string;
-  name?: string;
-  parent?: string;
-  children?: unknown[];
-  tools?: string[];
-  metadata?: unknown;
-}
-
-export class NavigationGraph {
+export class NavigationGraph implements INavigationGraph {
   private static instance: NavigationGraph | null = null;
   private warned = false;
   
@@ -47,6 +36,17 @@ export class NavigationGraph {
   }
   
   static getInstance(): NavigationGraph {
+    // Check global singleton first (browser environment)
+    // If enterprise version already created a singleton, use that!
+    if (typeof window !== 'undefined') {
+      if (!window[GLOBAL_SINGLETON_KEY]) {
+        window[GLOBAL_SINGLETON_KEY] = new NavigationGraph();
+        console.log('🌍 [NavigationGraph] Created GLOBAL singleton instance (open-source stub)');
+      }
+      return window[GLOBAL_SINGLETON_KEY] as NavigationGraph;
+    }
+    
+    // Fallback to module-level singleton (Node.js/SSR environment)
     if (!this.instance) {
       this.instance = new NavigationGraph();
     }
@@ -99,7 +99,65 @@ export class NavigationGraph {
     this.warnOnce();
   }
   
-  setNavigationHandler(handler: (path: string | RouteInfo) => void): void {
+  setNavigationHandler(handler: (path: string | RouteInfo) => void | Promise<void>): void {
     this.warnOnce();
+  }
+  
+  getNavigationHandler(): ((pageName: string) => void | Promise<void>) | null {
+    this.warnOnce();
+    return null;
+  }
+  
+  async navigateToContext(contextId: string): Promise<boolean> {
+    this.warnOnce();
+    return false;
+  }
+  
+  getRouteForContext(contextId: string): string | undefined {
+    this.warnOnce();
+    return undefined;
+  }
+  
+  getAllRoutes(): Record<string, string> {
+    this.warnOnce();
+    return {};
+  }
+  
+  getCurrentContext(): string {
+    this.warnOnce();
+    return 'global';
+  }
+  
+  getAllContexts(): any[] {
+    this.warnOnce();
+    return [];
+  }
+  
+  getAllEdges(): any[] {
+    this.warnOnce();
+    return [];
+  }
+  
+  getToolContext(toolId: string): string | null {
+    this.warnOnce();
+    return null;
+  }
+  
+  clear(): void {
+    this.warnOnce();
+  }
+  
+  clearPathCache(): void {
+    this.warnOnce();
+  }
+  
+  toMermaid(): string {
+    this.warnOnce();
+    return '';
+  }
+  
+  toJSON(): any {
+    this.warnOnce();
+    return { nodes: [], edges: [] };
   }
 }

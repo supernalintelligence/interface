@@ -147,8 +147,7 @@ export {
   useChatUIOptional,
   withChatUI,
   // Adapters
-  CopilotKitAdapter,
-  createCopilotKitAdapter,
+  // NOTE: CopilotKitAdapter is exported separately via @supernal/interface/adapters/copilotkit
   NativeAdapter,
   createNativeAdapter,
   // Bridge utilities
@@ -175,6 +174,7 @@ export type {
 
 // Enterprise feature stubs (warn users, drive upgrade)
 export { NavigationGraph } from './background/navigation/NavigationGraph';
+export type { INavigationGraph } from './background/navigation/INavigationGraph';
 export { RuntimeTreeBuilder } from './background/navigation/RuntimeTreeBuilder';
 export { TreeBuilder } from './background/navigation/RuntimeTreeBuilder';
 
