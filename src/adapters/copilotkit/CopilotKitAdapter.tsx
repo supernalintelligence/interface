@@ -32,10 +32,10 @@ let useCopilotReadable: ((config: any) => void) | null = null;
 async function loadCopilotKit() {
   try {
     // Dynamic imports - these will fail if packages not installed
-    // eslint-disable-next-line @typescript-eslint/no-require-imports
-    const reactCore = await import(/* webpackIgnore: true */ '@copilotkit/react-core' as string);
-    // eslint-disable-next-line @typescript-eslint/no-require-imports
-    const reactUI = await import(/* webpackIgnore: true */ '@copilotkit/react-ui' as string);
+    // @ts-expect-error - Peer dependencies not installed by default
+    const reactCore = await import(/* webpackIgnore: true */ '@copilotkit/react-core');
+    // @ts-expect-error - Peer dependencies not installed by default
+    const reactUI = await import(/* webpackIgnore: true */ '@copilotkit/react-ui');
     
     useCopilotAction = reactCore.useCopilotAction;
     useCopilotReadable = reactCore.useCopilotReadable;
@@ -112,8 +112,8 @@ export class CopilotKitAdapter implements ChatUIAdapter {
     // Import styles if requested
     if (this.config.importStyles) {
       try {
-        // eslint-disable-next-line @typescript-eslint/no-require-imports
-        await import(/* webpackIgnore: true */ '@copilotkit/react-ui/styles.css' as string);
+        // @ts-expect-error - Peer dependency not installed by default
+        await import(/* webpackIgnore: true */ '@copilotkit/react-ui/styles.css');
       } catch {
         // Styles may already be imported or not available
       }

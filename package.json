@@ -51,6 +51,11 @@
       "require": "./dist/cjs/src/adapters/index.js",
       "types": "./dist/esm/src/adapters/index.d.ts"
     },
+    "./adapters/copilotkit": {
+      "import": "./dist/esm/src/adapters/copilotkit/index.js",
+      "require": "./dist/cjs/src/adapters/copilotkit/index.js",
+      "types": "./dist/esm/src/adapters/copilotkit/index.d.ts"
+    },
     "./storage": {
       "import": "./dist/esm/src/storage/index.js",
       "require": "./dist/cjs/src/storage/index.js",
