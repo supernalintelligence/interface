@@ -1,0 +1,123 @@
+{
+  "name": "@supernal/interface",
+  "version": "1.0.0",
+  "description": "Universal AI Interface - Make any application AI-controllable with decorators (Open Source Edition)",
+  "main": "./dist/cjs/src/index.js",
+  "module": "./dist/esm/src/index.js",
+  "types": "./dist/esm/src/index.d.ts",
+  "exports": {
+    ".": {
+      "import": "./dist/esm/src/index.js",
+      "require": "./dist/cjs/src/index.js",
+      "types": "./dist/esm/src/index.d.ts"
+    },
+    "./browser": {
+      "import": "./dist/esm/src/browser.js",
+      "require": "./dist/cjs/src/browser.js",
+      "types": "./dist/esm/src/browser.d.ts"
+    },
+    "./react": {
+      "import": "./dist/esm/src/react/index.js",
+      "require": "./dist/cjs/src/react/index.js",
+      "types": "./dist/esm/src/react/index.d.ts"
+    },
+    "./testing": {
+      "import": "./dist/esm/src/testing/index.js",
+      "require": "./dist/cjs/src/testing/index.js",
+      "types": "./dist/esm/src/testing/index.d.ts"
+    },
+    "./testing/ComponentStateHelpers": {
+      "import": "./dist/esm/src/testing/ComponentStateHelpers.js",
+      "require": "./dist/cjs/src/testing/ComponentStateHelpers.js",
+      "types": "./dist/esm/src/testing/ComponentStateHelpers.d.ts"
+    },
+    "./adapters": {
+      "import": "./dist/esm/src/adapters/index.js",
+      "require": "./dist/cjs/src/adapters/index.js",
+      "types": "./dist/esm/src/adapters/index.d.ts"
+    },
+    "./storage": {
+      "import": "./dist/esm/src/storage/index.js",
+      "require": "./dist/cjs/src/storage/index.js",
+      "types": "./dist/esm/src/storage/index.d.ts"
+    }
+  },
+  "scripts": {
+    "clean": "rm -rf dist",
+    "build": "npm run clean && npm run build:esm && npm run fix-esm && npm run build:cjs",
+    "build:esm": "tsc -p tsconfig.json",
+    "fix-esm": "node scripts/fix-esm-imports.js",
+    "build:cjs": "tsc -p tsconfig.cjs.json",
+    "build:watch": "tsc -p tsconfig.json --watch",
+    "test": "jest",
+    "test:watch": "jest --watch",
+    "test:coverage": "jest --coverage",
+    "lint": "eslint src --ext .ts,.tsx",
+    "lint:fix": "eslint src --ext .ts,.tsx --fix",
+    "prepack": "npm run build"
+  },
+  "keywords": [
+    "ai",
+    "interface",
+    "decorators",
+    "tools",
+    "testing",
+    "automation",
+    "chat-ui",
+    "copilotkit",
+    "adapter-pattern",
+    "typescript"
+  ],
+  "author": "Supernal AI",
+  "license": "MIT",
+  "dependencies": {
+    "@playwright/test": "^1.57.0",
+    "glob": "^13.0.0"
+  },
+  "peerDependencies": {
+    "react": ">=18.0.0",
+    "react-dom": ">=18.0.0"
+  },
+  "peerDependenciesMeta": {
+    "react": {
+      "optional": true
+    },
+    "react-dom": {
+      "optional": true
+    }
+  },
+  "devDependencies": {
+    "@jest/globals": "^29.7.0",
+    "@testing-library/react": "^16.3.1",
+    "@types/glob": "^8.1.0",
+    "@types/jest": "^29.5.8",
+    "@types/node": "^25.0.2",
+    "@types/react": "^19.2.7",
+    "@types/react-dom": "^19.2.3",
+    "@typescript-eslint/eslint-plugin": "^6.12.0",
+    "@typescript-eslint/parser": "^6.12.0",
+    "eslint": "^8.54.0",
+    "eslint-plugin-react": "^7.37.5",
+    "jest": "^29.7.0",
+    "jest-environment-jsdom": "^29.7.0",
+    "prettier": "^3.7.4",
+    "react": "^19.2.3",
+    "react-dom": "^19.2.3",
+    "ts-jest": "^29.4.6",
+    "typescript": "^5.3.2"
+  },
+  "files": [
+    "dist",
+    "README.md",
+    "LICENSE"
+  ],
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/supernalintelligence/supernal-interface.git",
+    "directory": "packages/interface"
+  },
+  "homepage": "https://supernal.ai",
+  "bugs": {
+    "url": "https://github.com/supernalintelligence/supernal-interface/issues"
+  }
+}
