@@ -1,0 +1,43 @@
+#!/bin/bash
+
+# Pre-push hook for @supernal/interface
+# Validates open-source package before push
+
+set -e
+
+echo "🔍 Running pre-push checks for @supernal/interface..."
+
+echo "🔍 Checking package-lock.json sync..."
+if ! npm ci --dry-run --silent > /dev/null 2>&1; then
+    echo "❌ package-lock.json is out of sync with package.json"
+    echo "💡 Run 'npm install' to fix this issue"
+    exit 1
+fi
+
+echo "📦 Installing dependencies..."
+npm ci --silent
+
+echo "🔧 Running TypeScript check..."
+npx tsc --noEmit
+
+echo "🏗️  Building package..."
+npm run build
+
+echo "📋 Verifying build artifacts..."
+if [ ! -d "dist" ]; then
+    echo "❌ Build artifacts missing"
+    exit 1
+fi
+
+if [ ! -f "dist/cjs/index.js" ]; then
+    echo "❌ Main CJS build file missing"
+    exit 1
+fi
+
+if [ ! -f "dist/esm/index.js" ]; then
+    echo "❌ Main ESM build file missing"
+    exit 1
+fi
+
+echo "✅ All pre-push checks passed!"
+
