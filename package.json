@@ -1,6 +1,6 @@
 {
   "name": "@supernal/interface",
-  "version": "1.0.0",
+  "version": "1.0.2",
   "description": "Universal AI Interface - Make any application AI-controllable with decorators (Open Source Edition)",
   "main": "./dist/cjs/src/index.js",
   "module": "./dist/esm/src/index.js",
@@ -90,6 +90,9 @@
   ],
   "author": "Supernal AI",
   "license": "MIT",
+  "publishConfig": {
+    "access": "public"
+  },
   "dependencies": {
     "@playwright/test": "^1.57.0",
     "glob": "^13.0.0"
