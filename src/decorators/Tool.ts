@@ -177,6 +177,9 @@ export interface ToolMetadata {
   // AI Control vs Testing distinction
   toolType: 'test-only' | 'ai-safe' | 'ai-restricted' | 'ai-dangerous';
   aiEnabled: boolean;
+  
+  // Additional custom metadata (flexible field for extensions)
+  metadata?: Record<string, any>;
   requiresApproval: boolean;
   dangerLevel: 'safe' | 'moderate' | 'dangerous' | 'destructive';
 
