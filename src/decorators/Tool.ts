@@ -1,11 +1,12 @@
 /**
- * Supernal AI Interface - Enhanced Tool Decorator System
+ * Supernal Intelligence Interface - Enhanced Tool Decorator System
  *
  * Provides comprehensive tool registration with AI safety controls and universal capabilities.
  * Automatically generates tool schemas with AI control vs testing distinction.
  */
 
 import { ToolRegistry } from '../background/registry/ToolRegistry';
+import { getLocationScope } from './LocationScope';
 import {
   ToolCategory,
   ToolFrequency,
@@ -150,6 +151,9 @@ export interface ToolMetadata {
   
   // NEW: Container/modal context
   containerId?: string; // Container/modal this tool operates within
+  
+  // NEW: Location scope (where tool is available)
+  locationScope?: import('../background/location/LocationContext').LocationScope;
   
   // NEW: Component namespace support
   componentName?: string; // Component this tool belongs to (for namespacing)
@@ -523,6 +527,16 @@ function decorateClassMethod(
   return descriptor;
 }
 
+// Helper function to read location scope from @LocationScope decorator
+function getLocationScopeFromMethod(target: any, propertyKey: string | symbol): import('../background/location/LocationContext').LocationScope | undefined {
+  try {
+    return getLocationScope(target, propertyKey);
+  } catch {
+    // If @LocationScope wasn't used, return undefined
+    return undefined;
+  }
+}
+
 // Helper function to generate tool metadata
 function generateToolMetadata(className: string, methodName: string, config: ToolConfig, target: any): ToolMetadata {
   // Read parent @ToolProvider config for inheritance
@@ -553,6 +567,9 @@ function generateToolMetadata(className: string, methodName: string, config: Too
     
     // NEW: Container/modal context (with inheritance)
     containerId: config.containerId || providerConfig?.containerId,
+    
+    // NEW: Location scope (read from @LocationScope decorator)
+    locationScope: getLocationScopeFromMethod(target, methodName),
     
     // NEW: Callback capabilities
     callbacks: config.callbacks,

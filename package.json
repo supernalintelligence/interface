@@ -1,6 +1,6 @@
 {
   "name": "@supernal/interface",
-  "version": "1.0.2",
+  "version": "1.0.3",
   "description": "Universal AI Interface - Make any application AI-controllable with decorators (Open Source Edition)",
   "main": "./dist/cjs/src/index.js",
   "module": "./dist/esm/src/index.js",
@@ -11,20 +11,10 @@
       "require": "./dist/cjs/src/index.js",
       "types": "./dist/esm/src/index.d.ts"
     },
-    "./browser": {
-      "import": "./dist/esm/src/browser.js",
-      "require": "./dist/cjs/src/browser.js",
-      "types": "./dist/esm/src/browser.d.ts"
-    },
-    "./react": {
-      "import": "./dist/esm/src/react/index.js",
-      "require": "./dist/cjs/src/react/index.js",
-      "types": "./dist/esm/src/react/index.d.ts"
-    },
-    "./testing": {
-      "import": "./dist/esm/src/testing/index.js",
-      "require": "./dist/cjs/src/testing/index.js",
-      "types": "./dist/esm/src/testing/index.d.ts"
+    "./mcp-server": {
+      "import": "./dist/esm/src/mcp-server.js",
+      "require": "./dist/cjs/src/mcp-server.js",
+      "types": "./dist/esm/src/mcp-server.d.ts"
     },
     "./browser": {
       "import": "./dist/esm/src/browser.js",
@@ -88,14 +78,16 @@
     "adapter-pattern",
     "typescript"
   ],
-  "author": "Supernal AI",
+  "author": "Supernal Intelligence",
   "license": "MIT",
   "publishConfig": {
     "access": "public"
   },
   "dependencies": {
+    "@ai-sdk/mcp": "^0.0.8",
     "@playwright/test": "^1.57.0",
-    "glob": "^13.0.0"
+    "glob": "^13.0.0",
+    "reflect-metadata": "^0.2.2"
   },
   "peerDependencies": {
     "react": ">=18.0.0",

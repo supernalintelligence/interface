@@ -23,6 +23,7 @@ import { ToolRegistry } from '../background/registry/ToolRegistry';
 import { ToolMetadata } from './Tool';
 import { ComponentRegistry } from '../background/registry/ComponentRegistry';
 import { isStatefulComponent } from '../interfaces/StatefulComponent';
+import { syncStateToDom, triggerStateChange } from '../state/StateSync';
 
 export interface ComponentConfig {
   /**
@@ -92,38 +93,20 @@ export function Component(config: ComponentConfig) {
                     `${config.description || componentName}.${toolMetadata.methodName}`,
       };
       
-      // Update the existing tool registered by @Tool (registered as ClassName.methodName)
-      // We update it IN PLACE rather than creating a new registration
-      const classBasedToolId = `${toolMetadata.providerClass || constructor.name}.${toolMetadata.methodName}`;
-      const existingTool = ToolRegistry.getTool(classBasedToolId);
-      
-      if (existingTool) {
-        // Merge ALL enhanced metadata into existing tool
-        Object.assign(existingTool, enhancedMetadata);
+      // Register tool with ToolRegistry
+      // This ensures tools are registered even if @Tool decorator failed
+      ToolRegistry.registerTool(constructor.name, toolMetadata.methodName, enhancedMetadata);
         
         console.log(
-          `📦 [Component] Enhanced: ${classBasedToolId} with component namespace '${componentName}'` +
-          (config.containerId ? ` (${config.containerId})` : '')
-        );
-      } else {
-        // Fallback: Register as new if class-based tool doesn't exist
-        ToolRegistry.registerTool(
-          componentName,           // Provider is component name
-          toolMetadata.methodName, // Method name
-          enhancedMetadata
-        );
-        
-        console.log(
-          `📦 [Component] Registered: ${componentName}.${toolMetadata.methodName}` +
-          (config.containerId ? ` (${config.containerId})` : '')
-        );
-      }
+        `📦 [Component] Enhanced: ${constructor.name}.${toolMetadata.methodName} ` +
+        `with component namespace '${componentName}' (${config.containerId || 'no container'})`
+      );
     });
     
     // Store component config on class
     (constructor as any).__componentConfig__ = config;
     
-    // Week 2: Auto-register stateful components
+    // Week 1: Auto-register stateful components with state sync
     if (config.stateful) {
       // Return wrapped constructor that registers instance on creation
       return class extends constructor {
@@ -132,7 +115,40 @@ export function Component(config: ComponentConfig) {
           
           // Check if instance implements StatefulComponent interface
           if (isStatefulComponent(this)) {
+            // Register with ComponentRegistry
             ComponentRegistry.registerInstance(componentName, this);
+            
+            // Intercept setState to auto-sync to DOM
+            const originalSetState = this.setState.bind(this);
+            
+            this.setState = function(state: any) {
+              // Call original setState
+              originalSetState(state);
+              
+              // Sync to DOM (write to data-state attribute)
+              syncStateToDom(componentName, this.getState());
+              
+              // Trigger event for test utilities
+              triggerStateChange(componentName, this.getState());
+            };
+            
+            // Intercept resetState as well
+            const originalResetState = this.resetState.bind(this);
+            
+            this.resetState = function() {
+              // Call original resetState
+              originalResetState();
+              
+              // Sync to DOM
+              syncStateToDom(componentName, this.getState());
+              
+              // Trigger event
+              triggerStateChange(componentName, this.getState());
+            };
+            
+            // Initial sync (write initial state to DOM)
+            syncStateToDom(componentName, this.getState());
+            
           } else {
             console.warn(
               `⚠️  Component '${componentName}' is marked as stateful but doesn't implement StatefulComponent interface`

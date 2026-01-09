@@ -2,24 +2,33 @@
  * useNavigationHandler - React Hook for Automatic Navigation Setup
  * 
  * Single-line hook that sets up navigation for any page.
- * Uses NavigationGraph to automatically resolve routes from container definitions.
+ * Now also tracks location in LocationContext for location-aware tools.
  * 
- * This eliminates the need for manual route maps in every page component.
+ * This hook:
+ * 1. Tracks current page/route in LocationContext
+ * 2. Sets up navigation handler in NavigationGraph
+ * 3. Updates location when route changes
  */
 
 import { useEffect } from 'react';
 import { NavigationGraph } from '../background/navigation/NavigationGraph';
+import { LocationContext } from '../background/location/LocationContext';
 
 /**
  * Set up automatic navigation handler for the current page
  * 
  * This hook:
- * 1. Gets routes from NavigationGraph (populated by container definitions)
- * 2. Creates a handler that resolves page names → routes
- * 3. Registers the handler with NavigationGraph
- * 4. Supports dynamic routes (e.g., "blog/post-slug")
+ * 1. Tracks current page/route in LocationContext for location-aware tools
+ * 2. Gets routes from NavigationGraph (populated by container definitions)
+ * 3. Creates a handler that resolves page names → routes
+ * 4. Registers the handler with NavigationGraph
+ * 5. Supports dynamic routes (e.g., "blog/post-slug")
  * 
- * @param router - Next.js router or any router with a `push` method
+ * @param router - Next.js router or any router with `push`, `pathname`, `route`
+ * @param options - Optional configuration
+ * @param options.components - Currently mounted component IDs
+ * @param options.elements - Currently visible element IDs
+ * @param options.metadata - Additional location metadata
  * 
  * @example
  * ```typescript
@@ -28,7 +37,8 @@ import { NavigationGraph } from '../background/navigation/NavigationGraph';
  * 
  * export default function MyPage() {
  *   const router = useRouter();
- *   useNavigationHandler(router); // ← ONE LINE!
+ *   // Track location automatically
+ *   useNavigationHandler(router);
  *   
  *   return <div>...</div>;
  * }
@@ -36,15 +46,41 @@ import { NavigationGraph } from '../background/navigation/NavigationGraph';
  * 
  * @example
  * ```typescript
- * // Without a router (uses window.location as fallback)
- * useNavigationHandler();
+ * // With component tracking
+ * useNavigationHandler(router, {
+ *   components: ['blog-header', 'blog-editor'],
+ *   metadata: { userRole: 'editor' }
+ * });
  * ```
  */
 export function useNavigationHandler(
-  router?: { push: (route: string) => any }
+  router?: { 
+    push: (route: string) => any;
+    pathname?: string;
+    route?: string;
+  },
+  options?: {
+    components?: string[];
+    elements?: string[];
+    metadata?: Record<string, any>;
+  }
 ): void {
   useEffect(() => {
     const graph = NavigationGraph.getInstance();
+    
+    // Update LocationContext with current page/route
+    if (router) {
+      const page = router.pathname || '/';
+      const route = router.route || router.pathname || '/';
+      
+      LocationContext.setCurrent({
+        page,
+        route,
+        components: options?.components,
+        elements: options?.elements,
+        metadata: options?.metadata
+      });
+    }
     
     const handler = (pageNameOrRoute: string | any) => {
       const pageName = typeof pageNameOrRoute === 'string' ? pageNameOrRoute : pageNameOrRoute?.name || pageNameOrRoute?.path;
@@ -69,6 +105,15 @@ export function useNavigationHandler(
           } else if (typeof window !== 'undefined') {
             window.location.href = routePath;
           }
+          
+          // Update location after navigation
+          LocationContext.setCurrent({
+            page: routePath,
+            route: routePath,
+            components: options?.components,
+            elements: options?.elements,
+            metadata: options?.metadata
+          });
         }
         return;
       }
@@ -83,6 +128,15 @@ export function useNavigationHandler(
       } else if (typeof window !== 'undefined') {
         window.location.href = routePath;
       }
+      
+      // Update location after navigation
+      LocationContext.setCurrent({
+        page: routePath,
+        route: routePath,
+        components: options?.components,
+        elements: options?.elements,
+        metadata: options?.metadata
+      });
     };
     
     graph.setNavigationHandler(handler);
@@ -91,6 +145,6 @@ export function useNavigationHandler(
       // Clean up handler on unmount
       graph.setNavigationHandler(() => {});
     };
-  }, [router]);
+  }, [router, options?.components, options?.elements, options?.metadata]);
 }
 

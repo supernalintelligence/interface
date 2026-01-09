@@ -1,5 +1,5 @@
 /**
- * Supernal AI Interface - Decorator System Exports
+ * Supernal Intelligence Interface - Decorator System Exports
  *
  * Enhanced decorators for automatic AI tool generation with safety controls.
  */

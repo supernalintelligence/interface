@@ -1,0 +1,33 @@
+{
+  "enabled": false,
+  "consent": {
+    "given": false,
+    "timestamp": null,
+    "version": "1.0"
+  },
+  "mode": "local",
+  "collection": {
+    "commands": true,
+    "rules": true,
+    "validation": true,
+    "performance": true,
+    "errors": true
+  },
+  "sync": {
+    "enabled": false,
+    "frequency": "daily",
+    "endpoint": "https://telemetry.supernal-coding.com/events",
+    "batchSize": 100
+  },
+  "privacy": {
+    "anonymizeFilePaths": true,
+    "anonymizeProjectInfo": true,
+    "includeSystemInfo": true,
+    "saltForHashing": "6befc31c31df5e5f41414415aada18d689a03470aedc7ac2ec1b47fa0bc14dc3"
+  },
+  "localLearning": {
+    "enabled": true,
+    "insightsEnabled": true,
+    "retentionDays": 90
+  }
+}

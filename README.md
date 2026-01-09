@@ -149,7 +149,7 @@ We welcome contributions! See [CONTRIBUTING.md](https://github.com/supernalintel
 
 ## License
 
-MIT © 2025 Supernal AI
+MIT © 2025 Supernal Intelligence
 
 See [LICENSE](LICENSE) for details.
 

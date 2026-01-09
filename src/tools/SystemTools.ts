@@ -176,7 +176,7 @@ export class SystemTools {
     
     return {
       message: [
-        'Welcome to the Supernal AI Interface!',
+        'Welcome to the Supernal Intelligence Interface!',
         '',
         'Available Commands:',
         '- SystemTools.help(): Get this help message',

@@ -172,6 +172,33 @@ export type {
   UniversalToolResult
 } from './background/registry/ToolRegistry';
 
+// MCP (Model Context Protocol) - NEW in v1.1.0
+// IMPORTANT: MCP is server-side only (Node.js)
+// Import from '@supernal/interface/mcp-server' in Node.js
+// DO NOT import MCP in browser bundles (uses readline, process.stdin)
+// Types only for browser usage:
+export type {
+  MCPServer,
+  MCPServerConfig,
+  MCPTransport,
+  MCPRequest,
+  MCPResponse,
+  MCPTool,
+  MCPToolsListResponse,
+  MCPToolCallRequest,
+  MCPToolCallResponse
+} from './mcp';
+
+// State Management - NEW in v1.1.0
+export {
+  syncStateToDom,
+  triggerStateChange,
+  getStateFromDom,
+  waitForState,
+  onStateChange,
+  type StateChangeEventDetail
+} from './state/StateSync';
+
 // Enterprise feature stubs (warn users, drive upgrade)
 export { NavigationGraph } from './background/navigation/NavigationGraph';
 export type { INavigationGraph } from './background/navigation/INavigationGraph';
@@ -179,7 +206,7 @@ export { RuntimeTreeBuilder } from './background/navigation/RuntimeTreeBuilder';
 export { TreeBuilder } from './background/navigation/RuntimeTreeBuilder';
 
 // Version info
-export const VERSION = '1.0.0';
+export const VERSION = '1.1.0'; // Updated for MCP + State Management
 export const PACKAGE_NAME = '@supernal/interface';
 
 // Enterprise features not included in open source

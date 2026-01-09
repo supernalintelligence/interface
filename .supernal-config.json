@@ -1,0 +1,67 @@
+{
+  "version": "1.0.0",
+  "equipmentPackId": "ep-1767722669648-czdcqs7sf",
+  "installedAt": "2026-01-06T18:04:29.648Z",
+  "installationDate": "2026-01-06T18:04:29.648Z",
+  "preset": "standard",
+  "projectType": {
+    "detected": "Web Frontend",
+    "confidence": 73.75
+  },
+  "installedFeatures": [
+    "coreSystem",
+    "gitManagement",
+    "kanbanSystem",
+    "mcpIntegration"
+  ],
+  "equipmentPack": {
+    "version": "1.0.0",
+    "components": {
+      "coreSystem": {
+        "cursorRules": [
+          "agent-on-board",
+          "agent-hand-off",
+          "avoid-anti-patterns",
+          "testing-strategy",
+          "self-improve"
+        ],
+        "directories": [
+          "kanban",
+          "requirements",
+          "tests/e2e",
+          "tests/requirements",
+          "supernal-code-package/lib/cli/commands",
+          "templates"
+        ],
+        "packages": [
+          "chalk",
+          "commander",
+          "fs-extra",
+          "inquirer",
+          "yaml",
+          "handlebars",
+          "js-yaml"
+        ]
+      },
+      "gitManagement": {
+        "cursorRules": [
+          "git-smart"
+        ]
+      },
+      "projectSpecific": {
+        "cursorRules": [
+          "react-patterns",
+          "component-architecture",
+          "frontend-performance",
+          "accessibility-guidelines"
+        ],
+        "packages": [
+          "eslint",
+          "prettier",
+          "jest",
+          "cypress"
+        ]
+      }
+    }
+  }
+}

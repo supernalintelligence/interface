@@ -846,4 +846,69 @@ export class ToolRegistry {
     
     return grouped;
   }
+  
+  /**
+   * Get tools filtered by current location
+   * 
+   * Uses LocationContext to filter tools based on their @LocationScope decorators.
+   * Returns only tools that are available at the current location.
+   * 
+   * @param location - Optional location to check against (defaults to LocationContext.getCurrent())
+   * @returns Array of tools available at the specified location
+   * 
+   * @example
+   * ```typescript
+   * // Get tools available at current location
+   * const tools = ToolRegistry.getToolsByLocation();
+   * 
+   * // Get tools for specific location
+   * const blogTools = ToolRegistry.getToolsByLocation({
+   *   page: '/blog',
+   *   components: ['blog-editor']
+   * });
+   * ```
+   */
+  static getToolsByLocation(location?: import('../location/LocationContext').AppLocation | null): ToolMetadata[] {
+    // Lazy import to avoid circular dependencies
+    const { LocationContext } = require('../location/LocationContext');
+    
+    const currentLocation = location !== undefined ? location : LocationContext.getCurrent();
+    
+    return Array.from(this.tools.values()).filter(tool => {
+      // If tool has no location scope, it's available everywhere (global)
+      if (!tool.locationScope) {
+        return true;
+      }
+      
+      // Use LocationContext to check if scope matches
+      return LocationContext.matchesScope(tool.locationScope, currentLocation);
+    });
+  }
+  
+  /**
+   * Get tools grouped by container, filtered by location
+   * 
+   * Combines location filtering with container grouping.
+   * 
+   * @param location - Optional location to filter by
+   * @returns Tools grouped by container, filtered by location
+   */
+  static getToolsGroupedByContainerForLocation(
+    location?: import('../location/LocationContext').AppLocation | null
+  ): Record<string, ToolMetadata[]> {
+    const tools = this.getToolsByLocation(location);
+    const grouped: Record<string, ToolMetadata[]> = {
+      global: [],
+    };
+    
+    for (const tool of tools) {
+      const container = tool.containerId || 'global';
+      if (!grouped[container]) {
+        grouped[container] = [];
+      }
+      grouped[container].push(tool);
+    }
+    
+    return grouped;
+  }
 }

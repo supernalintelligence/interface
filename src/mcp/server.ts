@@ -19,7 +19,7 @@
 
 import { ToolRegistry } from '../background/registry/ToolRegistry';
 import { ToolExecutor } from '../ai/ToolExecutor';
-import { NavigationGraph } from '../background/navigation/NavigationGraph';
+import { LocationContext } from '../background/location/LocationContext';
 import type { ToolMetadata } from '../decorators/Tool';
 import type {
   MCPServer,
@@ -159,34 +159,16 @@ export class SupernalMCPServer implements MCPServer {
   /**
    * Handle tools/list request
    * 
-   * Returns context-filtered tools based on NavigationGraph.getCurrentContext()
-   * - If context is 'global': show all tools
-   * - If context is specific (e.g., 'blog'): show tools for that context + global tools
+   * Returns location-filtered tools based on LocationContext.getCurrent()
+   * Uses @LocationScope decorators to determine tool availability
    */
   private handleToolsList(id?: string | number): MCPResponse {
-    const nav = NavigationGraph.getInstance();
-    const currentContext = nav.getCurrentContext();
-    
-    const toolsByContainer = ToolRegistry.getToolsGroupedByContainer();
+    const toolsByContainer = ToolRegistry.getToolsGroupedByContainerForLocation();
     const mcpTools: MCPTool[] = [];
 
     for (const [container, containerTools] of Object.entries(toolsByContainer)) {
       for (const tool of containerTools) {
-        // Check if tool should be visible in current context
-        const toolContext = nav.getToolContext(tool.name);
-        
-        // Include tool if:
-        // 1. Current context is 'global' (show all), OR
-        // 2. Tool has no context (it's global), OR
-        // 3. Tool's context matches current context
-        const isVisible = 
-          currentContext === 'global' ||
-          toolContext === null ||
-          toolContext === currentContext;
-        
-        if (isVisible) {
-          mcpTools.push(this.convertToMCPTool(container, tool));
-        }
+        mcpTools.push(this.convertToMCPTool(container, tool));
       }
     }
 

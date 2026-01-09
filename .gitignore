@@ -5,3 +5,37 @@ dist/
 *.log
 .DS_Store
 
+# ==============================================================================
+# Supernal Coding System Files
+# ==============================================================================
+
+# Local state (don't commit - contains absolute paths and local preferences)
+.supernal-coding/rules-state.json
+.supernal-coding/suggestions/
+.supernal-coding/last-upgrade-check.json
+.supernal-coding/health-cache.json
+.supernal-coding/traceability-matrix.json
+# .supernal-coding/workflow-state.json  # Could be committed for team progress tracking
+
+# WIP registry (local WIP state - Work-In-Progress tracking)
+.supernal/wip-registry.yaml
+.supernal/wip-registry.lock
+.supernal/wip-registry-history.log
+
+# Feature registry (optional - commit if using feature-based commits on shared repo)
+# .supernal/features.yaml
+
+# Test results storage (REQ-106) - Local results: Large, temporary, NOT in git
+.supernal/test-results/
+# .supernal/test-summary.json is TRACKED (contains no output, ~100 bytes/result)
+
+# Search index: Build artifact, NOT in git
+.supernal/search-index.json
+.supernal/search-index.json.tmp
+
+# Log buffers: Temporary, NOT in git
+.supernal/logs/
+
+# Experimental validation runs
+.supernal/experiments/
+

@@ -163,7 +163,7 @@ export const ChatBubble: React.FC<ChatBubbleProps> = ({
                   <div className="absolute -bottom-1 -right-1 w-3 h-3 sm:w-4 sm:h-4 bg-green-500 rounded-full border-2 border-white"></div>
                 </div>
                 <div>
-                  <h3 className="font-bold text-gray-900 text-sm sm:text-base">Supernal AI Interface</h3>
+                  <h3 className="font-bold text-gray-900 text-sm sm:text-base">Supernal Intelligence Interface</h3>
                   <p className="text-xs text-gray-600 hidden sm:block">
                     I'm a TOOL system AI can use to control this site
                   </p>

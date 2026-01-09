@@ -1,0 +1,133 @@
+project:
+  name: open-source
+  description: Project managed with Supernal Coding
+  version: 1.0.0
+docs:
+  root: docs
+  features: docs/features
+  requirements: docs/requirements
+  architecture: docs/architecture
+  planning: docs/planning
+  guides: docs/guides
+  compliance: docs/compliance
+  handoffs: docs/handoffs
+git:
+  signing:
+    enabled: false
+    agent_commits:
+      sign: false
+      key_source: registry
+    human_commits:
+      require_signature: false
+    agent_registry: .supernal/config/agents.yaml
+requirements:
+  path: docs/requirements
+  format: gherkin
+  id_prefix: REQ
+  categories:
+    - core
+    - infrastructure
+    - workflow
+    - compliance
+features:
+  path: docs/features
+  domains:
+    - ai-workflow-system
+    - compliance-framework
+    - developer-tooling
+    - integrations
+    - workflow-management
+compliance:
+  enabled: false
+  framework: null
+  evidence_path: docs/compliance/evidence
+cli:
+  verbose: false
+  colors: true
+  confirmDestructive: true
+testing:
+  framework: jest
+  coverageThreshold: 80
+  testPaths:
+    - tests
+    - __tests__
+monitor:
+  enabled: false
+  repos:
+    - path: .
+  pollInterval: 60000
+type_duplication:
+  enabled: true
+  scan_directories:
+    - src
+    - lib
+    - components
+    - tests
+  exclude_directories:
+    - node_modules
+    - dist
+    - build
+    - .next
+    - coverage
+  report_directory: reports/duplications
+  ignore_patterns:
+    - '*.generated.ts'
+    - '*.d.ts'
+    - database.types.ts
+  ignore_export_names:
+    - GET
+    - POST
+    - PUT
+    - DELETE
+    - PATCH
+    - dynamic
+    - revalidate
+    - runtime
+    - test
+    - describe
+    - it
+    - expect
+  pre_commit_hook: true
+  block_commits_on_duplications: true
+  allow_force_commits: true
+  ignore_auto_generated: true
+  analysis_timeout_seconds: 30
+  incremental_updates: true
+git_hooks:
+  enabled: true
+  hooks_dir: .git/hooks
+  pre_commit:
+    enabled: true
+    checks:
+      wip_registry_check:
+        enabled: true
+        block_on_untracked: true
+        threshold: 5
+        allow_bypass: true
+      lint:
+        enabled: true
+        allow_bypass: true
+      type_check:
+        enabled: true
+        allow_bypass: true
+  pre_push:
+    enabled: true
+    checks:
+      requirement_validation:
+        enabled: true
+        allow_bypass: true
+      test_suite:
+        enabled: true
+        skip_env: SC_SKIP_TESTS
+      branch_protection:
+        enabled: true
+        protected_branches:
+          - main
+          - master
+          - production
+        skip_env: SC_SKIP_BRANCH_PROTECTION
+  bypass_variables:
+    wip_registry: SC_SKIP_WIP_CHECK
+    lint: SC_SKIP_LINT
+    type_check: SC_SKIP_TYPE_CHECK
+    all_hooks: SC_SKIP_HOOKS

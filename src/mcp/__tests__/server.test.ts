@@ -63,17 +63,16 @@ class TestComponent {
 describe('MCP Server', () => {
   let server: SupernalMCPServer;
   let transport: MockTransport;
+  let testComponent: TestComponent;
+
+  beforeAll(() => {
+    // Register test component once (decorators run at module load)
+    testComponent = new TestComponent();
+    // Explicitly bind the instance to ensure methods are available
+    ToolRegistry.bindInstance(testComponent);
+  });
 
   beforeEach(() => {
-    // Clear registry using the global registry
-    const globalRegistry = (typeof global !== 'undefined' ? global : globalThis) as any;
-    if (globalRegistry.__SUPERNAL_TOOL_REGISTRY__) {
-      globalRegistry.__SUPERNAL_TOOL_REGISTRY__.clear();
-    }
-
-    // Register test component (triggers tool registration)
-    const instance = new TestComponent();
-
     // Create server
     server = createSupernalMCPServer({
       name: 'test-server',
@@ -81,14 +80,6 @@ describe('MCP Server', () => {
     });
 
     transport = new MockTransport();
-  });
-
-  afterEach(() => {
-    // Clean up using the global registry
-    const globalRegistry = (typeof global !== 'undefined' ? global : globalThis) as any;
-    if (globalRegistry.__SUPERNAL_TOOL_REGISTRY__) {
-      globalRegistry.__SUPERNAL_TOOL_REGISTRY__.clear();
-    }
   });
 
   describe('createSupernalMCPServer', () => {
@@ -135,9 +126,9 @@ describe('MCP Server', () => {
             version: '1.0.0'
           },
           capabilities: {
-            tools: true,
-            resources: false,
-            prompts: false
+            tools: {},
+            resources: {},
+            prompts: {}
           }
         });
       });
