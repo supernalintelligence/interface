@@ -25,10 +25,14 @@ export class NavigationGraph implements INavigationGraph {
   private static instance: NavigationGraph | null = null;
   private warned = false;
   
+  // Basic context tracking for location-aware tools
+  private currentContext: string | undefined;
+  private contextTools: Map<string, string> = new Map(); // toolId -> contextId
+  
   private warnOnce() {
     if (!this.warned && typeof console !== 'undefined') {
       console.warn(
-        '⚠️  NavigationGraph is an enterprise feature. ' +
+        '⚠️  Advanced NavigationGraph features are enterprise-only. ' +
         'Full runtime tracking available at https://supernal.ai/enterprise'
       );
       this.warned = true;
@@ -87,7 +91,10 @@ export class NavigationGraph implements INavigationGraph {
   }
   
   registerToolInContext(toolId: string, contextId?: string, extra?: unknown): void {
-    this.warnOnce();
+    // Basic implementation: store tool-to-context mapping
+    if (contextId) {
+      this.contextTools.set(toolId, contextId);
+    }
   }
   
   getRouteByName(name: string): RouteInfo | undefined {
@@ -96,7 +103,14 @@ export class NavigationGraph implements INavigationGraph {
   }
   
   setCurrentContext(contextId: string | RouteInfo): void {
-    this.warnOnce();
+    // Basic implementation: store current context
+    // Allow empty string to be set explicitly
+    if (typeof contextId === 'string') {
+      this.currentContext = contextId;
+    } else if (contextId && typeof contextId === 'object' && 'path' in contextId) {
+      // Extract context from RouteInfo
+      this.currentContext = contextId.path;
+    }
   }
   
   setNavigationHandler(handler: (path: string | RouteInfo) => void | Promise<void>): void {
@@ -124,8 +138,8 @@ export class NavigationGraph implements INavigationGraph {
   }
   
   getCurrentContext(): string {
-    this.warnOnce();
-    return 'global';
+    // Return current context or 'global' as default (matches interface requirement)
+    return this.currentContext !== undefined ? this.currentContext : 'global';
   }
   
   getAllContexts(): any[] {
@@ -139,8 +153,8 @@ export class NavigationGraph implements INavigationGraph {
   }
   
   getToolContext(toolId: string): string | null {
-    this.warnOnce();
-    return null;
+    // Return the context for a tool, or null if not registered (matches interface)
+    return this.contextTools.get(toolId) || null;
   }
   
   clear(): void {
