@@ -247,3 +247,122 @@ describe('Location-Aware MCP Server (Full System)', () => {
     });
   });
 });
+
+describe('Unified Scoping (containerId + LocationScope)', () => {
+  let server: SupernalMCPServer;
+
+  beforeEach(() => {
+    LocationContext.reset();
+    // Don't clear registry - use unique tool names to avoid conflicts
+    server = new SupernalMCPServer({
+      name: 'test-server',
+      version: '1.0.0'
+    });
+  });
+
+  afterEach(() => {
+    // Clean up only the tools we registered (by unique prefix)
+    const allTools = ToolRegistry.getAllTools();
+    for (const [toolId] of allTools) {
+      if (toolId.startsWith('UnifiedTest_')) {
+        // No unregister method, so we just leave them - they won't interfere
+        // since they have unique names
+      }
+    }
+  });
+
+  describe('containerId-based scoping', () => {
+    it('should filter tools by containerId matching current page', () => {
+      // Register tools with unique names to avoid conflicts with other test files
+      ToolRegistry.registerTool('UnifiedTest_Settings', 'changeTheme', {
+        name: 'ut_changeTheme',
+        description: 'Change app theme',
+        containerId: '/settings',
+        method: () => {},
+        aiEnabled: true
+      } as any);
+
+      ToolRegistry.registerTool('UnifiedTest_Settings', 'exportData', {
+        name: 'ut_exportData',
+        description: 'Export user data',
+        containerId: '/settings',
+        method: () => {},
+        aiEnabled: true
+      } as any);
+
+      // On /settings page - should see settings tools
+      LocationContext.setCurrent({ page: '/settings', route: '/settings' });
+      let tools = ToolRegistry.getToolsByLocation();
+      let toolNames = tools.map(t => t.name);
+      expect(toolNames).toContain('ut_changeTheme');
+      expect(toolNames).toContain('ut_exportData');
+
+      // On /blog page - should NOT see settings tools
+      LocationContext.setCurrent({ page: '/blog', route: '/blog' });
+      tools = ToolRegistry.getToolsByLocation();
+      toolNames = tools.map(t => t.name);
+      expect(toolNames).not.toContain('ut_changeTheme');
+      expect(toolNames).not.toContain('ut_exportData');
+    });
+
+    it('should match containerId with subpaths', () => {
+      ToolRegistry.registerTool('UnifiedTest_Examples', 'runExample', {
+        name: 'ut_runExample',
+        description: 'Run an example',
+        containerId: '/examples',
+        method: () => {},
+        aiEnabled: true
+      } as any);
+
+      // On /examples/counter - should see examples tools
+      LocationContext.setCurrent({ page: '/examples/counter', route: '/examples/counter' });
+      let tools = ToolRegistry.getToolsByLocation();
+      let toolNames = tools.map(t => t.name);
+      expect(toolNames).toContain('ut_runExample');
+
+      // On /examples - should also see examples tools
+      LocationContext.setCurrent({ page: '/examples', route: '/examples' });
+      tools = ToolRegistry.getToolsByLocation();
+      toolNames = tools.map(t => t.name);
+      expect(toolNames).toContain('ut_runExample');
+    });
+
+    it('should show global tools everywhere', () => {
+      ToolRegistry.registerTool('UnifiedTest_Navigation', 'goHome', {
+        name: 'ut_goHome',
+        description: 'Go to home',
+        containerId: 'global',
+        method: () => {},
+        aiEnabled: true
+      } as any);
+
+      // On any page, global tools should be visible
+      LocationContext.setCurrent({ page: '/random-page', route: '/random-page' });
+      let tools = ToolRegistry.getToolsByLocation();
+      let toolNames = tools.map(t => t.name);
+      expect(toolNames).toContain('ut_goHome');
+
+      // Even with no location set
+      LocationContext.reset();
+      tools = ToolRegistry.getToolsByLocation();
+      toolNames = tools.map(t => t.name);
+      expect(toolNames).toContain('ut_goHome');
+    });
+  });
+
+  describe('getToolsForContext convenience method', () => {
+    it('should return tools for a specific context', () => {
+      ToolRegistry.registerTool('UnifiedTest_Products', 'addToCart', {
+        name: 'ut_addToCart',
+        description: 'Add product to cart',
+        containerId: '/products',
+        method: () => {},
+        aiEnabled: true
+      } as any);
+
+      const tools = ToolRegistry.getToolsForContext('/products');
+      const toolNames = tools.map(t => t.name);
+      expect(toolNames).toContain('ut_addToCart');
+    });
+  });
+});

@@ -875,14 +875,34 @@ export class ToolRegistry {
     const currentLocation = location !== undefined ? location : LocationContext.getCurrent();
 
     return Array.from(this.tools.values()).filter(tool => {
-      // Only filter if tool has explicit locationScope
-      // containerId is for grouping, not filtering (backward compatible)
+      // Check 1: LocationScope decorator (rich matching)
       if (tool.locationScope) {
         return LocationContext.matchesScope(tool.locationScope, currentLocation);
       }
 
-      // Tools without locationScope are available everywhere (global)
-      // This maintains backward compatibility with existing tools that only have containerId
+      // Check 2: containerId-based scoping (unified with LocationScope)
+      if (tool.containerId) {
+        // Global container tools are always available
+        if (tool.containerId === 'global') return true;
+
+        // Only treat containerId as scoping if it looks like a route (starts with /)
+        // Non-route containerIds (like 'TestContainer') are for grouping only, not scoping
+        if (!tool.containerId.startsWith('/')) return true;
+
+        // No location set = global context, only global tools available
+        if (!currentLocation) return false;
+
+        // Match containerId against current page/route
+        const currentPage = currentLocation.page || currentLocation.route || '';
+
+        // Exact match or hierarchical match (e.g., containerId='/blog' matches page='/blog/post')
+        return currentPage === tool.containerId ||
+               currentPage.startsWith(tool.containerId + '/') ||
+               currentPage.startsWith('/' + tool.containerId) ||
+               currentPage === '/' + tool.containerId;
+      }
+
+      // No scope defined = available everywhere (global)
       return true;
     });
   }
