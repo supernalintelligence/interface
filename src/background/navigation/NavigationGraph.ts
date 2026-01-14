@@ -1,13 +1,24 @@
 /**
  * NavigationGraph - Enterprise Feature Stub
- * 
+ *
  * This is a stub implementation for the open source edition.
  * Full runtime navigation tracking available in @supernal/interface-enterprise.
- * 
+ *
+ * Context tracking is unified with LocationContext - NavigationGraph delegates
+ * to LocationContext for the single source of truth about current location.
+ *
  * Visit https://supernal.ai/enterprise for more information.
  */
 
 import { INavigationGraph, NavigationNode, RouteInfo, ContextData } from './INavigationGraph';
+
+// Type import to avoid circular deps at load time
+import type { AppLocation } from '../location/LocationContext';
+
+// Lazy getter for LocationContext to avoid circular dependency at module load
+function getLocationContext() {
+  return require('../location/LocationContext').LocationContext;
+}
 
 // Global singleton key to ensure cross-package singleton behavior
 const GLOBAL_SINGLETON_KEY = '__SUPERNAL_NAVIGATION_GRAPH__';
@@ -24,11 +35,16 @@ export { NavigationNode, RouteInfo, ContextData } from './INavigationGraph';
 export class NavigationGraph implements INavigationGraph {
   private static instance: NavigationGraph | null = null;
   private warned = false;
-  
+
   // Basic context tracking for location-aware tools
   private currentContext: string | undefined;
   private contextTools: Map<string, string> = new Map(); // toolId -> contextId
-  
+  private navigationHandler: ((path: string | RouteInfo) => void | Promise<void>) | null = null;
+
+  // Context change listeners
+  private contextListeners = new Set<(ctx: string) => void>();
+  private locationUnsubscribe: (() => void) | null = null;
+
   private warnOnce() {
     if (!this.warned && typeof console !== 'undefined') {
       console.warn(
@@ -38,21 +54,52 @@ export class NavigationGraph implements INavigationGraph {
       this.warned = true;
     }
   }
-  
+
+  /**
+   * Set up synchronization with LocationContext
+   * This ensures NavigationGraph stays in sync when LocationContext changes
+   */
+  private setupLocationSync(): void {
+    if (this.locationUnsubscribe) return; // Already set up
+
+    try {
+      const LocationContext = getLocationContext();
+      this.locationUnsubscribe = LocationContext.onLocationChange(
+        (old: AppLocation | null, newLoc: AppLocation) => {
+          const ctx = newLoc.page || 'global';
+          this.currentContext = ctx; // Keep in sync
+          this.contextListeners.forEach(fn => {
+            try {
+              fn(ctx);
+            } catch (e) {
+              console.error('[NavigationGraph] Context listener error:', e);
+            }
+          });
+        }
+      );
+    } catch (e) {
+      // LocationContext may not be available in all environments
+      console.warn('[NavigationGraph] Could not set up LocationContext sync:', e);
+    }
+  }
+
   static getInstance(): NavigationGraph {
     // Check global singleton first (browser environment)
     // If enterprise version already created a singleton, use that!
     if (typeof window !== 'undefined') {
       if (!window[GLOBAL_SINGLETON_KEY]) {
-        window[GLOBAL_SINGLETON_KEY] = new NavigationGraph();
+        const instance = new NavigationGraph();
+        window[GLOBAL_SINGLETON_KEY] = instance;
+        instance.setupLocationSync();
         console.log('🌍 [NavigationGraph] Created GLOBAL singleton instance (open-source stub)');
       }
       return window[GLOBAL_SINGLETON_KEY] as NavigationGraph;
     }
-    
+
     // Fallback to module-level singleton (Node.js/SSR environment)
     if (!this.instance) {
       this.instance = new NavigationGraph();
+      this.instance.setupLocationSync();
     }
     return this.instance;
   }
@@ -103,23 +150,74 @@ export class NavigationGraph implements INavigationGraph {
   }
   
   setCurrentContext(contextId: string | RouteInfo): void {
-    // Basic implementation: store current context
-    // Allow empty string to be set explicitly
+    // Extract context ID from string or RouteInfo
+    let id: string;
     if (typeof contextId === 'string') {
-      this.currentContext = contextId;
-    } else if (contextId && typeof contextId === 'object' && 'path' in contextId) {
-      // Extract context from RouteInfo
-      this.currentContext = contextId.path;
+      id = contextId;
+    } else if (contextId && typeof contextId === 'object' && 'path' in contextId && contextId.path) {
+      id = contextId.path;
+    } else {
+      id = 'global';
     }
+
+    // Update LocationContext (single source of truth)
+    try {
+      const LocationContext = getLocationContext();
+      LocationContext.setCurrent({
+        page: id,
+        route: id,
+      });
+    } catch (e) {
+      // LocationContext may not be available in all environments
+    }
+
+    // Keep local state for backward compat (redundant but safe)
+    this.currentContext = id;
+
+    // Notify listeners
+    this.contextListeners.forEach(fn => {
+      try {
+        fn(id);
+      } catch (e) {
+        console.error('[NavigationGraph] Context listener error:', e);
+      }
+    });
+  }
+
+  /**
+   * Subscribe to context changes
+   * @param fn Callback invoked when context changes
+   * @returns Unsubscribe function
+   */
+  onContextChange(fn: (ctx: string) => void): () => void {
+    this.contextListeners.add(fn);
+    return () => this.contextListeners.delete(fn);
   }
   
   setNavigationHandler(handler: (path: string | RouteInfo) => void | Promise<void>): void {
-    this.warnOnce();
+    this.navigationHandler = handler;
   }
   
   getNavigationHandler(): ((pageName: string) => void | Promise<void>) | null {
-    this.warnOnce();
-    return null;
+    return this.navigationHandler;
+  }
+  
+  /**
+   * Navigate to a path using the registered navigation handler
+   * This is the method tools should call to trigger navigation
+   */
+  navigate(path: string | RouteInfo): void {
+    if (this.navigationHandler) {
+      const result = this.navigationHandler(path);
+      // Handle async handlers
+      if (result && typeof result.then === 'function') {
+        result.catch((error: any) => {
+          console.error('[NavigationGraph] Navigation failed:', error);
+        });
+      }
+    } else {
+      console.warn('[NavigationGraph] No navigation handler registered. Call setNavigationHandler() first.');
+    }
   }
   
   async navigateToContext(contextId: string): Promise<boolean> {
@@ -138,7 +236,18 @@ export class NavigationGraph implements INavigationGraph {
   }
   
   getCurrentContext(): string {
-    // Return current context or 'global' as default (matches interface requirement)
+    // Read from LocationContext as authoritative source
+    try {
+      const LocationContext = getLocationContext();
+      const location = LocationContext.getCurrent();
+      if (location?.page) {
+        return location.page;
+      }
+    } catch (e) {
+      // LocationContext may not be available in all environments
+    }
+
+    // Fallback to local state or 'global' as default
     return this.currentContext !== undefined ? this.currentContext : 'global';
   }
   

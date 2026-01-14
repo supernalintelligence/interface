@@ -56,6 +56,7 @@ export interface INavigationGraph {
   getToolContext?(toolId: string): string | null;
   
   // Navigation
+  navigate?(path: string | RouteInfo): void;
   navigateToContext?(contextId: string): Promise<boolean>;
   
   // Tree tracking (open-source stubs only)

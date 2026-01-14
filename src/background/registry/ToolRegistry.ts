@@ -871,18 +871,44 @@ export class ToolRegistry {
   static getToolsByLocation(location?: import('../location/LocationContext').AppLocation | null): ToolMetadata[] {
     // Lazy import to avoid circular dependencies
     const { LocationContext } = require('../location/LocationContext');
-    
+
     const currentLocation = location !== undefined ? location : LocationContext.getCurrent();
-    
+
     return Array.from(this.tools.values()).filter(tool => {
-      // If tool has no location scope, it's available everywhere (global)
-      if (!tool.locationScope) {
-        return true;
+      // Only filter if tool has explicit locationScope
+      // containerId is for grouping, not filtering (backward compatible)
+      if (tool.locationScope) {
+        return LocationContext.matchesScope(tool.locationScope, currentLocation);
       }
-      
-      // Use LocationContext to check if scope matches
-      return LocationContext.matchesScope(tool.locationScope, currentLocation);
+
+      // Tools without locationScope are available everywhere (global)
+      // This maintains backward compatibility with existing tools that only have containerId
+      return true;
     });
+  }
+
+  /**
+   * Get tools for a specific context ID
+   *
+   * Convenience method that wraps getToolsByLocation with a simple context string.
+   *
+   * @param contextId - Context ID (e.g., '/blog', '/examples')
+   * @returns Tools available in that context
+   */
+  static getToolsForContext(contextId: string): ToolMetadata[] {
+    return this.getToolsByLocation({ page: contextId, route: contextId });
+  }
+
+  /**
+   * Get tools for the current context
+   *
+   * Reads current location from LocationContext and returns matching tools.
+   *
+   * @returns Tools available at current location
+   */
+  static getToolsForCurrentContext(): ToolMetadata[] {
+    const { LocationContext } = require('../location/LocationContext');
+    return this.getToolsByLocation(LocationContext.getCurrent());
   }
   
   /**

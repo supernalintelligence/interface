@@ -1,8 +1,12 @@
 import { NavigationGraph } from '../NavigationGraph';
 import { ToolRegistry } from '../../registry/ToolRegistry';
+import { LocationContext } from '../../location/LocationContext';
 
 describe('NavigationGraph (Open-Source)', () => {
   beforeEach(() => {
+    // Reset LocationContext first (single source of truth)
+    LocationContext.reset();
+
     // Reset singleton state
     const instance = NavigationGraph.getInstance();
     (instance as any).currentContext = undefined;

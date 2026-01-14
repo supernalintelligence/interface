@@ -39,6 +39,12 @@ export { NavigationGraph } from './background/navigation/NavigationGraph';
 export { TreeBuilder } from './background/navigation/RuntimeTreeBuilder';
 export type { RuntimeTreeBuilder } from './background/navigation/RuntimeTreeBuilder';
 export { useComponentTracking } from './background/navigation/useComponentTracking';
+export type {
+  ContentResolver,
+  ContentDisplayInfo,
+  ContentNavigationResult,
+  NavigationContextMetadata,
+} from './background/navigation/ContentResolver';
 
 // Types (browser-safe)
 export * from './types';
