@@ -18,11 +18,23 @@ function getToolRegistry(): typeof ToolRegistryType {
   return ToolRegistryRef!;
 }
 
+/**
+ * ContainerScope constant for use in ToolProviderConfig.containerId
+ * - 'global': Tool available on all pages (default)
+ * - Route path (e.g., '/examples'): Tool scoped to that route and sub-routes
+ */
+export const CONTAINER_SCOPE_GLOBAL = 'global' as const;
+
 export interface ToolProviderConfig {
   name?: string; // Provider name (defaults to class name)
   description?: string; // Human-readable description of this provider
   category?: string; // Default category for all tools
-  containerId?: string; // NEW: Default container/modal context
+  /**
+   * Container/context scoping for tools
+   * - 'global' (default): Available on all pages
+   * - Route path (e.g., '/examples'): Scoped to that route and sub-routes
+   */
+  containerId?: string;
   aiEnabled?: boolean; // Default AI enablement
   dangerLevel?: 'safe' | 'moderate' | 'dangerous' | 'destructive';
   requiresApproval?: boolean; // Default approval requirement
@@ -77,7 +89,12 @@ export function ToolProvider(
     const config: ToolProviderConfig = typeof configOrContainerId === 'string'
       ? { containerId: configOrContainerId }
       : configOrContainerId;
-    
+
+    // Default containerId to 'global' if not specified
+    if (!config.containerId) {
+      config.containerId = CONTAINER_SCOPE_GLOBAL;
+    }
+
     // Store provider config on the class
     (constructor as any).__toolProvider__ = {
       name: constructor.name,

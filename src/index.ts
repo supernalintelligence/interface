@@ -16,7 +16,11 @@ export {
   ToolProviderConfig,
   getToolProviderConfig,
   isToolProvider,
+  CONTAINER_SCOPE_GLOBAL,
 } from './decorators/ToolProvider';
+
+// Container scope constants
+export { ContainerScope, ContainerScopeType } from './decorators';
 export { 
   ClickTool, 
   ChangeTool, 
