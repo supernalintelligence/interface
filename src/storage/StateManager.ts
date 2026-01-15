@@ -14,13 +14,13 @@
  * ```typescript
  * // Browser
  * const state = StateManager.getInstance(
- *   StateManagers.SupernalCoreV1,
+ *   StateManagers.CoreV1,
  *   new LocalStorageAdapter()
  * );
  * 
  * // Chrome Extension MV3
  * const state = StateManager.getInstance(
- *   StateManagers.SupernalCoreV1,
+ *   StateManagers.CoreV1,
  *   new ChromeStorageAdapter()
  * );
  * 

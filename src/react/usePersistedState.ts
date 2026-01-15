@@ -22,7 +22,7 @@ let browserStateManager: StateManager | null = null;
 function getBrowserStateManager(): StateManager {
   if (!browserStateManager && typeof window !== 'undefined') {
     browserStateManager = StateManager.getInstance(
-      StateManagers.SupernalCoreV1,
+      StateManagers.CoreV1,
       new LocalStorageAdapter()
     );
   }

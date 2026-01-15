@@ -20,7 +20,7 @@ export interface StorageAdapter {
 export class LocalStorageAdapter implements StorageAdapter {
   private prefix: string;
 
-  constructor(prefix: string = 'supernal_') {
+  constructor(prefix: string = 'app_') {
     this.prefix = prefix;
   }
 
