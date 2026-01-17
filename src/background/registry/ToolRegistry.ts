@@ -236,18 +236,42 @@ export class ToolRegistry {
     
     const queryLower = query.toLowerCase();
     console.log(`🔍 [ToolRegistry] Scoped search: "${query}" (container: ${currentContainer || 'none'})`);
-    
+
     const allTools = Array.from(this.tools.values());
-    
+
+    // DEBUG: Log all tools with their containerIds
+    console.log(`🔍 [ToolRegistry] Total tools in registry: ${allTools.length}`);
+    console.log(`🔍 [ToolRegistry] currentContainer = "${currentContainer}"`);
+
+    if (currentContainer) {
+      const toolsForContainer = allTools.filter(t => t.containerId === currentContainer);
+      console.log(`🔍 [ToolRegistry] Tools with containerId="${currentContainer}":`, toolsForContainer.map(t => ({ name: t.name, examples: t.examples?.slice(0, 2) })));
+
+      // DEBUG: Show ALL containerIds in registry
+      const allContainerIds = new Set(allTools.map(t => t.containerId).filter(Boolean));
+      console.log(`🔍 [ToolRegistry] All unique containerIds in registry:`, Array.from(allContainerIds));
+    }
+
     // Search in tool metadata (including component names)
     const matches = allTools.filter(tool => {
+      const examplePatterns = (tool.examples || [])
+        .filter(Boolean)
+        .map(ex => ex.toLowerCase().replace(/\{[^}]+\}/g, '').trim())
+        .filter(Boolean);
+
+      const startsWithPattern = examplePatterns.some(pattern => queryLower.startsWith(pattern));
+      if (startsWithPattern) {
+        console.log(`  ✓ [ToolRegistry] Tool matched: ${tool.name} (container: ${tool.containerId || 'none'})`);
+        return true;
+      }
+
       const searchFields = [
         tool.name,
         tool.description,
         tool.componentName,
         tool.methodName,
         tool.category,
-        ...(tool.examples || []),
+        ...examplePatterns,
         ...(tool.keywords || []),
       ]
         .filter(Boolean)
@@ -265,13 +289,20 @@ export class ToolRegistry {
     // Split into local (current container) and global (no container or different)
     const local = matches.filter(t => t.containerId === currentContainer);
     const global = matches.filter(t => !t.containerId || t.containerId !== currentContainer);
-    
+
     console.log(
       `📊 [ToolRegistry] Found: ${local.length} local, ${global.length} global`
     );
-    
-    // Prioritize local over global
-    return [...local, ...global];
+
+    // LOCAL OVERRIDE: If any local tools match, ONLY return local tools
+    // This implements lexical scoping: local shadows global
+    if (local.length > 0) {
+      console.log(`🎯 [ToolRegistry] Local tools found - shadowing ${global.length} global tools`);
+      return local;
+    }
+
+    // Fallback to global if no local matches
+    return global;
   }
   
   /**
