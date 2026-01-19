@@ -49,6 +49,10 @@ export type {
 // Types (browser-safe)
 export * from './types';
 
+// Component Names (browser-safe)
+export { createNames, getComponentIds, isComponentId } from './names/createNames';
+export type { ComponentId } from './names/createNames';
+
 // Execution (browser-safe)
 export { DOMExecutor } from './execution/DOMExecutor';
 
