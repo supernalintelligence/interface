@@ -37,8 +37,8 @@ export const ChatBubble: React.FC<ChatBubbleProps> = ({
 }) => {
   // Get messages and actions from context
   const { messages, sendMessage, clearMessages } = useChatContext();
-  // Initialize with default value (true) for both server and client to prevent hydration mismatch
-  const [isExpanded, setIsExpanded] = useState(true);
+  // Initialize with default value (false) - chat should start minimized
+  const [isExpanded, setIsExpanded] = useState(false);
   const [inputValue, setInputValue] = useState('');
   const [lastReadMessageCount, setLastReadMessageCount] = useState(0);
   const [showWelcome, setShowWelcome] = useState(true); // Always start true to prevent hydration mismatch
