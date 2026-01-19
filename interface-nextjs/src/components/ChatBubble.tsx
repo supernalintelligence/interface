@@ -1,6 +1,8 @@
+'use client';
+
 /**
  * Persistent Chat Bubble Component
- * 
+ *
  * Fixed position chat bubble in lower right corner that:
  * - Appears on every page
  * - Expands/collapses without blocking content

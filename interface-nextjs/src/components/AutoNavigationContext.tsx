@@ -1,7 +1,6 @@
 'use client';
 
-import React, { useEffect } from 'react';
-import { usePathname } from 'next/navigation';
+import React, { useEffect, useState } from 'react';
 import { NavigationContextProvider } from '../hooks/useNavigationGraph';
 
 export interface AutoNavigationContextProps {
@@ -15,7 +14,14 @@ export function AutoNavigationContext({
   routes,
   onNavigate,
 }: AutoNavigationContextProps) {
-  const pathname = usePathname();
+  // Get pathname - works in both App Router and Pages Router
+  const [pathname, setPathname] = useState('/');
+
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      setPathname(window.location.pathname);
+    }
+  }, []);
 
   // Auto-detect context from pathname
   const context = inferContextFromPath(pathname, routes);

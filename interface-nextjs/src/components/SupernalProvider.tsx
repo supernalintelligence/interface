@@ -38,18 +38,22 @@ export function SupernalProvider({
   onNavigate,
   onToolExecute,
 }: SupernalProviderProps) {
+  const shouldRenderChatBubble = !disabled;
+  console.log('[SupernalProvider] disabled:', disabled, 'type:', typeof disabled);
+  console.log('[SupernalProvider] shouldRenderChatBubble:', shouldRenderChatBubble);
+
   return (
     <ChatInputProvider>
       <ChatProvider mode={mode} apiKey={apiKey} onToolExecute={onToolExecute}>
         <AutoNavigationContext routes={routes} onNavigate={onNavigate}>
           {children}
-          {!disabled && (
+          {shouldRenderChatBubble ? (
             <ChatBubble
               theme={theme}
               position={position}
               welcomeMessage={welcomeMessage}
             />
-          )}
+          ) : null}
         </AutoNavigationContext>
       </ChatProvider>
     </ChatInputProvider>
