@@ -47,14 +47,15 @@ export function SupernalProvider({
       <ChatProvider mode={mode} apiKey={apiKey} onToolExecute={onToolExecute}>
         <AutoNavigationContext routes={routes} onNavigate={onNavigate}>
           {children}
-          {shouldRenderChatBubble ? (
-            <ChatBubble
-              theme={theme}
-              position={position}
-              welcomeMessage={welcomeMessage}
-            />
-          ) : null}
         </AutoNavigationContext>
+        {/* Render ChatBubble OUTSIDE AutoNavigationContext, after all children */}
+        {shouldRenderChatBubble ? (
+          <ChatBubble
+            theme={theme}
+            position={position}
+            welcomeMessage={welcomeMessage}
+          />
+        ) : null}
       </ChatProvider>
     </ChatInputProvider>
   );
