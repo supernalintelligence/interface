@@ -153,7 +153,7 @@ export const ChatBubble: React.FC<ChatBubbleProps> = ({
   return (
     <>
       {/* Chat Bubble */}
-      <div className="fixed bottom-4 right-4 sm:bottom-6 sm:right-6 z-50">
+      <div className="fixed bottom-4 right-4 sm:bottom-6 sm:right-6 z-[9999]">
         {/* Expanded Chat Panel - Responsive sizing */}
         {isExpanded && (
           <div className="absolute bottom-16 right-0 w-[calc(100vw-2rem)] sm:w-[500px] lg:w-[600px] h-[calc(100vh-10rem)] sm:h-[min(600px,calc(100vh-6rem))] lg:h-[min(700px,calc(100vh-6rem))] bg-white rounded-lg shadow-2xl border border-gray-200 flex flex-col">
