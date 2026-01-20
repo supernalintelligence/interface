@@ -83,11 +83,14 @@ export class AIInterface {
     // Use the context set by useContainer() hook, NOT route inference
     // This ensures the context matches what the page component registered
     const graph = NavigationGraph.getInstance();
-    const currentContainer = graph.getCurrentContext() || 'unknown';
+    const currentContextId = graph.getCurrentContext() || 'unknown';
+
+    // Get route for tool filtering (tools are scoped by route, not context ID)
+    const currentRoute = graph.getCurrentRoute?.() || currentContextId;
 
     return {
-      currentContainer,
-      currentPage: currentContainer
+      currentContainer: currentRoute, // Use route for tool filtering
+      currentPage: currentContextId   // Keep context ID for display
     };
   }
 
@@ -119,6 +122,7 @@ export class AIInterface {
     );
 
     console.log(`📦 [AI] Scoped tools: ${scopedTools.length}, Global tools: ${globalTools.length}, Navigation tools: ${navigationTools.length}`);
+    console.log(`📦 [AI] Navigation tools available:`, navigationTools.map(t => `${t.name} (containerId: ${t.containerId || 'GLOBAL'}, examples: ${(t as any).examples?.slice(0, 2).join(', ') || 'none'})`));
 
     // Combine: scoped first, then global, then navigation
     const contextTools = [...scopedTools, ...globalTools, ...navigationTools];

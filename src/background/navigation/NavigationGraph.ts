@@ -250,6 +250,14 @@ export class NavigationGraph implements INavigationGraph {
     // Fallback to local state or 'global' as default
     return this.currentContext !== undefined ? this.currentContext : 'global';
   }
+
+  /**
+   * Get current route (stub implementation - returns same as context)
+   * Enterprise version will return the actual route path
+   */
+  getCurrentRoute(): string | undefined {
+    return this.getCurrentContext();
+  }
   
   getAllContexts(): any[] {
     this.warnOnce();

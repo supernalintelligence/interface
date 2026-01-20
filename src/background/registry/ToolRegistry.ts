@@ -13,6 +13,8 @@
 
 import { ToolMetadata } from '../../decorators/Tool';
 
+const DEBUG=false
+
 // Execution context types
 export interface UniversalExecutionContext {
   toolId: string;
@@ -57,7 +59,7 @@ export class ToolRegistry {
     this.tools.set(toolId, metadata);
 
     if (typeof process !== 'undefined' && process.env?.NODE_ENV !== 'test') {
-      console.log(
+      DEBUG && console.log(
         `🔧 Registered Tool: ${metadata.name} (${metadata.toolType}, AI: ${metadata.aiEnabled})`
       );
     }
@@ -145,7 +147,7 @@ export class ToolRegistry {
    */
   static bindInstance(instance: any): void {
     const className = instance.constructor.name;
-    console.log(`🔗 [ToolRegistry] Binding instance for: ${className}`);
+    DEBUG && console.log(`🔗 [ToolRegistry] Binding instance for: ${className}`);
     
     let boundCount = 0;
     
@@ -160,12 +162,12 @@ export class ToolRegistry {
           tool.method = instance[methodName].bind(instance);
           tool.instance = instance;
           boundCount++;
-          console.log(`  ✓ Bound ${className}.${methodName}`);
+          DEBUG && console.log(`  ✓ Bound ${className}.${methodName}`);
         }
       }
     }
     
-    console.log(`🔗 [ToolRegistry] Bound ${boundCount} methods for ${className}`);
+    DEBUG && console.log(`🔗 [ToolRegistry] Bound ${boundCount} methods for ${className}`);
   }
 
   /**
@@ -199,8 +201,8 @@ export class ToolRegistry {
     }
     const queryLower = query.toLowerCase();
 
-    console.log(`🔍 [ToolRegistry.searchTools] Searching for: "${queryLower}"`);
-    console.log(`🔍 [ToolRegistry.searchTools] Total tools in registry: ${this.tools.size}`);
+    DEBUG && console.log(`🔍 [ToolRegistry.searchTools] Searching for: "${queryLower}"`);
+    DEBUG && console.log(`🔍 [ToolRegistry.searchTools] Total tools in registry: ${this.tools.size}`);
 
     return Array.from(this.tools.values()).filter((tool) => {
       const searchFields = [
@@ -235,21 +237,21 @@ export class ToolRegistry {
     }
     
     const queryLower = query.toLowerCase();
-    console.log(`🔍 [ToolRegistry] Scoped search: "${query}" (container: ${currentContainer || 'none'})`);
+    DEBUG && console.log(`🔍 [ToolRegistry] Scoped search: "${query}" (container: ${currentContainer || 'none'})`);
 
     const allTools = Array.from(this.tools.values());
 
     // DEBUG: Log all tools with their containerIds
-    console.log(`🔍 [ToolRegistry] Total tools in registry: ${allTools.length}`);
-    console.log(`🔍 [ToolRegistry] currentContainer = "${currentContainer}"`);
+    DEBUG && console.log(`🔍 [ToolRegistry] Total tools in registry: ${allTools.length}`);
+    DEBUG && console.log(`🔍 [ToolRegistry] currentContainer = "${currentContainer}"`);
 
     if (currentContainer) {
       const toolsForContainer = allTools.filter(t => t.containerId === currentContainer);
-      console.log(`🔍 [ToolRegistry] Tools with containerId="${currentContainer}":`, toolsForContainer.map(t => ({ name: t.name, examples: t.examples?.slice(0, 2) })));
+      DEBUG && console.log(`🔍 [ToolRegistry] Tools with containerId="${currentContainer}":`, toolsForContainer.map(t => ({ name: t.name, examples: t.examples?.slice(0, 2) })));
 
       // DEBUG: Show ALL containerIds in registry
       const allContainerIds = new Set(allTools.map(t => t.containerId).filter(Boolean));
-      console.log(`🔍 [ToolRegistry] All unique containerIds in registry:`, Array.from(allContainerIds));
+      DEBUG && console.log(`🔍 [ToolRegistry] All unique containerIds in registry:`, Array.from(allContainerIds));
     }
 
     // Search in tool metadata (including component names)
@@ -261,7 +263,7 @@ export class ToolRegistry {
 
       const startsWithPattern = examplePatterns.some(pattern => queryLower.startsWith(pattern));
       if (startsWithPattern) {
-        console.log(`  ✓ [ToolRegistry] Tool matched: ${tool.name} (container: ${tool.containerId || 'none'})`);
+        DEBUG && console.log(`  ✓ [ToolRegistry] Tool matched: ${tool.name} (container: ${tool.containerId || 'none'})`);
         return true;
       }
 
@@ -290,14 +292,14 @@ export class ToolRegistry {
     const local = matches.filter(t => t.containerId === currentContainer);
     const global = matches.filter(t => !t.containerId || t.containerId !== currentContainer);
 
-    console.log(
+    DEBUG && console.log(
       `📊 [ToolRegistry] Found: ${local.length} local, ${global.length} global`
     );
 
     // LOCAL OVERRIDE: If any local tools match, ONLY return local tools
     // This implements lexical scoping: local shadows global
     if (local.length > 0) {
-      console.log(`🎯 [ToolRegistry] Local tools found - shadowing ${global.length} global tools`);
+      DEBUG && console.log(`🎯 [ToolRegistry] Local tools found - shadowing ${global.length} global tools`);
       return local;
     }
 
@@ -809,7 +811,7 @@ export class ToolRegistry {
    */
   static clear(): void {
     this.tools.clear();
-    console.log('🧹 ToolRegistry: Cleared all tools');
+    DEBUG && console.log('🧹 ToolRegistry: Cleared all tools');
   }
 
   /**

@@ -183,18 +183,20 @@ class FuzzyMatcher implements MatcherStrategy {
   async match(query: string, tools: ToolMetadata[]): Promise<ToolMatch[]> {
     const lowerQuery = query.toLowerCase().trim();
     const matches: ToolMatch[] = [];
-    
+
+    console.log(`[FuzzyMatcher] Matching query: "${query}" against ${tools.length} tools`);
+
     for (const tool of tools) {
       let bestScore = 0;
       let bestMatch = '';
-      
+
       // Check tool name similarity
       const nameScore = this.similarity(lowerQuery, tool.name.toLowerCase());
       if (nameScore > bestScore) {
         bestScore = nameScore;
         bestMatch = tool.name;
       }
-      
+
       // Check examples similarity
       const examples = (tool as any).examples || [];
       for (const example of examples) {
@@ -203,6 +205,9 @@ class FuzzyMatcher implements MatcherStrategy {
 
         // Check if query matches the pattern without the placeholder
         const exampleScore = this.similarity(lowerQuery, exampleNormalized);
+        if (exampleScore > 0.5) {
+          console.log(`[FuzzyMatcher] Similarity match! Tool: ${tool.name}, Example: "${example}", Normalized: "${exampleNormalized}", Score: ${exampleScore.toFixed(3)}`);
+        }
         if (exampleScore > bestScore) {
           bestScore = exampleScore;
           bestMatch = example;
@@ -222,6 +227,7 @@ class FuzzyMatcher implements MatcherStrategy {
           if (matchesPattern) {
             // Boost score for parameter-based patterns
             const paramScore = 0.85 + (patternWords.length / queryWords.length * 0.10);
+            console.log(`[FuzzyMatcher] Pattern match! Tool: ${tool.name}, Example: "${example}", Pattern words: [${patternWords.join(', ')}], Query words: [${queryWords.join(', ')}], Score: ${paramScore}`);
             if (paramScore > bestScore) {
               bestScore = paramScore;
               bestMatch = `${example} (pattern match with parameter)`;
@@ -242,6 +248,7 @@ class FuzzyMatcher implements MatcherStrategy {
       
       // Only include if confidence > 50%
       if (bestScore > 0.5) {
+        console.log(`[FuzzyMatcher] ✓ Match found! Tool: ${tool.name}, Score: ${Math.round(bestScore * 100)}%, Reason: ${bestMatch}, ContainerId: ${tool.containerId || 'GLOBAL'}`);
         matches.push({
           tool,
           confidence: Math.round(bestScore * 100),
