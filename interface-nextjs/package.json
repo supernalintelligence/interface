@@ -1,6 +1,6 @@
 {
   "name": "@supernal/interface-nextjs",
-  "version": "0.1.0-alpha.1",
+  "version": "0.1.0",
   "description": "Next.js integration for Supernal Intelligence Interface - enables agentic UX with one line of code",
   "main": "./dist/index.js",
   "module": "./dist/index.mjs",
@@ -45,5 +45,17 @@
     "ux"
   ],
   "author": "Supernal Intelligence",
-  "license": "MIT"
+  "license": "MIT",
+  "publishConfig": {
+    "access": "public"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/supernalintelligence/supernal-interface.git",
+    "directory": "packages/interface-nextjs"
+  },
+  "homepage": "https://supernal.ai",
+  "bugs": {
+    "url": "https://github.com/supernalintelligence/supernal-interface/issues"
+  }
 }
