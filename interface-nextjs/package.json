@@ -1,6 +1,6 @@
 {
   "name": "@supernal/interface-nextjs",
-  "version": "0.1.1",
+  "version": "1.0.8",
   "description": "Next.js integration for Supernal Intelligence Interface - enables agentic UX with one line of code",
   "main": "./dist/index.js",
   "module": "./dist/index.mjs",
