@@ -46,6 +46,9 @@ export type {
   NavigationContextMetadata,
 } from './background/navigation/ContentResolver';
 
+// Location context (needed by NavigationGraph)
+export { LocationContext } from './background/location/LocationContext';
+
 // Types (browser-safe)
 export * from './types';
 
