@@ -208,6 +208,7 @@ export { NavigationGraph } from './background/navigation/NavigationGraph';
 export type { INavigationGraph } from './background/navigation/INavigationGraph';
 export { RuntimeTreeBuilder } from './background/navigation/RuntimeTreeBuilder';
 export { TreeBuilder } from './background/navigation/RuntimeTreeBuilder';
+export { LocationContext } from './background/location/LocationContext';
 
 // Version info
 export const VERSION = '1.1.0'; // Updated for MCP + State Management
