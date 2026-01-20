@@ -1,55 +1,55 @@
 {
   "name": "@supernal/interface",
-  "version": "1.0.7",
+  "version": "1.0.8",
   "description": "Universal AI Interface - Make any application AI-controllable with decorators (Open Source Edition)",
   "main": "./dist/cjs/src/index.js",
   "module": "./dist/esm/src/index.js",
   "types": "./dist/esm/src/index.d.ts",
   "exports": {
     ".": {
+      "types": "./dist/esm/src/index.d.ts",
       "import": "./dist/esm/src/index.js",
-      "require": "./dist/cjs/src/index.js",
-      "types": "./dist/esm/src/index.d.ts"
+      "require": "./dist/cjs/src/index.js"
     },
     "./mcp-server": {
+      "types": "./dist/esm/src/mcp-server.d.ts",
       "import": "./dist/esm/src/mcp-server.js",
-      "require": "./dist/cjs/src/mcp-server.js",
-      "types": "./dist/esm/src/mcp-server.d.ts"
+      "require": "./dist/cjs/src/mcp-server.js"
     },
     "./browser": {
+      "types": "./dist/esm/src/browser.d.ts",
       "import": "./dist/esm/src/browser.js",
-      "require": "./dist/cjs/src/browser.js",
-      "types": "./dist/esm/src/browser.d.ts"
+      "require": "./dist/cjs/src/browser.js"
     },
     "./react": {
+      "types": "./dist/esm/src/react/index.d.ts",
       "import": "./dist/esm/src/react/index.js",
-      "require": "./dist/cjs/src/react/index.js",
-      "types": "./dist/esm/src/react/index.d.ts"
+      "require": "./dist/cjs/src/react/index.js"
     },
     "./testing": {
+      "types": "./dist/esm/src/testing/index.d.ts",
       "import": "./dist/esm/src/testing/index.js",
-      "require": "./dist/cjs/src/testing/index.js",
-      "types": "./dist/esm/src/testing/index.d.ts"
+      "require": "./dist/cjs/src/testing/index.js"
     },
     "./testing/ComponentStateHelpers": {
+      "types": "./dist/esm/src/testing/ComponentStateHelpers.d.ts",
       "import": "./dist/esm/src/testing/ComponentStateHelpers.js",
-      "require": "./dist/cjs/src/testing/ComponentStateHelpers.js",
-      "types": "./dist/esm/src/testing/ComponentStateHelpers.d.ts"
+      "require": "./dist/cjs/src/testing/ComponentStateHelpers.js"
     },
     "./adapters": {
+      "types": "./dist/esm/src/adapters/index.d.ts",
       "import": "./dist/esm/src/adapters/index.js",
-      "require": "./dist/cjs/src/adapters/index.js",
-      "types": "./dist/esm/src/adapters/index.d.ts"
+      "require": "./dist/cjs/src/adapters/index.js"
     },
     "./adapters/copilotkit": {
+      "types": "./dist/esm/src/adapters/copilotkit/index.d.ts",
       "import": "./dist/esm/src/adapters/copilotkit/index.js",
-      "require": "./dist/cjs/src/adapters/copilotkit/index.js",
-      "types": "./dist/esm/src/adapters/copilotkit/index.d.ts"
+      "require": "./dist/cjs/src/adapters/copilotkit/index.js"
     },
     "./storage": {
+      "types": "./dist/esm/src/storage/index.d.ts",
       "import": "./dist/esm/src/storage/index.js",
-      "require": "./dist/cjs/src/storage/index.js",
-      "types": "./dist/esm/src/storage/index.d.ts"
+      "require": "./dist/cjs/src/storage/index.js"
     }
   },
   "scripts": {
