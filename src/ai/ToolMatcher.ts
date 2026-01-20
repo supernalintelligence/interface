@@ -198,10 +198,35 @@ class FuzzyMatcher implements MatcherStrategy {
       // Check examples similarity
       const examples = (tool as any).examples || [];
       for (const example of examples) {
-        const exampleScore = this.similarity(lowerQuery, example.toLowerCase());
+        // Remove placeholders like {query}, {title} for better matching
+        const exampleNormalized = example.toLowerCase().replace(/\{[^}]+\}/g, '').trim();
+
+        // Check if query matches the pattern without the placeholder
+        const exampleScore = this.similarity(lowerQuery, exampleNormalized);
         if (exampleScore > bestScore) {
           bestScore = exampleScore;
           bestMatch = example;
+        }
+
+        // Also check if query has extra words that could be the placeholder value
+        // E.g., "open your users" should match "open {query}"
+        const queryWords = lowerQuery.split(/\s+/);
+        const patternWords = exampleNormalized.split(/\s+/).filter((w: string) => w.length > 0);
+
+        // If query starts with the same words as the pattern, it's likely a match with parameter
+        if (patternWords.length > 0 && queryWords.length >= patternWords.length) {
+          const matchesPattern = patternWords.every((word: string, i: number) =>
+            queryWords[i] && queryWords[i].includes(word)
+          );
+
+          if (matchesPattern) {
+            // Boost score for parameter-based patterns
+            const paramScore = 0.85 + (patternWords.length / queryWords.length * 0.10);
+            if (paramScore > bestScore) {
+              bestScore = paramScore;
+              bestMatch = `${example} (pattern match with parameter)`;
+            }
+          }
         }
       }
       

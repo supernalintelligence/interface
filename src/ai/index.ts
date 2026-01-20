@@ -1,14 +1,11 @@
 /**
- * AI Command Interface - Core exports (Open Source Edition)
- * 
- * Basic AI matching and execution. Advanced features (LLMProvider, 
- * ParameterExtractor, SuggestionEngine) available in enterprise edition.
+ * AI Command Interface - Core exports
+ *
+ * Re-exports all open-source AI abstractions
  */
 
+export * from './AIInterface';
 export * from './ToolMatcher';
+export * from './ParameterExtractor';
 export * from './ToolExecutor';
-
-// Enterprise features - available at https://supernal.ai/enterprise
-// export * from './ParameterExtractor';
-// export * from './LLMProvider';
-// export * from './SuggestionEngine';
+export * from './SuggestionEngine';
