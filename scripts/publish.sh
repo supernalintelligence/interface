@@ -30,13 +30,13 @@ npm test || {
 
 # Verify build artifacts
 echo "🔍 Verifying build artifacts..."
-if [ ! -f "dist/cjs/index.js" ]; then
-    echo "❌ Missing CJS build"
+if [ ! -f "dist/cjs/src/index.js" ]; then
+    echo "❌ Missing CJS build (dist/cjs/src/index.js)"
     exit 1
 fi
 
-if [ ! -f "dist/esm/index.js" ]; then
-    echo "❌ Missing ESM build"
+if [ ! -f "dist/esm/src/index.js" ]; then
+    echo "❌ Missing ESM build (dist/esm/src/index.js)"
     exit 1
 fi
 
