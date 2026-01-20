@@ -1,21 +1,21 @@
 /**
- * Demo AI Interface - uses enterprise AIInterface
+ * Demo AI Interface - uses open-source AIInterface
  *
  * This is a thin wrapper that:
- * 1. Imports the generic AIInterface from enterprise
+ * 1. Imports the generic AIInterface from @supernal/interface
  * 2. Hooks into app-specific ToolManager for UI notifications
  * 3. Provides backward-compatible interface for existing code
  */
 
 import {
   AIInterface,
-  type AICommand as EnterpriseAICommand,
-  type AIResponse as EnterpriseAIResponse
-} from '@supernalintelligence/interface-enterprise';
+  type AICommand,
+  type AIResponse
+} from '@supernal/interface';
 import { ToolManager, type ToolExecutionResult } from './ToolManager';
 
-// Re-export enterprise types for backward compatibility
-export type { EnterpriseAICommand as AICommand, EnterpriseAIResponse as AIResponse };
+// Re-export types for convenience
+export type { AICommand, AIResponse };
 
 export interface CommandResult {
   success: boolean;

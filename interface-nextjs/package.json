@@ -1,6 +1,6 @@
 {
   "name": "@supernal/interface-nextjs",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "Next.js integration for Supernal Intelligence Interface - enables agentic UX with one line of code",
   "main": "./dist/index.js",
   "module": "./dist/index.mjs",
@@ -23,12 +23,12 @@
   },
   "peerDependencies": {
     "@supernal/interface": "*",
-    "@supernalintelligence/interface-enterprise": "^1.0.15",
     "next": "^14.0.0 || ^15.0.0",
     "react": "^18.0.0",
     "react-dom": "^18.0.0"
   },
   "devDependencies": {
+    "@supernal/interface": "file:../",
     "@types/node": "^20.0.0",
     "@types/react": "^18.0.0",
     "@types/react-dom": "^18.0.0",
