@@ -23,15 +23,22 @@ export function AutoNavigationContext({
     }
   }, []);
 
-  // Auto-detect context from pathname
-  const context = inferContextFromPath(pathname, routes);
+  // Auto-detect context from pathname ONLY if routes are provided
+  // If routes is undefined, don't try to set context - let pages do it via useContainer
+  const context = routes ? inferContextFromPath(pathname, routes) : null;
 
   // Notify parent on context change
   useEffect(() => {
-    if (onNavigate) {
+    if (onNavigate && context) {
       onNavigate(context);
     }
   }, [context, onNavigate]);
+
+  // If no routes provided, don't wrap in NavigationContextProvider
+  // This allows pages to set their own context via useContainer
+  if (!context) {
+    return <>{children}</>;
+  }
 
   return (
     <NavigationContextProvider value={context}>

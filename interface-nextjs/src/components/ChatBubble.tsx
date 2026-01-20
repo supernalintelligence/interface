@@ -13,13 +13,13 @@ import React, { useState, useRef, useEffect } from 'react';
 import { useChatInput } from '../contexts/ChatInputContext';
 import { useChatContext } from '../contexts/ChatProvider';
 
-// Chat component names (generic, not app-specific)
+// Chat component names - match expected test IDs from architecture
 const ChatNames = {
-  bubble: 'supernal-chat-bubble',
-  input: 'supernal-chat-input',
-  sendButton: 'supernal-chat-send-button',
-  clearButton: 'supernal-chat-clear-button',
-  messages: 'supernal-chat-messages',
+  bubble: 'chat-bubble',
+  input: 'chat-input',
+  sendButton: 'chat-send-button',
+  clearButton: 'chat-clear-button',
+  messages: 'chat-messages',
 };
 
 interface ChatBubbleProps {

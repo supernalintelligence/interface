@@ -39,8 +39,8 @@ export function SupernalProvider({
   onToolExecute,
 }: SupernalProviderProps) {
   const shouldRenderChatBubble = !disabled;
-  console.log('[SupernalProvider] disabled:', disabled, 'type:', typeof disabled);
-  console.log('[SupernalProvider] shouldRenderChatBubble:', shouldRenderChatBubble);
+  // console.log('[SupernalProvider] disabled:', disabled, 'type:', typeof disabled);
+  // console.log('[SupernalProvider] shouldRenderChatBubble:', shouldRenderChatBubble);
 
   return (
     <ChatInputProvider>

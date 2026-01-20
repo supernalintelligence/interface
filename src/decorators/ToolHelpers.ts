@@ -33,7 +33,7 @@ let globalReporter: ToolExecutionReporter | null = null;
 
 export function setGlobalToolReporter(reporter: ToolExecutionReporter | null) {
   globalReporter = reporter;
-  console.log('🔧 [ToolHelpers] Global reporter set:', !!reporter);
+  // console.log('🔧 [ToolHelpers] Global reporter set:', !!reporter);
 }
 
 /**
@@ -165,7 +165,7 @@ function BaseTool<P = any>(
     };
     
     // Register tool immediately at module load time
-    console.log(`🔧 [ToolHelpers] Registering tool: ${componentName} (elementId: ${toolMetadata.elementId})`);
+    // console.log(`🔧 [ToolHelpers] Registering tool: ${componentName} (elementId: ${toolMetadata.elementId})`);
     
     ToolRegistry.registerTool(
       toolMetadata.providerName!,
@@ -173,7 +173,7 @@ function BaseTool<P = any>(
       toolMetadata as any
     );
     
-    console.log(`✅ [ToolHelpers] Registered ${componentName}. Total tools: ${ToolRegistry.getAllTools().size}`);
+    // console.log(`✅ [ToolHelpers] Registered ${componentName}. Total tools: ${ToolRegistry.getAllTools().size}`);
     
     // Register tool → component mapping at module load
     // Pass containerId if specified to override stack-based inference
