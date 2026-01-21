@@ -12,6 +12,7 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { useChatInput } from '../contexts/ChatInputContext';
 import { useChatContext } from '../contexts/ChatProvider';
+import { CHAT_SHORTCUT_KEY } from '../lib/constants';
 
 // Chat component names - match expected test IDs from architecture
 const ChatNames = {
@@ -113,15 +114,41 @@ export const ChatBubble: React.FC<ChatBubbleProps> = ({
     }
   }, [isExpanded]);
 
-  // Command+/ keyboard shortcut to focus input
+  // Keyboard shortcuts to focus input
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
+      // Escape key to close chat when expanded
+      if (e.key === 'Escape' && isExpanded) {
+        e.preventDefault();
+        setIsExpanded(false);
+        return;
+      }
+
+      // Command+/ or Ctrl+/ shortcut (always works)
       if ((e.metaKey || e.ctrlKey) && e.key === '/') {
         e.preventDefault();
         if (!isExpanded) {
           setIsExpanded(true);
         }
         inputRef.current?.focus();
+        return;
+      }
+
+      // Simple '/' key shortcut (configurable, only when not typing in an input)
+      if (CHAT_SHORTCUT_KEY && e.key === CHAT_SHORTCUT_KEY && !e.metaKey && !e.ctrlKey) {
+        // Don't trigger if user is typing in an input, textarea, or contenteditable element
+        const target = e.target as HTMLElement;
+        const isTyping = target.tagName === 'INPUT' ||
+                        target.tagName === 'TEXTAREA' ||
+                        target.isContentEditable;
+
+        if (!isTyping) {
+          e.preventDefault();
+          if (!isExpanded) {
+            setIsExpanded(true);
+          }
+          inputRef.current?.focus();
+        }
       }
     };
 
