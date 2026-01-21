@@ -9,7 +9,7 @@
 
 import React, { useState, useRef, useEffect } from 'react';
 import { Components } from '../../../../names/Components';
-import { CHAT_SHORTCUT_KEY } from '../../../../../docs-site/src/lib/constants';
+import { CHAT_SHORTCUT_KEY } from '../../../../interface-nextjs/src/lib/constants';
 
 // Chat component names (use the flat Components namespace)
 const ChatNames = {

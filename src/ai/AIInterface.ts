@@ -149,8 +149,9 @@ export class AIInterface {
 
   /**
    * Execute a command using ToolExecutor
+   * Implements chain-of-responsibility: tries each matched tool until one succeeds
    */
-  async executeCommand(commands: AICommand[], useFirstMatch: boolean = true): Promise<AIResponse> {
+  async executeCommand(commands: AICommand[], useFirstMatch: boolean = false): Promise<AIResponse> {
     if (commands.length === 0) {
       // Use SuggestionEngine for helpful response
       const toolsMap = ToolRegistry.getAllTools();
@@ -172,43 +173,75 @@ export class AIInterface {
       };
     }
 
-    const command = commands[0]; // Use highest confidence match
+    // Chain-of-responsibility: try each command until one succeeds
+    const errors: string[] = [];
 
-    if (!command.tool) {
-      return {
-        success: false,
-        message: `❌ No tool found for command`,
-        timestamp: new Date().toISOString()
-      };
+    for (let i = 0; i < commands.length; i++) {
+      const command = commands[i];
+
+      if (!command.tool) {
+        errors.push(`Command ${i + 1}: No tool found`);
+        continue;
+      }
+
+      console.log(`🎯 [AI] Executing (attempt ${i + 1}/${commands.length}): ${command.tool.name}`);
+
+      // Extract parameters using ParameterExtractor
+      const extraction = await this.paramExtractor.extract(command.query, command.tool);
+      const parameters = extraction.parameters.length > 0 ? extraction.parameters : command.parameters;
+
+      console.log(`📋 [AI] Parameters:`, parameters);
+
+      // Execute using ToolExecutor
+      try {
+        const result = await this.executor.execute(command.tool, parameters || []);
+
+        if (result.success) {
+          // Success! Return immediately
+          console.log(`✅ [AI] Tool succeeded: ${command.tool.name}`);
+          return {
+            success: true,
+            message: `✅ ${result.message}`,
+            executedTool: command.tool.name,
+            timestamp: new Date().toISOString()
+          };
+        } else {
+          // Tool executed but returned failure - try next tool
+          console.log(`⚠️  [AI] Tool failed, trying next: ${result.message}`);
+          errors.push(`${command.tool.name}: ${result.message}`);
+
+          // If useFirstMatch is true, stop after first attempt
+          if (useFirstMatch) {
+            return {
+              success: false,
+              message: `❌ ${result.message}`,
+              executedTool: command.tool.name,
+              timestamp: new Date().toISOString()
+            };
+          }
+        }
+      } catch (error) {
+        const errorMsg = error instanceof Error ? error.message : String(error);
+        console.log(`❌ [AI] Tool threw error, trying next: ${errorMsg}`);
+        errors.push(`${command.tool.name}: ${errorMsg}`);
+
+        // If useFirstMatch is true, stop after first attempt
+        if (useFirstMatch) {
+          return {
+            success: false,
+            message: `❌ ${errorMsg}`,
+            timestamp: new Date().toISOString()
+          };
+        }
+      }
     }
 
-    console.log(`🎯 [AI] Executing: ${command.tool.name}`);
-
-    // Extract parameters using ParameterExtractor
-    const extraction = await this.paramExtractor.extract(command.query, command.tool);
-    const parameters = extraction.parameters.length > 0 ? extraction.parameters : command.parameters;
-
-    console.log(`📋 [AI] Parameters:`, parameters);
-
-    // Execute using ToolExecutor
-    try {
-      const result = await this.executor.execute(command.tool, parameters || []);
-
-      return {
-        success: result.success,
-        message: result.success ? `✅ ${result.message}` : `❌ ${result.message}`,
-        executedTool: command.tool.name,
-        timestamp: new Date().toISOString()
-      };
-    } catch (error) {
-      const errorMsg = error instanceof Error ? error.message : String(error);
-
-      return {
-        success: false,
-        message: `❌ ${errorMsg}`,
-        timestamp: new Date().toISOString()
-      };
-    }
+    // All tools failed
+    return {
+      success: false,
+      message: `❌ All tools failed:\n${errors.map((e, i) => `${i + 1}. ${e}`).join('\n')}`,
+      timestamp: new Date().toISOString()
+    };
   }
 
   /**
@@ -216,7 +249,7 @@ export class AIInterface {
    */
   async processQuery(query: string): Promise<AIResponse> {
     const commands = await this.findToolsForCommand(query);
-    return this.executeCommand(commands, true);
+    return this.executeCommand(commands, false); // Enable fallback chain
   }
 
   /**
