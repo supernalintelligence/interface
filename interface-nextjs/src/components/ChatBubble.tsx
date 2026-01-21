@@ -38,7 +38,7 @@ export const ChatBubble: React.FC<ChatBubbleProps> = ({
 }) => {
   // Get messages and actions from context
   const { messages, sendMessage, clearMessages } = useChatContext();
-  // Initialize with default value (false) - chat should start minimized
+  // Initialize with default value (false) - chat starts closed, '/' opens it
   const [isExpanded, setIsExpanded] = useState(false);
   const [inputValue, setInputValue] = useState('');
   const [lastReadMessageCount, setLastReadMessageCount] = useState(0);
