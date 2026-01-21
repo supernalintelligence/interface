@@ -40,6 +40,7 @@ export interface MatcherStrategy {
 export interface MatchContext {
   currentContainer?: string;
   currentPage?: string;
+  currentPath?: string; // Actual browser path for exact route matching
   conversationHistory?: string[];
   userPreferences?: Record<string, any>;
 }

@@ -76,7 +76,8 @@ export class AIInterface {
     if (typeof window === 'undefined') {
       return {
         currentContainer: 'unknown',
-        currentPage: 'unknown'
+        currentPage: 'unknown',
+        currentPath: 'unknown'
       };
     }
 
@@ -88,9 +89,13 @@ export class AIInterface {
     // Get route for tool filtering (tools are scoped by route, not context ID)
     const currentRoute = graph.getCurrentRoute?.() || currentContextId;
 
+    // Get actual current path for exact route matching (e.g., /blog vs /blog/post-slug)
+    const currentPath = typeof window !== 'undefined' ? window.location.pathname : currentRoute;
+
     return {
-      currentContainer: currentRoute, // Use route for tool filtering
-      currentPage: currentContextId   // Keep context ID for display
+      currentContainer: currentRoute, // Container route (e.g., '/blog') for prefix matching
+      currentPage: currentContextId,   // Keep context ID for display
+      currentPath: currentPath         // Actual path for exact matching
     };
   }
 
@@ -107,11 +112,25 @@ export class AIInterface {
 
     console.log(`📍 [AI] Current context:`, context);
 
-    // Filter tools by current container
-    // Priority: 1) Scoped to current container, 2) Global (no containerId), 3) Global navigation
-    const scopedTools = allTools.filter(tool =>
-      tool.containerId === context.currentContainer
-    );
+    // Filter tools by current route
+    // Search tools (scoped) require EXACT path match to avoid showing on detail pages
+    // Example: "Search Blog" only available on /blog index, NOT /blog/post-slug
+    // Navigation tools use container prefix matching
+    const scopedTools = allTools.filter(tool => {
+      if (!tool.containerId) return false;
+
+      // Search/content tools: require exact path match (e.g., /blog but not /blog/slug)
+      // Check custom metadata fields set by NavigationGraph
+      const toolMeta = tool as any;
+      if (toolMeta.toolType === 'navigation' && toolMeta.actionType === 'navigation' && tool.name.startsWith('Search ')) {
+        const toolRoute = tool.containerId;
+        const currentPath = context.currentPath || context.currentContainer;
+        return currentPath === toolRoute;
+      }
+
+      // Other scoped tools: use container matching
+      return tool.containerId === context.currentContainer;
+    });
 
     const globalTools = allTools.filter(tool =>
       !tool.containerId
