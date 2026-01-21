@@ -169,10 +169,17 @@ export class AIInterface {
   /**
    * Execute a command using ToolExecutor
    * Implements chain-of-responsibility: tries each matched tool until one succeeds
+   * @param commands Array of matched commands to try
+   * @param useFirstMatch If true, only try first command and stop
+   * @param originalQuery Original user query (for better error messages when commands is empty)
    */
-  async executeCommand(commands: AICommand[], useFirstMatch: boolean = false): Promise<AIResponse> {
+  async executeCommand(
+    commands: AICommand[],
+    useFirstMatch: boolean = false,
+    originalQuery?: string
+  ): Promise<AIResponse> {
     if (commands.length === 0) {
-      // Use SuggestionEngine for helpful response
+      // Use SuggestionEngine for intelligent "Did You Mean?" suggestions
       const toolsMap = ToolRegistry.getAllTools();
       const allTools = Array.from(toolsMap.values());
       const context = this.getCurrentContext();
@@ -183,11 +190,25 @@ export class AIInterface {
         (!t.containerId || t.containerId === context.currentContainer || t.category === 'navigation')
       );
 
-      const examples = contextTools.flatMap(t => (t as any).examples || []).slice(0, 5);
+      // Generate intelligent suggestions based on the query
+      const query = originalQuery || commands[0]?.query || '';
+      const suggestions = this.suggestionEngine.getSuggestions(query, contextTools, 5);
+
+      let message = `❓ No matching command found${query ? ` for "${query}"` : ''}.\n\n`;
+
+      if (suggestions.length > 0) {
+        // Use SuggestionEngine's formatted output
+        const formatted = this.suggestionEngine.formatSuggestions(suggestions);
+        message += formatted;
+      } else {
+        // Fallback: show general examples if no suggestions
+        const examples = contextTools.flatMap(t => (t as any).examples || []).slice(0, 5);
+        message += `💡 Available commands:\n${examples.map(ex => `• "${ex}"`).join('\n')}`;
+      }
 
       return {
         success: false,
-        message: `❓ No matching command found.\n\n💡 Try:\n${examples.map(ex => `• "${ex}"`).join('\n')}`,
+        message,
         timestamp: new Date().toISOString()
       };
     }
@@ -255,10 +276,31 @@ export class AIInterface {
       }
     }
 
-    // All tools failed
+    // All tools failed - provide helpful suggestions
+    const query = originalQuery || commands[0]?.query || '';
+    const toolsMap = ToolRegistry.getAllTools();
+    const allTools = Array.from(toolsMap.values());
+    const context = this.getCurrentContext();
+
+    // Get context-aware tools for suggestions
+    const contextTools = allTools.filter(t =>
+      t.aiEnabled &&
+      (!t.containerId || t.containerId === context.currentContainer || t.category === 'navigation')
+    );
+
+    const suggestions = this.suggestionEngine.getSuggestions(query, contextTools, 3);
+
+    let message = `❌ Command failed: ${errors[errors.length - 1]}\n\n`;
+
+    if (suggestions.length > 0) {
+      message += `💡 Did you mean?\n${suggestions.slice(0, 3).map(s => `• "${s.text}"`).join('\n')}`;
+    } else {
+      message += `💡 Try "/help" to see available commands`;
+    }
+
     return {
       success: false,
-      message: `❌ All tools failed:\n${errors.map((e, i) => `${i + 1}. ${e}`).join('\n')}`,
+      message,
       timestamp: new Date().toISOString()
     };
   }
@@ -268,7 +310,7 @@ export class AIInterface {
    */
   async processQuery(query: string): Promise<AIResponse> {
     const commands = await this.findToolsForCommand(query);
-    return this.executeCommand(commands, false); // Enable fallback chain
+    return this.executeCommand(commands, false, query); // Enable fallback chain, pass query for suggestions
   }
 
   /**
