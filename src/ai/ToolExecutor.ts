@@ -210,8 +210,28 @@ class DOMExecutor implements ExecutorStrategy {
     }
     
     if (element.tagName === 'INPUT' || element.tagName === 'TEXTAREA') {
+      const inputElement = element as HTMLInputElement;
+
+      // Handle checkbox/radio inputs
+      if (inputElement.type === 'checkbox' || inputElement.type === 'radio') {
+        // For checkboxes, toggle or set based on parameter
+        if (_parameters.length > 0) {
+          const value = _parameters[0];
+          inputElement.checked = value === true || value === 'true' || value === '1';
+        } else {
+          // Toggle if no parameter
+          inputElement.checked = !inputElement.checked;
+        }
+        inputElement.dispatchEvent(new Event('change', { bubbles: true }));
+        return {
+          success: true,
+          message: `Toggled ${tool.name}`
+        };
+      }
+
+      // Handle text inputs
       if (_parameters.length > 0) {
-        (element as HTMLInputElement).value = String(_parameters[0]);
+        inputElement.value = String(_parameters[0]);
         element.dispatchEvent(new Event('input', { bubbles: true }));
         return {
           success: true,
@@ -219,7 +239,7 @@ class DOMExecutor implements ExecutorStrategy {
         };
       }
     }
-    
+
     throw new Error(`Unsupported element type: ${element.tagName}`);
   }
 }
