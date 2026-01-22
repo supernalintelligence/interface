@@ -105,46 +105,19 @@ export class AIInterface {
   async findToolsForCommand(query: string): Promise<AICommand[]> {
     console.log(`🔍 [AI] Finding tools for: "${query}"`);
 
-    // Get all available tools
-    const toolsMap = ToolRegistry.getAllTools();
-    const allTools = Array.from(toolsMap.values());
     const context = this.getCurrentContext();
-
     console.log(`📍 [AI] Current context:`, context);
 
-    // Filter tools by current route
-    // Search tools (scoped) require EXACT path match to avoid showing on detail pages
-    // Example: "Search Blog" only available on /blog index, NOT /blog/post-slug
-    // Navigation tools use container prefix matching
-    const scopedTools = allTools.filter(tool => {
-      if (!tool.containerId) return false;
+    // Use ToolRegistry.getToolsForCurrentContext() which properly resolves container IDs via ContainerRegistry
+    const contextTools = ToolRegistry.getToolsForCurrentContext();
 
-      // Search/content tools: require exact path match (e.g., /blog but not /blog/slug)
-      // Check custom metadata fields set by NavigationGraph
-      const toolMeta = tool as any;
-      if (toolMeta.toolType === 'navigation' && toolMeta.actionType === 'navigation' && tool.name.startsWith('Search ')) {
-        const toolRoute = tool.containerId;
-        const currentPath = context.currentPath || context.currentContainer;
-        return currentPath === toolRoute;
-      }
-
-      // Other scoped tools: use container matching
-      return tool.containerId === context.currentContainer;
-    });
-
-    const globalTools = allTools.filter(tool =>
-      !tool.containerId
-    );
-
-    const navigationTools = allTools.filter(tool =>
-      tool.containerId !== context.currentContainer && tool.category === 'navigation'
-    );
+    // Separate for logging
+    const scopedTools = contextTools.filter(tool => tool.containerId && tool.containerId !== 'global');
+    const globalTools = contextTools.filter(tool => !tool.containerId || tool.containerId === 'global');
+    const navigationTools = contextTools.filter(tool => tool.category === 'navigation');
 
     console.log(`📦 [AI] Scoped tools: ${scopedTools.length}, Global tools: ${globalTools.length}, Navigation tools: ${navigationTools.length}`);
     console.log(`📦 [AI] Navigation tools available:`, navigationTools.map(t => `${t.name} (containerId: ${t.containerId || 'GLOBAL'}, examples: ${(t as any).examples?.slice(0, 2).join(', ') || 'none'})`));
-
-    // Combine: scoped first, then global, then navigation
-    const contextTools = [...scopedTools, ...globalTools, ...navigationTools];
 
     console.log(`📦 [AI] Total filtered to ${contextTools.length} tools for context: ${context.currentContainer}`);
 
