@@ -29,6 +29,7 @@ export {
   getAllContainers,
   isComponentInContainer,
   findComponentContainers,
+  ContainerRegistry,
   type ContainerDefinition,
   type ContainerId
 } from './background/architecture';

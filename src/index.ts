@@ -124,6 +124,7 @@ export { ExposureCollector } from './exposure/ExposureCollector';
 export {
   initializeArchitecture,
   createAutoInitializer,
+  ContainerRegistry,
 } from './background/architecture';
 export { architectureRegistry, inferNavToContainerMap } from './architecture/registry';
 export { createContainer, createContainers } from './architecture/createContainer';

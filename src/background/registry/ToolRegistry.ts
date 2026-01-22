@@ -925,9 +925,12 @@ export class ToolRegistry {
           // Try to resolve containerId to route via ContainerRegistry
           const containerRoute = ContainerRegistry.getContainerRoute(tool.containerId);
           if (containerRoute) {
+            console.log(`[ToolRegistry] Resolved containerId="${tool.containerId}" → route="${containerRoute}" for tool ${tool.name}`);
             routeToMatch = containerRoute;
           } else {
             // Container not found in registry - treat as grouping-only, not scoping
+            const allContainers = ContainerRegistry.getAllContainers().map((c: any) => `${c.id}=${c.route}`);
+            console.warn(`[ToolRegistry] ⚠️  containerId="${tool.containerId}" NOT found in ContainerRegistry for tool ${tool.name}. Treating as GLOBAL. Registry has:`, allContainers);
             // This maintains backward compatibility for non-registered containers
             return true;
           }

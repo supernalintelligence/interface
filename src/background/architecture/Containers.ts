@@ -111,9 +111,12 @@ export class ContainerRegistry {
    * Register multiple containers
    */
   static registerContainers(containers: Record<string, ContainerDefinition>): void {
+    console.log('[ContainerRegistry] 📦 Registering containers:', Object.keys(containers));
     Object.values(containers).forEach(container => {
+      console.log(`[ContainerRegistry] 📦 Registering: ${container.id} → ${container.route}`);
       this.registerContainer(container);
     });
+    console.log('[ContainerRegistry] 📦 Total registered:', this.containers.size);
   }
 
   /**
@@ -130,7 +133,9 @@ export class ContainerRegistry {
    * Used by ToolRegistry to resolve containerIds to routes for scope matching.
    */
   static getContainerRoute(containerId: string): string | undefined {
-    return this.containers.get(containerId)?.route;
+    const route = this.containers.get(containerId)?.route;
+    console.log(`[ContainerRegistry] 🔍 getContainerRoute("${containerId}") → ${route || 'NOT FOUND'} (registry size: ${this.containers.size})`);
+    return route;
   }
 
   /**

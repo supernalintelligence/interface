@@ -71,9 +71,15 @@ export function initializeArchitecture<T extends Record<string, ContainerDefinit
       // IMPORTANT: Register containers in ContainerRegistry EVERY TIME
       // This must happen even if NavigationGraph is already initialized
       // because ToolRegistry needs ContainerRegistry to resolve containerIds to routes
+      console.log('[ArchitectureInitializer] 🚀 initialize() called, about to register containers in ContainerRegistry');
+      console.log('[ArchitectureInitializer] 📦 Container keys:', Object.keys(config.containers));
       ContainerRegistry.registerContainers(config.containers);
+      console.log('[ArchitectureInitializer] ✅ ContainerRegistry registration complete');
 
-      if (initialized) return false;
+      if (initialized) {
+        console.log('[ArchitectureInitializer] ⚠️  Already initialized, skipping NavigationGraph setup');
+        return false;
+      }
       initialized = true;
 
       // 1. Register all containers in NavigationGraph (only first time)
