@@ -1,5 +1,6 @@
 import { ToolRegistry } from '../ToolRegistry';
 import { LocationContext } from '../../location/LocationContext';
+import { ContainerRegistry } from '../../architecture/Containers';
 import { ToolMetadata } from '../../../decorators/Tool';
 import { ToolCategory } from '../../../types/Tool';
 import { ToolComplexity, ToolFrequency } from '../../../types/ClassifiedTool';
@@ -8,6 +9,7 @@ describe('ToolRegistry', () => {
   beforeEach(() => {
     ToolRegistry.clear();
     LocationContext.reset();
+    ContainerRegistry.clear();
   });
 
   // Helper to create minimal tool metadata
@@ -124,6 +126,86 @@ describe('ToolRegistry', () => {
       const tools = ToolRegistry.getToolsForCurrentContext();
 
       expect(tools.find(t => t.name === 'format')).toBeDefined();
+    });
+  });
+
+  describe('ContainerRegistry Integration', () => {
+    it('resolves containerId to route via ContainerRegistry', () => {
+      // Register container
+      ContainerRegistry.registerContainer({
+        id: 'DemoSimple',
+        name: 'Simple Demo',
+        type: 'page',
+        route: '/demo/simple',
+        components: ['counter'],
+      });
+
+      // Register tool with container ID (not route)
+      ToolRegistry.registerTool('Counter', 'increment', createTool({
+        name: 'increment',
+        containerId: 'DemoSimple', // Container ID, not route!
+        toolId: 'Counter.increment',
+        methodName: 'increment',
+        providerClass: 'Counter',
+      }));
+
+      // Tool should be available on matching route
+      LocationContext.setCurrent({ page: '/demo/simple', route: '/demo/simple' });
+      const toolsOnDemo = ToolRegistry.getToolsForCurrentContext();
+      expect(toolsOnDemo.find(t => t.name === 'increment')).toBeDefined();
+
+      // Tool should NOT be available on non-matching route
+      LocationContext.setCurrent({ page: '/blog', route: '/blog' });
+      const toolsOnBlog = ToolRegistry.getToolsForCurrentContext();
+      expect(toolsOnBlog.find(t => t.name === 'increment')).toBeUndefined();
+    });
+
+    it('handles hierarchical route matching with resolved containerIds', () => {
+      // Register container
+      ContainerRegistry.registerContainer({
+        id: 'Demo',
+        name: 'Demo',
+        type: 'page',
+        route: '/demo',
+        components: ['widget'],
+      });
+
+      // Register tool with container ID
+      ToolRegistry.registerTool('Widget', 'action', createTool({
+        name: 'action',
+        containerId: 'Demo',
+        toolId: 'Widget.action',
+        methodName: 'action',
+        providerClass: 'Widget',
+      }));
+
+      // Tool should be available on exact route
+      LocationContext.setCurrent({ page: '/demo', route: '/demo' });
+      expect(ToolRegistry.getToolsForCurrentContext().find(t => t.name === 'action')).toBeDefined();
+
+      // Tool should be available on child routes
+      LocationContext.setCurrent({ page: '/demo/simple', route: '/demo/simple' });
+      expect(ToolRegistry.getToolsForCurrentContext().find(t => t.name === 'action')).toBeDefined();
+
+      // Tool should NOT be available on sibling routes
+      LocationContext.setCurrent({ page: '/blog', route: '/blog' });
+      expect(ToolRegistry.getToolsForCurrentContext().find(t => t.name === 'action')).toBeUndefined();
+    });
+
+    it('treats unregistered containerIds as grouping-only (backward compat)', () => {
+      // Register tool with containerId NOT in ContainerRegistry
+      ToolRegistry.registerTool('Legacy', 'oldTool', createTool({
+        name: 'oldTool',
+        containerId: 'UnregisteredContainer',
+        toolId: 'Legacy.oldTool',
+        methodName: 'oldTool',
+        providerClass: 'Legacy',
+      }));
+
+      // Tool should be available everywhere (backward compat)
+      LocationContext.setCurrent({ page: '/any-page', route: '/any-page' });
+      const tools = ToolRegistry.getToolsForCurrentContext();
+      expect(tools.find(t => t.name === 'oldTool')).toBeDefined();
     });
   });
 });

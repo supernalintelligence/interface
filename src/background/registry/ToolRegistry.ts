@@ -904,6 +904,7 @@ export class ToolRegistry {
   static getToolsByLocation(location?: import('../location/LocationContext').AppLocation | null): ToolMetadata[] {
     // Lazy import to avoid circular dependencies
     const { LocationContext } = require('../location/LocationContext');
+    const { ContainerRegistry } = require('../architecture/Containers');
 
     const currentLocation = location !== undefined ? location : LocationContext.getCurrent();
 
@@ -918,21 +919,31 @@ export class ToolRegistry {
         // Global container tools are always available
         if (tool.containerId === 'global') return true;
 
-        // Only treat containerId as scoping if it looks like a route (starts with /)
-        // Non-route containerIds (like 'TestContainer') are for grouping only, not scoping
-        if (!tool.containerId.startsWith('/')) return true;
+        // Resolve containerId to route if it's a container name (not a route)
+        let routeToMatch = tool.containerId;
+        if (!tool.containerId.startsWith('/')) {
+          // Try to resolve containerId to route via ContainerRegistry
+          const containerRoute = ContainerRegistry.getContainerRoute(tool.containerId);
+          if (containerRoute) {
+            routeToMatch = containerRoute;
+          } else {
+            // Container not found in registry - treat as grouping-only, not scoping
+            // This maintains backward compatibility for non-registered containers
+            return true;
+          }
+        }
 
         // No location set = global context, only global tools available
         if (!currentLocation) return false;
 
-        // Match containerId against current page/route
+        // Match route against current page/route
         const currentPage = currentLocation.page || currentLocation.route || '';
 
-        // Exact match or hierarchical match (e.g., containerId='/blog' matches page='/blog/post')
-        return currentPage === tool.containerId ||
-               currentPage.startsWith(tool.containerId + '/') ||
-               currentPage.startsWith('/' + tool.containerId) ||
-               currentPage === '/' + tool.containerId;
+        // Exact match or hierarchical match (e.g., route='/blog' matches page='/blog/post')
+        return currentPage === routeToMatch ||
+               currentPage.startsWith(routeToMatch + '/') ||
+               currentPage.startsWith('/' + routeToMatch) ||
+               currentPage === '/' + routeToMatch;
       }
 
       // No scope defined = available everywhere (global)

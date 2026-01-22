@@ -12,7 +12,7 @@
  */
 
 import { NavigationGraph } from '../navigation/NavigationGraph';
-import type { ContainerDefinition } from './Containers';
+import { ContainerRegistry, type ContainerDefinition } from './Containers';
 
 /**
  * Architecture configuration for an application
@@ -71,8 +71,13 @@ export function initializeArchitecture<T extends Record<string, ContainerDefinit
       if (initialized) return false;
       initialized = true;
       
-      // 1. Register all containers as navigation contexts
+      // 1. Register all containers in both NavigationGraph and ContainerRegistry
       const containers = Object.values(config.containers);
+
+      // Register in ContainerRegistry (for ToolRegistry scope resolution)
+      ContainerRegistry.registerContainers(config.containers);
+
+      // Register in NavigationGraph (for navigation)
       for (const container of containers) {
         graph.registerContext({
           id: container.id,
@@ -86,7 +91,7 @@ export function initializeArchitecture<T extends Record<string, ContainerDefinit
             description: container.description
           }
         });
-        
+
         console.log(`📦 [Architecture] Registered container: ${container.name}`);
       }
       

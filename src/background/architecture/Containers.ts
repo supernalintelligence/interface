@@ -80,3 +80,70 @@ export function findComponentContainers(
     return container.components.includes(componentId);
   });
 }
+
+/**
+ * Global Container Registry
+ *
+ * Stores container definitions globally so ToolRegistry can resolve
+ * containerIds to routes for scope matching.
+ *
+ * Similar pattern to ToolRegistry - uses global storage to avoid
+ * module isolation issues in tests.
+ */
+const globalRegistry = (typeof global !== 'undefined' ? global : globalThis) as any;
+if (!globalRegistry.__SUPERNAL_CONTAINER_REGISTRY__) {
+  globalRegistry.__SUPERNAL_CONTAINER_REGISTRY__ = new Map<string, ContainerDefinition>();
+}
+
+export class ContainerRegistry {
+  private static get containers(): Map<string, ContainerDefinition> {
+    return globalRegistry.__SUPERNAL_CONTAINER_REGISTRY__;
+  }
+
+  /**
+   * Register a container definition
+   */
+  static registerContainer(container: ContainerDefinition): void {
+    this.containers.set(container.id, container);
+  }
+
+  /**
+   * Register multiple containers
+   */
+  static registerContainers(containers: Record<string, ContainerDefinition>): void {
+    Object.values(containers).forEach(container => {
+      this.registerContainer(container);
+    });
+  }
+
+  /**
+   * Get container definition by ID
+   */
+  static getContainer(containerId: string): ContainerDefinition | undefined {
+    return this.containers.get(containerId);
+  }
+
+  /**
+   * Get container route by ID
+   *
+   * Returns the route for a container, or undefined if not found.
+   * Used by ToolRegistry to resolve containerIds to routes for scope matching.
+   */
+  static getContainerRoute(containerId: string): string | undefined {
+    return this.containers.get(containerId)?.route;
+  }
+
+  /**
+   * Get all registered containers
+   */
+  static getAllContainers(): ContainerDefinition[] {
+    return Array.from(this.containers.values());
+  }
+
+  /**
+   * Clear all registered containers (for testing)
+   */
+  static clear(): void {
+    this.containers.clear();
+  }
+}

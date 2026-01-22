@@ -48,6 +48,10 @@ export type {
 
 // Location context (needed by NavigationGraph)
 export { LocationContext } from './background/location/LocationContext';
+export type { AppLocation, LocationScope as LocationScopeType } from './background/location/LocationContext';
+
+// Location scope decorator
+export { LocationScope, getLocationScope, hasLocationScope } from './decorators/LocationScope';
 
 // Types (browser-safe)
 export * from './types';

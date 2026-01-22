@@ -7,11 +7,12 @@
  * This is the CORE library - it provides the infrastructure, not the content.
  */
 
-export { 
+export {
   getContainer,
   getAllContainers,
   isComponentInContainer,
   findComponentContainers,
+  ContainerRegistry,
   type ContainerDefinition,
   type ContainerId
 } from './Containers';
