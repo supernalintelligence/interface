@@ -53,7 +53,7 @@
     }
   },
   "scripts": {
-    "clean": "rm -rf dist",
+    "clean": "rm -rf dist node_modules/.cache",
     "build": "npm run clean && npm run build:esm && npm run fix-esm && npm run build:cjs",
     "build:esm": "tsc -p tsconfig.json",
     "fix-esm": "node scripts/fix-esm-imports.js",
@@ -105,7 +105,7 @@
     "@jest/globals": "^29.7.0",
     "@testing-library/react": "^16.3.1",
     "@types/glob": "^8.1.0",
-    "@types/jest": "^29.5.8",
+    "@types/jest": "^29.5.14",
     "@types/node": "^25.0.2",
     "@types/react": "^19.2.7",
     "@types/react-dom": "^19.2.3",

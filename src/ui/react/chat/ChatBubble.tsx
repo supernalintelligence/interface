@@ -189,8 +189,23 @@ export const ChatBubble: React.FC<ChatBubbleProps> = ({
             <div className="flex items-center justify-between p-3 sm:p-4 border-b border-gray-200 bg-gradient-to-r from-blue-50 to-purple-50 rounded-t-lg">
               <div className="flex items-center space-x-2 sm:space-x-3">
                 <div className="relative">
-                  <div className="w-8 h-8 sm:w-10 sm:h-10 bg-gradient-to-br from-blue-500 to-purple-600 rounded-full flex items-center justify-center">
-                    <span className="text-white text-base sm:text-lg">🤖</span>
+                  <div className="w-8 h-8 sm:w-10 sm:h-10 rounded-full flex items-center justify-center">
+                    <svg width="100%" height="100%" viewBox="0 0 40 40" xmlns="http://www.w3.org/2000/svg">
+                      <defs>
+                        <linearGradient id="logoGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+                          <stop offset="0%" style={{stopColor:'#0066ff',stopOpacity:1}} />
+                          <stop offset="50%" style={{stopColor:'#4d94ff',stopOpacity:1}} />
+                          <stop offset="100%" style={{stopColor:'#00ccff',stopOpacity:1}} />
+                        </linearGradient>
+                      </defs>
+                      <circle cx="20" cy="20" r="18" fill="url(#logoGradient)" opacity="0.15" />
+                      <text x="20" y="27"
+                            fontFamily="system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif"
+                            fontSize="20"
+                            fontWeight="700"
+                            textAnchor="middle"
+                            fill="url(#logoGradient)">@/</text>
+                    </svg>
                   </div>
                   <div className="absolute -bottom-1 -right-1 w-3 h-3 sm:w-4 sm:h-4 bg-green-500 rounded-full border-2 border-white"></div>
                 </div>
@@ -328,7 +343,7 @@ export const ChatBubble: React.FC<ChatBubbleProps> = ({
         {/* Chat Bubble Button */}
         <button
           onClick={handleToggle}
-          className="absolute bottom-0 right-0 w-12 h-12 sm:w-14 sm:h-14 bg-blue-600 hover:bg-blue-700 text-white rounded-full shadow-lg transition-all duration-200 flex items-center justify-center"
+          className="absolute bottom-0 right-0 w-12 h-12 sm:w-14 sm:h-14 bg-gradient-to-br from-blue-500 to-blue-600 hover:from-blue-600 hover:to-blue-700 text-white rounded-full shadow-lg transition-all duration-200 flex items-center justify-center"
           data-testid={ChatNames.bubble}
           title={isExpanded ? 'Minimize chat' : 'Open AI chat'}
         >
@@ -337,8 +352,13 @@ export const ChatBubble: React.FC<ChatBubbleProps> = ({
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
             </svg>
           ) : (
-            <svg className="w-5 h-5 sm:w-6 sm:h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
+            <svg className="w-7 h-7 sm:w-8 sm:h-8" viewBox="0 0 40 40" xmlns="http://www.w3.org/2000/svg">
+              <text x="20" y="27"
+                    fontFamily="system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif"
+                    fontSize="20"
+                    fontWeight="700"
+                    textAnchor="middle"
+                    fill="white">@/</text>
             </svg>
           )}
         </button>

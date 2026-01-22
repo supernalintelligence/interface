@@ -188,8 +188,12 @@ export const ChatBubble: React.FC<ChatBubbleProps> = ({
             <div className="flex items-center justify-between p-3 sm:p-4 border-b border-gray-200 bg-gradient-to-r from-blue-50 to-purple-50 rounded-t-lg">
               <div className="flex items-center space-x-2 sm:space-x-3">
                 <div className="relative">
-                  <div className="w-8 h-8 sm:w-10 sm:h-10 bg-gradient-to-br from-blue-500 to-purple-600 rounded-full flex items-center justify-center">
-                    <span className="text-white text-base sm:text-lg">🤖</span>
+                  <div className="w-8 h-8 sm:w-10 sm:h-10 rounded-full flex items-center justify-center overflow-hidden">
+                    <img
+                      src="/logo.svg"
+                      alt="Supernal AI"
+                      className="w-full h-full object-contain"
+                    />
                   </div>
                   <div className="absolute -bottom-1 -right-1 w-3 h-3 sm:w-4 sm:h-4 bg-green-500 rounded-full border-2 border-white"></div>
                 </div>
@@ -325,18 +329,20 @@ export const ChatBubble: React.FC<ChatBubbleProps> = ({
         {/* Chat Bubble Button */}
         <button
           onClick={handleToggle}
-          className="absolute bottom-0 right-0 w-12 h-12 sm:w-14 sm:h-14 bg-blue-600 hover:bg-blue-700 text-white rounded-full shadow-lg transition-all duration-200 flex items-center justify-center"
+          className="absolute bottom-0 right-0 w-12 h-12 sm:w-14 sm:h-14 bg-white hover:bg-gray-50 rounded-full shadow-lg transition-all duration-200 flex items-center justify-center overflow-hidden p-1.5 sm:p-2"
           data-testid={ChatNames.bubble}
           title={isExpanded ? 'Minimize chat' : 'Open AI chat'}
         >
           {isExpanded ? (
-            <svg className="w-5 h-5 sm:w-6 sm:h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <svg className="w-5 h-5 sm:w-6 sm:h-6 text-gray-700" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
             </svg>
           ) : (
-            <svg className="w-5 h-5 sm:w-6 sm:h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
-            </svg>
+            <img
+              src="/logo.svg"
+              alt="Supernal AI"
+              className="w-full h-full object-contain"
+            />
           )}
         </button>
 
