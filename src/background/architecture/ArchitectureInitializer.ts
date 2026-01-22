@@ -68,14 +68,16 @@ export function initializeArchitecture<T extends Record<string, ContainerDefinit
      * Returns true if this was the first initialization
      */
     initialize(): boolean {
+      // IMPORTANT: Register containers in ContainerRegistry EVERY TIME
+      // This must happen even if NavigationGraph is already initialized
+      // because ToolRegistry needs ContainerRegistry to resolve containerIds to routes
+      ContainerRegistry.registerContainers(config.containers);
+
       if (initialized) return false;
       initialized = true;
-      
-      // 1. Register all containers in both NavigationGraph and ContainerRegistry
-      const containers = Object.values(config.containers);
 
-      // Register in ContainerRegistry (for ToolRegistry scope resolution)
-      ContainerRegistry.registerContainers(config.containers);
+      // 1. Register all containers in NavigationGraph (only first time)
+      const containers = Object.values(config.containers);
 
       // Register in NavigationGraph (for navigation)
       for (const container of containers) {
