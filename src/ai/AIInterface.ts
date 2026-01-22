@@ -290,16 +290,8 @@ export class AIInterface {
    * Get all available commands for help/autocomplete
    */
   getAvailableCommands(): string[] {
-    const toolsMap = ToolRegistry.getAllTools();
-    const allTools = Array.from(toolsMap.values());
-    const context = this.getCurrentContext();
-
-    // Filter by current context
-    const contextTools = allTools.filter(tool =>
-      !tool.containerId ||
-      tool.containerId === context.currentContainer ||
-      tool.category === 'navigation'
-    );
+    // Use ToolRegistry to get properly filtered tools
+    const contextTools = ToolRegistry.getToolsForCurrentContext();
 
     // Extract examples
     const commands: string[] = [];
