@@ -68,16 +68,46 @@ describe('NavigationGraph (Open-Source)', () => {
     it('should return the same instance', () => {
       const nav1 = NavigationGraph.getInstance();
       const nav2 = NavigationGraph.getInstance();
-      
+
       expect(nav1).toBe(nav2);
     });
 
     it('should maintain state across getInstance calls', () => {
       const nav1 = NavigationGraph.getInstance();
       nav1.setCurrentContext('test-context');
-      
+
       const nav2 = NavigationGraph.getInstance();
       expect(nav2.getCurrentContext()).toBe('test-context');
+    });
+  });
+
+  describe('LocationContext Integration', () => {
+    it('setCurrentContext updates LocationContext', () => {
+      const graph = NavigationGraph.getInstance();
+      graph.setCurrentContext('blog');
+
+      expect(LocationContext.getCurrent()?.page).toBe('blog');
+    });
+
+    it('getCurrentContext reads from LocationContext', () => {
+      LocationContext.setCurrent({ page: '/dashboard', route: '/dashboard' });
+
+      const graph = NavigationGraph.getInstance();
+      expect(graph.getCurrentContext()).toBe('/dashboard');
+    });
+
+    it('onContextChange fires when LocationContext changes', () => {
+      const graph = NavigationGraph.getInstance();
+
+      // Manually trigger setupLocationSync since reset() cleared listeners
+      (graph as any).locationUnsubscribe = null;
+      (graph as any).setupLocationSync();
+
+      const callback = jest.fn();
+      graph.onContextChange(callback);
+      LocationContext.setCurrent({ page: '/settings', route: '/settings' });
+
+      expect(callback).toHaveBeenCalledWith('/settings');
     });
   });
 });
