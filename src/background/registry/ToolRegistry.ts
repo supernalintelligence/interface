@@ -907,6 +907,8 @@ export class ToolRegistry {
     const { ContainerRegistry } = require('../architecture/Containers');
 
     const currentLocation = location !== undefined ? location : LocationContext.getCurrent();
+    console.log('[ToolRegistry.getToolsByLocation] Input location:', location);
+    console.log('[ToolRegistry.getToolsByLocation] Resolved currentLocation:', currentLocation);
 
     return Array.from(this.tools.values()).filter(tool => {
       // Check 1: LocationScope decorator (rich matching)
@@ -978,7 +980,9 @@ export class ToolRegistry {
    */
   static getToolsForCurrentContext(): ToolMetadata[] {
     const { LocationContext } = require('../location/LocationContext');
-    return this.getToolsByLocation(LocationContext.getCurrent());
+    const currentLocation = LocationContext.getCurrent();
+    console.log('[ToolRegistry.getToolsForCurrentContext] LocationContext.getCurrent():', currentLocation);
+    return this.getToolsByLocation(currentLocation);
   }
   
   /**
