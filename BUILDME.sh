@@ -1,29 +1,20 @@
 #!/bin/bash
-# Build script for @supernal/interface (open-source)
-set -e
+# BUILDME.sh - Build the @supernal/interface open-source package
+# This script ensures clean builds with proper dependency installation
 
-echo "🏗️  Building @supernal/interface (open-source)"
-echo "================================================"
+set -e  # Exit on error
 
-# Clean previous build
-echo "🧹 Cleaning previous build..."
-npm run clean
+echo "🔨 Building @supernal/interface..."
 
-# Install dependencies
+# Step 1: Install dependencies (including devDependencies)
 echo "📦 Installing dependencies..."
-npm install
+npm install --include=dev
 
-# Build package
-echo "🔨 Building ESM + CJS..."
+# Step 2: Build the package
+echo "🏗️  Building ESM and CJS bundles..."
 npm run build
 
-echo "✅ @supernal/interface build complete!"
+echo "✅ Build complete!"
 echo ""
-echo "📦 Package info:"
-echo "   - ESM: dist/esm/"
-echo "   - CJS: dist/cjs/"
-echo "   - Types: dist/esm/**/*.d.ts"
-echo ""
-echo "🔗 To use locally in other packages:"
-echo "   npm link"
-
+echo "📊 Build output:"
+ls -lh dist/esm/src/index.js dist/cjs/src/index.js 2>/dev/null || echo "⚠️  Warning: Build files not found"
