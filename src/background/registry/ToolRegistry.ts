@@ -940,7 +940,10 @@ export class ToolRegistry {
         if (!currentLocation) return false;
 
         // Match route against current page/route
-        const currentPage = currentLocation.page || currentLocation.route || '';
+        // CRITICAL: Check .route FIRST (actual route like '/demo')
+        // NavigationGraph sets: page='Demo' (ID), route='/demo' (path)
+        // If we check .page first, we get 'Demo' which doesn't match '/demo'
+        const currentPage = currentLocation.route || currentLocation.page || '';
 
         // Exact match or hierarchical match (e.g., route='/blog' matches page='/blog/post')
         return currentPage === routeToMatch ||
