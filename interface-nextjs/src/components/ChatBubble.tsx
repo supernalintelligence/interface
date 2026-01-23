@@ -116,15 +116,15 @@ const DOCK_POSITIONS: Record<Position, { container: string; panel: string }> = {
 };
 
 const DEFAULT_CONFIG: ChatBubbleConfig = {
-  title: 'Supernal Intelligence Interface',
-  avatar: '🤖',
+  title: 'Supernal Interface',
+  avatar: '@/',
   description: 'I\'m a TOOL system AI can use to control this site',
   placeholder: 'Try: toggle notifications',
-  sendButtonLabel: 'Execute',
+  sendButtonLabel: 'Send',
   glassMode: true,
   welcome: {
     enabled: true,
-    title: '👋 Welcome! I\'m NOT an AI',
+    title: 'Welcome - I\'m NOT an AI',
     content: 'I\'m a tool system that AI assistants (like Claude, GPT) can use to navigate and control this site. This enables agentic UX — instead of clicking around, you tell an AI what you want, and it uses me to do it.',
     suggestedCommands: [
       { text: 'open the docs', desc: 'Navigate to documentation' },
@@ -244,19 +244,34 @@ export const ChatBubble: React.FC<ChatBubbleProps> = ({
   // Keyboard shortcuts
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
-      // Command+/ to focus input (full variant only)
-      if ((e.metaKey || e.ctrlKey) && e.key === '/' && variant === 'full') {
+      if (variant !== 'full') return;
+
+      // '/' key to open chat (only if not typing in input)
+      if (e.key === '/' && !isExpanded) {
+        const target = e.target as HTMLElement;
+        if (target.tagName !== 'INPUT' && target.tagName !== 'TEXTAREA') {
+          e.preventDefault();
+          setIsExpanded(true);
+          setTimeout(() => inputRef.current?.focus(), 0);
+        }
+      }
+
+      // Escape to close chat or info popup
+      if (e.key === 'Escape') {
+        if (showInfo) {
+          setShowInfo(false);
+        } else if (isExpanded) {
+          setIsExpanded(false);
+        }
+      }
+
+      // Command+/ to focus input
+      if ((e.metaKey || e.ctrlKey) && e.key === '/') {
         e.preventDefault();
         if (!isExpanded) {
           setIsExpanded(true);
         }
         inputRef.current?.focus();
-      }
-      // Escape to close info popup or undock
-      if (e.key === 'Escape') {
-        if (showInfo) {
-          setShowInfo(false);
-        }
       }
     };
 
@@ -507,13 +522,13 @@ export const ChatBubble: React.FC<ChatBubbleProps> = ({
                 {config.avatar && (
                   <div className="relative flex-shrink-0">
                     {typeof config.avatar === 'string' ? (
-                      <div className="w-10 h-10 bg-gradient-to-br from-blue-500 to-purple-600 rounded-full flex items-center justify-center shadow-lg">
-                        <span className="text-white text-lg">{config.avatar}</span>
+                      <div className="w-10 h-10 bg-blue-600 rounded-lg flex items-center justify-center shadow-md">
+                        <span className="text-white text-sm font-bold">{config.avatar}</span>
                       </div>
                     ) : (
                       config.avatar
                     )}
-                    <div className="absolute -bottom-1 -right-1 w-4 h-4 bg-green-500 rounded-full border-2 border-white shadow-md animate-pulse"></div>
+                    <div className="absolute -bottom-1 -right-1 w-3 h-3 bg-green-500 rounded-full border-2 border-white"></div>
                   </div>
                 )}
                 {/* Title */}
@@ -646,12 +661,12 @@ export const ChatBubble: React.FC<ChatBubbleProps> = ({
               {messages.map((message) => (
                 <div key={message.id} className="flex flex-col group">
                   <div
-                    className={`inline-block px-5 py-3 rounded-3xl max-w-[80%] text-sm shadow-lg transition-all hover:scale-[1.02] ${
+                    className={`inline-block px-5 py-3 rounded-2xl max-w-[80%] text-sm shadow-md transition-all ${
                       message.type === 'user'
-                        ? 'bg-gradient-to-br from-indigo-500 via-purple-500 to-pink-500 text-white ml-auto shadow-purple-500/30 hover:shadow-purple-500/50'
+                        ? 'bg-blue-600 text-white ml-auto'
                         : message.type === 'ai'
-                        ? 'bg-gradient-to-br from-slate-50 via-gray-50 to-zinc-50 dark:from-slate-800 dark:via-gray-800 dark:to-zinc-800 text-gray-800 dark:text-gray-100 border border-gray-200/30 dark:border-gray-700/30 hover:shadow-xl'
-                        : 'bg-gradient-to-br from-amber-50 to-orange-100 text-orange-900 border border-orange-200/30 hover:shadow-xl'
+                        ? 'bg-gray-100 dark:bg-gray-700 text-gray-900 dark:text-white border border-gray-200 dark:border-gray-600'
+                        : 'bg-yellow-100 text-yellow-900 border border-yellow-200'
                     }`}
                     data-testid={`chat-message-${message.type}`}
                   >
@@ -660,7 +675,7 @@ export const ChatBubble: React.FC<ChatBubbleProps> = ({
                     <div className={`text-xs mt-1 pt-1 border-t opacity-0 group-hover:opacity-70 transition-opacity ${
                       message.type === 'user'
                         ? 'border-white/20 text-white/80'
-                        : 'border-gray-300/30 dark:border-gray-600/30 text-gray-500 dark:text-gray-400'
+                        : 'border-gray-300/30 dark:border-gray-500/30 text-gray-600 dark:text-gray-300'
                     }`}>
                       {typeof window !== 'undefined' ? new Date(message.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : ''}
                     </div>
@@ -685,13 +700,10 @@ export const ChatBubble: React.FC<ChatBubbleProps> = ({
                 <button
                   type="submit"
                   disabled={!inputValue.trim()}
-                  className="absolute right-2 top-1/2 -translate-y-1/2 p-2 bg-gradient-to-br from-indigo-500 via-purple-500 to-pink-500 text-white rounded-full hover:from-indigo-600 hover:via-purple-600 hover:to-pink-600 disabled:from-gray-300 disabled:to-gray-400 disabled:cursor-not-allowed transition-all shadow-md hover:shadow-lg hover:scale-110 disabled:shadow-none disabled:scale-100"
+                  className="absolute right-2 top-1/2 -translate-y-1/2 px-3 py-1.5 bg-blue-600 text-white text-xs rounded-lg hover:bg-blue-700 disabled:bg-gray-300 disabled:cursor-not-allowed transition-colors"
                   data-testid={ChatNames.sendButton}
-                  title={config.sendButtonLabel}
                 >
-                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 5l7 7-7 7M5 5l7 7-7 7" />
-                  </svg>
+                  {config.sendButtonLabel}
                 </button>
               </div>
             </form>
