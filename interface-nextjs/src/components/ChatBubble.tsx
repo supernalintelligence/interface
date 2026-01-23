@@ -117,7 +117,7 @@ const DOCK_POSITIONS: Record<Position, { container: string; panel: string }> = {
 
 const DEFAULT_CONFIG: ChatBubbleConfig = {
   title: 'Supernal Interface',
-  avatar: '@/',
+  avatar: <img src="/logo.svg" alt="Supernal" className="w-6 h-6" />,
   description: 'I\'m a TOOL system AI can use to control this site',
   placeholder: 'Try: toggle notifications',
   sendButtonLabel: 'Send',
@@ -467,7 +467,7 @@ export const ChatBubble: React.FC<ChatBubbleProps> = ({
   return (
     <>
       {/* Chat Container */}
-      <div className={`fixed ${isDocked ? dockClasses.container : ''} z-50`}>
+      <div className={`fixed ${dockClasses.container} z-50`}>
         {/* Minimized Compact View */}
         {isExpanded && isMinimized && lastMessage && (
           <div
@@ -665,8 +665,8 @@ export const ChatBubble: React.FC<ChatBubbleProps> = ({
                       message.type === 'user'
                         ? 'bg-blue-600 text-white ml-auto'
                         : message.type === 'ai'
-                        ? 'bg-gray-100 dark:bg-gray-700 text-gray-900 dark:text-white border border-gray-200 dark:border-gray-600'
-                        : 'bg-yellow-100 text-yellow-900 border border-yellow-200'
+                        ? 'bg-white dark:bg-gray-800 text-gray-900 dark:text-white border border-gray-200 dark:border-gray-700'
+                        : 'bg-yellow-100 dark:bg-yellow-900 text-yellow-900 dark:text-yellow-100 border border-yellow-200 dark:border-yellow-700'
                     }`}
                     data-testid={`chat-message-${message.type}`}
                   >
@@ -675,7 +675,7 @@ export const ChatBubble: React.FC<ChatBubbleProps> = ({
                     <div className={`text-xs mt-1 pt-1 border-t opacity-0 group-hover:opacity-70 transition-opacity ${
                       message.type === 'user'
                         ? 'border-white/20 text-white/80'
-                        : 'border-gray-300/30 dark:border-gray-500/30 text-gray-600 dark:text-gray-300'
+                        : 'border-gray-300/30 dark:border-gray-600/30 text-gray-600 dark:text-gray-400'
                     }`}>
                       {typeof window !== 'undefined' ? new Date(message.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : ''}
                     </div>
@@ -700,40 +700,39 @@ export const ChatBubble: React.FC<ChatBubbleProps> = ({
                 <button
                   type="submit"
                   disabled={!inputValue.trim()}
-                  className="absolute right-2 top-1/2 -translate-y-1/2 px-3 py-1.5 bg-blue-600 text-white text-xs rounded-lg hover:bg-blue-700 disabled:bg-gray-300 disabled:cursor-not-allowed transition-colors"
+                  className="absolute right-2 top-1/2 -translate-y-1/2 p-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:bg-gray-300 disabled:cursor-not-allowed transition-colors"
                   data-testid={ChatNames.sendButton}
+                  title={config.sendButtonLabel}
                 >
-                  {config.sendButtonLabel}
+                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8" />
+                  </svg>
                 </button>
               </div>
             </form>
           </div>
         )}
 
-        {/* Chat Bubble Button */}
-        <button
-          onClick={handleToggle}
-          className="w-14 h-14 bg-gradient-to-br from-blue-500 to-blue-600 hover:from-blue-600 hover:to-blue-700 text-white rounded-full shadow-xl hover:shadow-2xl transition-all duration-300 flex items-center justify-center relative hover:scale-110"
-          data-testid={ChatNames.bubble}
-          title={isExpanded ? 'Minimize chat' : 'Open chat'}
-        >
-          {isExpanded ? (
-            <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
-            </svg>
-          ) : (
+        {/* Chat Bubble Button - only show when collapsed */}
+        {!isExpanded && (
+          <button
+            onClick={handleToggle}
+            className="w-14 h-14 bg-gradient-to-br from-blue-500 to-blue-600 hover:from-blue-600 hover:to-blue-700 text-white rounded-full shadow-xl hover:shadow-2xl transition-all duration-300 flex items-center justify-center relative hover:scale-110"
+            data-testid={ChatNames.bubble}
+            title="Open chat"
+          >
             <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
             </svg>
-          )}
 
-          {/* Unread indicator */}
-          {hasUnread && (
-            <div className="absolute -top-1 -right-1 w-5 h-5 bg-gradient-to-br from-red-500 to-red-600 rounded-full flex items-center justify-center animate-pulse shadow-lg" data-testid="unread-indicator">
-              <span className="text-xs text-white font-bold">{unreadCount > 9 ? '9+' : unreadCount}</span>
-            </div>
-          )}
-        </button>
+            {/* Unread indicator */}
+            {hasUnread && (
+              <div className="absolute -top-1 -right-1 w-5 h-5 bg-gradient-to-br from-red-500 to-red-600 rounded-full flex items-center justify-center animate-pulse shadow-lg" data-testid="unread-indicator">
+                <span className="text-xs text-white font-bold">{unreadCount > 9 ? '9+' : unreadCount}</span>
+              </div>
+            )}
+          </button>
+        )}
       </div>
     </>
   );
