@@ -2,7 +2,7 @@
 
 import React from 'react';
 import { ChatInputProvider } from '../contexts/ChatInputContext';
-import { ChatProvider } from '../contexts/ChatProvider';
+import { ChatProvider, useChatContext } from '../contexts/ChatProvider';
 import { ChatBubble } from './ChatBubble';
 import { AutoNavigationContext } from './AutoNavigationContext';
 
@@ -24,6 +24,30 @@ export interface SupernalProviderProps {
   // Advanced callbacks
   onNavigate?: (context: string) => void;
   onToolExecute?: (tool: string, result: any) => void;
+}
+
+// Inner component that uses ChatContext
+function ChatBubbleConnector({
+  theme,
+  position,
+  welcomeMessage,
+}: {
+  theme?: 'light' | 'dark' | 'auto';
+  position?: 'bottom-right' | 'bottom-left' | 'top-right' | 'top-left';
+  welcomeMessage?: string;
+}) {
+  const { messages, sendMessage, clearMessages } = useChatContext();
+
+  return (
+    <ChatBubble
+      messages={messages}
+      onSendMessage={sendMessage}
+      onClearChat={clearMessages}
+      position={position}
+      variant="full"
+      defaultExpanded={true}
+    />
+  );
 }
 
 export function SupernalProvider({
@@ -50,7 +74,7 @@ export function SupernalProvider({
         </AutoNavigationContext>
         {/* Render ChatBubble OUTSIDE AutoNavigationContext, after all children */}
         {shouldRenderChatBubble ? (
-          <ChatBubble
+          <ChatBubbleConnector
             theme={theme}
             position={position}
             welcomeMessage={welcomeMessage}
