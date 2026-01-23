@@ -115,6 +115,72 @@ const DOCK_POSITIONS: Record<Position, { container: string; panel: string }> = {
   },
 };
 
+// Theme classes - centralized styling for easy light/dark mode management
+const THEME_CLASSES = {
+  // Message bubbles
+  message: {
+    user: 'bg-gradient-to-br from-blue-600 to-purple-600 text-white ml-auto',
+    ai: 'bg-white dark:bg-gray-800 text-gray-900 dark:text-white border border-gray-200 dark:border-gray-600',
+    system: 'bg-white/70 dark:bg-gray-800/70 text-gray-700 dark:text-gray-200 border border-gray-200/40 dark:border-gray-600/40',
+    timestamp: {
+      user: 'border-white/20 text-white/80',
+      other: 'border-gray-300/30 dark:border-gray-500/30 text-gray-600 dark:text-gray-300',
+    },
+  },
+
+  // Header action buttons
+  button: {
+    theme: 'p-2 text-yellow-600 dark:text-yellow-400 hover:text-yellow-700 dark:hover:text-yellow-300 transition-colors rounded-lg hover:bg-white/30',
+    home: 'p-2 text-green-600 dark:text-green-400 hover:text-green-700 dark:hover:text-green-300 transition-colors rounded-lg hover:bg-white/30',
+    dock: 'p-2 text-blue-600 dark:text-blue-400 hover:text-blue-700 dark:hover:text-blue-300 transition-colors rounded-lg hover:bg-white/30',
+    info: 'p-2 text-cyan-600 dark:text-cyan-400 hover:text-cyan-700 dark:hover:text-cyan-300 transition-colors rounded-lg hover:bg-white/30',
+    more: 'p-2 text-gray-600 dark:text-gray-300 hover:text-gray-800 dark:hover:text-gray-100 transition-colors rounded-lg hover:bg-white/30',
+    minimize: 'p-2 text-purple-600 dark:text-purple-400 hover:text-purple-700 dark:hover:text-purple-300 transition-colors rounded-lg hover:bg-white/30',
+    clear: 'p-2 text-red-600 dark:text-red-400 hover:text-red-700 dark:hover:text-red-300 transition-colors rounded-lg hover:bg-white/30',
+    close: 'p-2 text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200 transition-colors rounded-lg hover:bg-white/30',
+    floatingClear: 'p-1 text-gray-400 dark:text-gray-300 hover:text-gray-600 dark:hover:text-gray-200 transition-colors',
+  },
+
+  // Input field
+  input: {
+    field: 'w-full pl-4 pr-12 py-3 text-sm text-gray-900 dark:text-white placeholder:text-gray-500 dark:placeholder:text-gray-300 rounded-3xl focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all shadow-sm',
+    sendButton: 'absolute right-2 top-1/2 -translate-y-1/2 p-2 bg-blue-600 text-white rounded-full hover:bg-blue-700 disabled:bg-gray-300 disabled:cursor-not-allowed transition-all hover:scale-110',
+  },
+
+  // Welcome message
+  welcome: {
+    container: 'bg-gradient-to-br from-blue-500/20 to-purple-500/20 backdrop-blur-sm p-4 rounded-2xl border border-blue-200/30 dark:border-blue-500/30 shadow-lg',
+    title: 'font-bold text-gray-900 dark:text-white mb-2 text-sm',
+    content: 'text-sm text-gray-700 dark:text-white mb-3 leading-relaxed',
+    commandsContainer: 'bg-white/60 dark:bg-gray-800/60 backdrop-blur-sm p-3 rounded-xl border border-gray-200/30 dark:border-gray-600/30 shadow-sm',
+    commandsHeader: 'text-xs font-medium text-gray-900 dark:text-white mb-2',
+    commandButton: 'w-full text-left px-3 py-2 rounded-xl hover:bg-white/70 dark:hover:bg-gray-700/70 transition-all group border border-transparent hover:border-blue-200/50 dark:hover:border-blue-400/50 hover:shadow-md',
+    commandText: 'text-sm font-medium text-blue-700 dark:text-blue-200 group-hover:text-blue-900 dark:group-hover:text-blue-100',
+    commandDesc: 'text-xs text-gray-500 dark:text-gray-100 mt-0.5',
+  },
+
+  // Text colors for various elements
+  text: {
+    title: 'font-bold text-gray-900 dark:text-white text-base truncate',
+    floatingTitle: 'font-medium text-sm text-gray-900 dark:text-white',
+    minimizedMessage: 'text-sm text-gray-700 dark:text-white line-clamp-2',
+    minimizedUser: 'text-xs text-blue-600 dark:text-blue-200 line-clamp-1',
+    minimizedPrompt: 'text-xs text-gray-400 dark:text-gray-100 text-center',
+    floatingTimestamp: 'text-xs text-gray-400 dark:text-gray-100 mt-1 px-1 opacity-0 group-hover:opacity-100 transition-opacity',
+    infoPopup: 'px-4 py-3 bg-blue-500/10 backdrop-blur-sm border-b border-blue-200/30 text-sm text-gray-700 dark:text-white',
+  },
+
+  // Backgrounds and containers
+  bg: {
+    header: 'flex items-center justify-between p-4 border-b border-white/20',
+    headerGradient: 'bg-gradient-to-r from-blue-500/20 to-purple-500/20',
+    headerLight: 'bg-gradient-to-r from-blue-50 to-purple-50',
+    inputForm: 'p-4',
+    inputFormLight: 'bg-gray-50 dark:bg-gray-900',
+    bubble: 'w-14 h-14 bg-blue-600 hover:bg-blue-700 text-white rounded-full shadow-xl hover:shadow-2xl transition-all duration-300 flex items-center justify-center relative hover:scale-110',
+  },
+};
+
 const DEFAULT_CONFIG: ChatBubbleConfig = {
   title: 'Supernal Interface',
   avatar: <img src="/logo.svg" alt="Supernal" className="w-6 h-6" />,
@@ -161,6 +227,8 @@ export const ChatBubble: React.FC<ChatBubbleProps> = ({
   const [isDragging, setIsDragging] = useState(false);
   const [isDocked, setIsDocked] = useState(true);
   const [panelPosition, setPanelPosition] = useState({ x: 0, y: 0 });
+  const [theme, setTheme] = useState<'light' | 'dark'>('light');
+  const [showMoreMenu, setShowMoreMenu] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
   const panelRef = useRef<HTMLDivElement>(null);
@@ -177,6 +245,7 @@ export const ChatBubble: React.FC<ChatBubbleProps> = ({
           setIsMinimized(state.isMinimized ?? false);
           setIsDocked(state.isDocked ?? true);
           setPanelPosition(state.panelPosition || { x: 0, y: 0 });
+          setTheme(state.theme || 'light');
         }
       } catch {
         // Keep default value
@@ -184,19 +253,27 @@ export const ChatBubble: React.FC<ChatBubbleProps> = ({
     }
   }, [storageKey, variant, defaultExpanded]);
 
+  // Detect system theme on mount
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      const isDark = document.documentElement.getAttribute('data-theme') === 'dark';
+      setTheme(isDark ? 'dark' : 'light');
+    }
+  }, []);
+
   // Save state to localStorage
   useEffect(() => {
     if (variant === 'full') {
       try {
         localStorage.setItem(
           storageKey,
-          JSON.stringify({ isExpanded, isMinimized, isDocked, panelPosition })
+          JSON.stringify({ isExpanded, isMinimized, isDocked, panelPosition, theme })
         );
       } catch (error) {
         console.error('Failed to save chat state:', error);
       }
     }
-  }, [isExpanded, isMinimized, isDocked, panelPosition, storageKey, variant]);
+  }, [isExpanded, isMinimized, isDocked, panelPosition, theme, storageKey, variant]);
 
   // Register with chat input context
   const { registerInput } = useChatInput();
@@ -256,9 +333,11 @@ export const ChatBubble: React.FC<ChatBubbleProps> = ({
         }
       }
 
-      // Escape to close chat or info popup
+      // Escape to close chat, info popup, or more menu
       if (e.key === 'Escape') {
-        if (showInfo) {
+        if (showMoreMenu) {
+          setShowMoreMenu(false);
+        } else if (showInfo) {
           setShowInfo(false);
         } else if (isExpanded) {
           setIsExpanded(false);
@@ -277,7 +356,22 @@ export const ChatBubble: React.FC<ChatBubbleProps> = ({
 
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [isExpanded, showInfo, variant]);
+  }, [isExpanded, showInfo, showMoreMenu, variant]);
+
+  // Close more menu when clicking outside
+  useEffect(() => {
+    if (!showMoreMenu) return;
+
+    const handleClickOutside = (e: MouseEvent) => {
+      const target = e.target as HTMLElement;
+      if (!target.closest('[data-more-menu]')) {
+        setShowMoreMenu(false);
+      }
+    };
+
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, [showMoreMenu]);
 
   // Drag handlers
   const handlePanelMouseDown = (e: React.MouseEvent) => {
@@ -286,14 +380,35 @@ export const ChatBubble: React.FC<ChatBubbleProps> = ({
     const target = e.target as HTMLElement;
     if (!target.closest('[data-drag-handle]')) return;
 
+    // Don't drag if clicking on a button or interactive element
+    if (target.closest('button') || target.closest('svg') || target.closest('[role="button"]')) {
+      return;
+    }
+
+    e.preventDefault();
     setIsDragging(true);
-    setIsDocked(false);
+
     const rect = panelRef.current?.getBoundingClientRect();
+    if (!rect) return;
+
+    // Calculate current center of panel in viewport
+    const currentCenterX = rect.left + rect.width / 2;
+    const currentCenterY = rect.top + rect.height / 2;
+
+    // Calculate what panelPosition should be to place panel at current location
+    const viewportCenterX = window.innerWidth / 2;
+    const viewportCenterY = window.innerHeight / 2;
+    const targetX = currentCenterX - viewportCenterX;
+    const targetY = currentCenterY - viewportCenterY;
+
+    setIsDocked(false);
+    setPanelPosition({ x: targetX, y: targetY });
+
     dragRef.current = {
       startX: e.clientX,
       startY: e.clientY,
-      initialX: isDocked ? 0 : panelPosition.x,
-      initialY: isDocked ? 0 : panelPosition.y,
+      initialX: targetX,
+      initialY: targetY,
     };
   };
 
@@ -360,6 +475,27 @@ export const ChatBubble: React.FC<ChatBubbleProps> = ({
     setPanelPosition({ x: 0, y: 0 });
   };
 
+  const handleHome = () => {
+    setIsDocked(true);
+    setPanelPosition({ x: 0, y: 0 });
+    setIsMinimized(false);
+  };
+
+  const handleClearChat = () => {
+    if (onClearChat) {
+      onClearChat();
+      setShowWelcome(true);
+    }
+  };
+
+  const handleToggleTheme = () => {
+    const newTheme = theme === 'light' ? 'dark' : 'light';
+    setTheme(newTheme);
+    if (typeof window !== 'undefined') {
+      document.documentElement.setAttribute('data-theme', newTheme);
+    }
+  };
+
   const dockClasses = DOCK_POSITIONS[position];
   const primaryColor = config.theme?.primary || 'blue';
   const glassMode = config.glassMode ?? true;
@@ -404,13 +540,13 @@ export const ChatBubble: React.FC<ChatBubbleProps> = ({
                 config.avatar
               )}
               {config.title && (
-                <span className="font-medium text-sm text-gray-900 dark:text-white">{config.title}</span>
+                <span className={THEME_CLASSES.text.floatingTitle}>{config.title}</span>
               )}
             </div>
             {onClearChat && (
               <button
                 onClick={onClearChat}
-                className="p-1 text-gray-400 dark:text-gray-300 hover:text-gray-600 dark:hover:text-gray-200 transition-colors"
+                className={THEME_CLASSES.button.floatingClear}
                 title="Clear chat"
                 data-testid={ChatNames.clearButton}
               >
@@ -437,7 +573,7 @@ export const ChatBubble: React.FC<ChatBubbleProps> = ({
                   ? `${recentMessage.text.slice(0, 60)}...`
                   : recentMessage.text}
               </div>
-              <div className="text-xs text-gray-400 dark:text-gray-300 mt-1 px-1 opacity-0 group-hover:opacity-100 transition-opacity">
+              <div className={THEME_CLASSES.text.floatingTimestamp}>
                 {typeof window !== 'undefined' ? new Date(recentMessage.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : ''}
               </div>
             </div>
@@ -473,26 +609,34 @@ export const ChatBubble: React.FC<ChatBubbleProps> = ({
       {/* Chat Container */}
       <div className={`fixed ${dockClasses.container} z-50`}>
         {/* Minimized Compact View */}
-        {isExpanded && isMinimized && lastMessage && (
+        {isExpanded && isMinimized && (
           <div
             className={`absolute ${dockClasses.panel} ${glassClasses} rounded-3xl shadow-2xl border p-4 transition-all duration-300 cursor-pointer hover:scale-105`}
             style={{ width: panelWidth, maxWidth: '400px' }}
             onClick={() => setIsMinimized(false)}
           >
             <div className="space-y-2">
-              {/* Last AI message */}
-              {lastMessage.type === 'ai' && (
-                <div className="text-sm text-gray-700 dark:text-gray-300 line-clamp-2">
-                  {lastMessage.text}
+              {lastMessage ? (
+                <>
+                  {/* Last AI message */}
+                  {lastMessage.type === 'ai' && (
+                    <div className={THEME_CLASSES.text.minimizedMessage}>
+                      {lastMessage.text}
+                    </div>
+                  )}
+                  {/* Last user message if different */}
+                  {secondLastMessage && secondLastMessage.type === 'user' && (
+                    <div className={THEME_CLASSES.text.minimizedUser}>
+                      You: {secondLastMessage.text}
+                    </div>
+                  )}
+                </>
+              ) : (
+                <div className={THEME_CLASSES.text.minimizedMessage}>
+                  No messages yet - Click to start chatting
                 </div>
               )}
-              {/* Last user message if different */}
-              {secondLastMessage && secondLastMessage.type === 'user' && (
-                <div className="text-xs text-blue-600 dark:text-blue-400 line-clamp-1">
-                  You: {secondLastMessage.text}
-                </div>
-              )}
-              <div className="text-xs text-gray-400 dark:text-gray-300 text-center">
+              <div className={THEME_CLASSES.text.minimizedPrompt}>
                 Click to expand
               </div>
             </div>
@@ -518,7 +662,7 @@ export const ChatBubble: React.FC<ChatBubbleProps> = ({
             {/* Header - Draggable */}
             <div
               data-drag-handle
-              className={`flex items-center justify-between p-4 border-b border-white/20 ${glassMode ? 'bg-gradient-to-r from-blue-500/20 to-purple-500/20' : 'bg-gradient-to-r from-blue-50 to-purple-50'} cursor-move`}
+              className={`${THEME_CLASSES.bg.header} ${glassMode ? THEME_CLASSES.bg.headerGradient : THEME_CLASSES.bg.headerLight} cursor-move`}
               onMouseDown={handlePanelMouseDown}
             >
               <div className="flex items-center space-x-3">
@@ -538,7 +682,7 @@ export const ChatBubble: React.FC<ChatBubbleProps> = ({
                 {/* Title */}
                 {config.title && (
                   <div className="min-w-0 flex-1">
-                    <h3 className="font-bold text-gray-900 dark:text-white text-base truncate">
+                    <h3 className={THEME_CLASSES.text.title}>
                       {config.title}
                     </h3>
                   </div>
@@ -546,59 +690,103 @@ export const ChatBubble: React.FC<ChatBubbleProps> = ({
               </div>
 
               {/* Header actions */}
-              <div className="flex items-center space-x-1 flex-shrink-0">
-                {/* Dock/Undock button */}
-                {!isDocked && (
-                  <button
-                    onClick={handleDock}
-                    className="p-2 text-blue-600 dark:text-blue-400 hover:text-blue-700 dark:hover:text-blue-300 transition-colors rounded-lg hover:bg-white/30"
-                    title="Dock to corner"
-                  >
-                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 5a1 1 0 011-1h4a1 1 0 011 1v14a1 1 0 01-1 1H5a1 1 0 01-1-1V5zM16 7a1 1 0 011-1h2a1 1 0 011 1v10a1 1 0 01-1 1h-2a1 1 0 01-1-1V7z" />
-                    </svg>
-                  </button>
+              <div className="flex items-center space-x-1 flex-shrink-0 relative" data-more-menu>
+                {/* More menu button */}
+                <button
+                  onClick={() => setShowMoreMenu(!showMoreMenu)}
+                  className={THEME_CLASSES.button.more}
+                  title="More options"
+                >
+                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 5v.01M12 12v.01M12 19v.01M12 6a1 1 0 110-2 1 1 0 010 2zm0 7a1 1 0 110-2 1 1 0 010 2zm0 7a1 1 0 110-2 1 1 0 010 2z" />
+                  </svg>
+                </button>
+
+                {/* More menu dropdown */}
+                {showMoreMenu && (
+                  <div className="absolute right-0 top-10 bg-white dark:bg-gray-800 rounded-lg shadow-xl border border-gray-200 dark:border-gray-600 p-2 z-50 min-w-[160px]" data-more-menu>
+                    {/* Theme toggle */}
+                    <button
+                      onClick={() => {
+                        handleToggleTheme();
+                        setShowMoreMenu(false);
+                      }}
+                      className="w-full flex items-center space-x-2 px-3 py-2 text-sm text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg transition-colors"
+                    >
+                      {theme === 'light' ? (
+                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M20.354 15.354A9 9 0 018.646 3.646 9.003 9.003 0 0012 21a9.003 9.003 0 008.354-5.646z" />
+                        </svg>
+                      ) : (
+                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364 6.364l-.707-.707M6.343 6.343l-.707-.707m12.728 0l-.707.707M6.343 17.657l-.707.707M16 12a4 4 0 11-8 0 4 4 0 018 0z" />
+                        </svg>
+                      )}
+                      <span>{theme === 'light' ? 'Dark mode' : 'Light mode'}</span>
+                    </button>
+
+                    {/* Home button */}
+                    <button
+                      onClick={() => {
+                        handleHome();
+                        setShowMoreMenu(false);
+                      }}
+                      className="w-full flex items-center space-x-2 px-3 py-2 text-sm text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg transition-colors"
+                    >
+                      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6" />
+                      </svg>
+                      <span>Reset position</span>
+                    </button>
+
+                    {/* Info button */}
+                    <button
+                      onClick={() => {
+                        setShowInfo(!showInfo);
+                        setShowMoreMenu(false);
+                      }}
+                      className="w-full flex items-center space-x-2 px-3 py-2 text-sm text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg transition-colors"
+                    >
+                      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                      </svg>
+                      <span>How to use</span>
+                    </button>
+
+                    {/* Clear chat */}
+                    {onClearChat && (
+                      <button
+                        onClick={() => {
+                          handleClearChat();
+                          setShowMoreMenu(false);
+                        }}
+                        className="w-full flex items-center space-x-2 px-3 py-2 text-sm text-red-600 dark:text-red-400 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg transition-colors"
+                      >
+                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                        </svg>
+                        <span>Clear chat</span>
+                      </button>
+                    )}
+                  </div>
                 )}
-                {/* Info button */}
-                {config.description && (
-                  <button
-                    onClick={() => setShowInfo(!showInfo)}
-                    className="p-2 text-cyan-600 dark:text-cyan-400 hover:text-cyan-700 dark:hover:text-cyan-300 transition-colors rounded-lg hover:bg-white/30"
-                    title="Information"
-                  >
-                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-                    </svg>
-                  </button>
-                )}
+
                 {/* Minimize to compact button */}
                 <button
                   onClick={() => setIsMinimized(true)}
-                  className="p-2 text-purple-600 dark:text-purple-400 hover:text-purple-700 dark:hover:text-purple-300 transition-colors rounded-lg hover:bg-white/30"
-                  title="Minimize to compact view"
+                  className={THEME_CLASSES.button.minimize}
+                  title="Minimize"
                 >
                   <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M20 12H4" />
                   </svg>
                 </button>
-                {/* Clear button */}
-                {onClearChat && (
-                  <button
-                    onClick={onClearChat}
-                    className="p-2 text-red-600 dark:text-red-400 hover:text-red-700 dark:hover:text-red-300 transition-colors rounded-lg hover:bg-white/30"
-                    title="Clear chat"
-                    data-testid={ChatNames.clearButton}
-                  >
-                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-                    </svg>
-                  </button>
-                )}
+
                 {/* Close button */}
                 <button
                   onClick={handleToggle}
-                  className="p-2 text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200 transition-colors rounded-lg hover:bg-white/30"
-                  title="Close chat"
+                  className={THEME_CLASSES.button.close}
+                  title="Close"
                 >
                   <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
@@ -608,30 +796,43 @@ export const ChatBubble: React.FC<ChatBubbleProps> = ({
             </div>
 
             {/* Info popup */}
-            {showInfo && config.description && (
-              <div className="px-4 py-3 bg-blue-500/10 backdrop-blur-sm border-b border-blue-200/30 text-sm text-gray-700 dark:text-gray-200">
-                {config.description}
+            {showInfo && (
+              <div className={THEME_CLASSES.text.infoPopup}>
+                <div className="font-bold mb-2">How to Use</div>
+                <div className="space-y-2 text-xs">
+                  <div>• <strong>Theme:</strong> Toggle between light and dark modes</div>
+                  <div>• <strong>Home:</strong> Reset chat position to default</div>
+                  <div>• <strong>Minimize:</strong> Compact view with last message</div>
+                  <div>• <strong>Clear:</strong> Delete all messages and start fresh</div>
+                  <div>• <strong>Drag:</strong> Click and drag header to reposition</div>
+                  <div>• <strong>Keyboard:</strong> Press "/" to open, Esc to close</div>
+                </div>
+                {config.description && (
+                  <div className="mt-3 pt-3 border-t border-gray-300/30 dark:border-gray-600/30">
+                    {config.description}
+                  </div>
+                )}
               </div>
             )}
 
             {/* Messages */}
-            <div className="flex-1 overflow-y-auto p-4 space-y-4">
+            <div className="flex-1 overflow-y-auto p-4 space-y-2">
               {/* Welcome Message */}
               {showWelcome && messages.length === 0 && config.welcome?.enabled && (
-                <div className="bg-gradient-to-br from-blue-500/20 to-purple-500/20 backdrop-blur-sm p-4 rounded-2xl border border-blue-200/30 dark:border-blue-500/30 shadow-lg">
+                <div className={THEME_CLASSES.welcome.container}>
                   {config.welcome.title && (
-                    <h4 className="font-bold text-gray-900 dark:text-white mb-2 text-sm">
+                    <h4 className={THEME_CLASSES.welcome.title}>
                       {config.welcome.title}
                     </h4>
                   )}
                   {config.welcome.content && (
-                    <p className="text-sm text-gray-700 dark:text-gray-200 mb-3 leading-relaxed">
+                    <p className={THEME_CLASSES.welcome.content}>
                       {config.welcome.content}
                     </p>
                   )}
                   {config.welcome.suggestedCommands && config.welcome.suggestedCommands.length > 0 && (
-                    <div className="bg-white/60 dark:bg-gray-800/60 backdrop-blur-sm p-3 rounded-xl border border-gray-200/30 dark:border-gray-600/30 shadow-sm">
-                      <p className="text-xs font-medium text-gray-900 dark:text-white mb-2">
+                    <div className={THEME_CLASSES.welcome.commandsContainer}>
+                      <p className={THEME_CLASSES.welcome.commandsHeader}>
                         Try these commands:
                       </p>
                       <div className="space-y-1">
@@ -643,13 +844,13 @@ export const ChatBubble: React.FC<ChatBubbleProps> = ({
                               setShowWelcome(false);
                               setTimeout(() => inputRef.current?.focus(), 0);
                             }}
-                            className="w-full text-left px-3 py-2 rounded-xl hover:bg-white/70 dark:hover:bg-gray-700/70 transition-all group border border-transparent hover:border-blue-200/50 dark:hover:border-blue-400/50 hover:shadow-md"
+                            className={THEME_CLASSES.welcome.commandButton}
                           >
-                            <div className="text-sm font-medium text-blue-700 dark:text-blue-300 group-hover:text-blue-900 dark:group-hover:text-blue-200">
+                            <div className={THEME_CLASSES.welcome.commandText}>
                               "{cmd.text}"
                             </div>
                             {cmd.desc && (
-                              <div className="text-xs text-gray-500 dark:text-gray-300 mt-0.5">
+                              <div className={THEME_CLASSES.welcome.commandDesc}>
                                 {cmd.desc}
                               </div>
                             )}
@@ -665,12 +866,12 @@ export const ChatBubble: React.FC<ChatBubbleProps> = ({
               {messages.map((message) => (
                 <div key={message.id} className="flex flex-col group">
                   <div
-                    className={`inline-block px-5 py-3 rounded-2xl max-w-[80%] text-sm shadow-md transition-all ${
+                    className={`inline-block px-4 py-2.5 rounded-2xl max-w-[80%] text-sm shadow-sm transition-all ${
                       message.type === 'user'
-                        ? 'bg-gradient-to-br from-blue-600 to-purple-600 text-white ml-auto'
+                        ? THEME_CLASSES.message.user
                         : message.type === 'ai'
-                        ? 'bg-white dark:bg-gray-800 text-gray-900 dark:text-white border border-gray-200 dark:border-gray-600'
-                        : 'bg-orange-100 dark:bg-orange-900/50 text-orange-900 dark:text-orange-200 border border-orange-200 dark:border-orange-700'
+                        ? THEME_CLASSES.message.ai
+                        : THEME_CLASSES.message.system
                     }`}
                     data-testid={`chat-message-${message.type}`}
                   >
@@ -678,8 +879,8 @@ export const ChatBubble: React.FC<ChatBubbleProps> = ({
                     {/* Timestamp inside bubble on hover */}
                     <div className={`text-xs mt-1 pt-1 border-t opacity-0 group-hover:opacity-70 transition-opacity ${
                       message.type === 'user'
-                        ? 'border-white/20 text-white/80'
-                        : 'border-gray-300/30 dark:border-gray-500/30 text-gray-600 dark:text-gray-300'
+                        ? THEME_CLASSES.message.timestamp.user
+                        : THEME_CLASSES.message.timestamp.other
                     }`}>
                       {typeof window !== 'undefined' ? new Date(message.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : ''}
                     </div>
@@ -690,7 +891,7 @@ export const ChatBubble: React.FC<ChatBubbleProps> = ({
             </div>
 
             {/* Input */}
-            <form onSubmit={handleSend} className={`p-4 ${glassMode ? 'bg-transparent' : 'bg-gray-50 dark:bg-gray-900'}`}>
+            <form onSubmit={handleSend} className={`${THEME_CLASSES.bg.inputForm} ${glassMode ? 'bg-transparent' : THEME_CLASSES.bg.inputFormLight}`}>
               <div className="relative">
                 <input
                   ref={inputRef}
@@ -698,13 +899,13 @@ export const ChatBubble: React.FC<ChatBubbleProps> = ({
                   value={inputValue}
                   onChange={(e) => setInputValue(e.target.value)}
                   placeholder={config.placeholder}
-                  className={`w-full pl-4 pr-12 py-3 text-sm text-gray-900 dark:text-gray-100 placeholder:text-gray-500 dark:placeholder:text-gray-400 border rounded-3xl focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all shadow-sm ${glassClasses}`}
+                  className={`${THEME_CLASSES.input.field} ${glassClasses}`}
                   data-testid={ChatNames.input}
                 />
                 <button
                   type="submit"
                   disabled={!inputValue.trim()}
-                  className="absolute right-2 top-1/2 -translate-y-1/2 p-2 bg-blue-600 text-white rounded-full hover:bg-blue-700 disabled:bg-gray-300 disabled:cursor-not-allowed transition-all hover:scale-110"
+                  className={THEME_CLASSES.input.sendButton}
                   data-testid={ChatNames.sendButton}
                   title={config.sendButtonLabel}
                 >
@@ -721,7 +922,7 @@ export const ChatBubble: React.FC<ChatBubbleProps> = ({
         {!isExpanded && (
           <button
             onClick={handleToggle}
-            className="w-14 h-14 bg-blue-600 hover:bg-blue-700 text-white rounded-full shadow-xl hover:shadow-2xl transition-all duration-300 flex items-center justify-center relative hover:scale-110"
+            className={THEME_CLASSES.bg.bubble}
             data-testid={ChatNames.bubble}
             title="Open chat"
           >
