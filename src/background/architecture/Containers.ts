@@ -10,6 +10,8 @@
  * in their own codebase and register them with NavigationGraph.
  */
 
+const DEBUG=false
+
 /**
  * Container Definition
  * A container is a distinct navigation context (page, modal, drawer, etc.)
@@ -111,12 +113,12 @@ export class ContainerRegistry {
    * Register multiple containers
    */
   static registerContainers(containers: Record<string, ContainerDefinition>): void {
-    console.log('[ContainerRegistry] 📦 Registering containers:', Object.keys(containers));
+    DEBUG && console.log('[ContainerRegistry] 📦 Registering containers:', Object.keys(containers));
     Object.values(containers).forEach(container => {
-      console.log(`[ContainerRegistry] 📦 Registering: ${container.id} → ${container.route}`);
+      DEBUG && console.log(`[ContainerRegistry] 📦 Registering: ${container.id} → ${container.route}`);
       this.registerContainer(container);
     });
-    console.log('[ContainerRegistry] 📦 Total registered:', this.containers.size);
+    DEBUG && console.log('[ContainerRegistry] 📦 Total registered:', this.containers.size);
   }
 
   /**
@@ -134,7 +136,7 @@ export class ContainerRegistry {
    */
   static getContainerRoute(containerId: string): string | undefined {
     const route = this.containers.get(containerId)?.route;
-    console.log(`[ContainerRegistry] 🔍 getContainerRoute("${containerId}") → ${route || 'NOT FOUND'} (registry size: ${this.containers.size})`);
+    DEBUG && console.log(`[ContainerRegistry] 🔍 getContainerRoute("${containerId}") → ${route || 'NOT FOUND'} (registry size: ${this.containers.size})`);
     return route;
   }
 
