@@ -375,7 +375,7 @@ export const ChatBubble: React.FC<ChatBubbleProps> = ({
     : 'bg-white dark:bg-gray-900 border-gray-200';
 
   const glassGradient = glassMode
-    ? 'bg-gradient-to-br from-white/90 via-white/70 to-white/50 dark:from-gray-900/60 dark:via-gray-900/40 dark:to-gray-900/20'
+    ? 'bg-gradient-to-br from-white/90 via-white/70 to-white/50 dark:from-gray-900/80 dark:via-gray-900/70 dark:to-gray-900/60'
     : 'bg-white dark:bg-gray-900';
 
   const lastMessage = messages[messages.length - 1];
@@ -551,7 +551,7 @@ export const ChatBubble: React.FC<ChatBubbleProps> = ({
                 {!isDocked && (
                   <button
                     onClick={handleDock}
-                    className="p-2 text-gray-600 dark:text-gray-300 hover:text-blue-600 dark:hover:text-blue-400 transition-colors rounded-lg hover:bg-white/30"
+                    className="p-2 text-blue-600 dark:text-blue-400 hover:text-blue-700 dark:hover:text-blue-300 transition-colors rounded-lg hover:bg-white/30"
                     title="Dock to corner"
                   >
                     <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -563,7 +563,7 @@ export const ChatBubble: React.FC<ChatBubbleProps> = ({
                 {config.description && (
                   <button
                     onClick={() => setShowInfo(!showInfo)}
-                    className="p-2 text-gray-600 dark:text-gray-300 hover:text-blue-600 dark:hover:text-blue-400 transition-colors rounded-lg hover:bg-white/30"
+                    className="p-2 text-cyan-600 dark:text-cyan-400 hover:text-cyan-700 dark:hover:text-cyan-300 transition-colors rounded-lg hover:bg-white/30"
                     title="Information"
                   >
                     <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -574,7 +574,7 @@ export const ChatBubble: React.FC<ChatBubbleProps> = ({
                 {/* Minimize to compact button */}
                 <button
                   onClick={() => setIsMinimized(true)}
-                  className="p-2 text-gray-600 dark:text-gray-300 hover:text-purple-600 dark:hover:text-purple-400 transition-colors rounded-lg hover:bg-white/30"
+                  className="p-2 text-purple-600 dark:text-purple-400 hover:text-purple-700 dark:hover:text-purple-300 transition-colors rounded-lg hover:bg-white/30"
                   title="Minimize to compact view"
                 >
                   <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -585,7 +585,7 @@ export const ChatBubble: React.FC<ChatBubbleProps> = ({
                 {onClearChat && (
                   <button
                     onClick={onClearChat}
-                    className="p-2 text-gray-600 dark:text-gray-300 hover:text-red-600 dark:hover:text-red-400 transition-colors rounded-lg hover:bg-white/30"
+                    className="p-2 text-red-600 dark:text-red-400 hover:text-red-700 dark:hover:text-red-300 transition-colors rounded-lg hover:bg-white/30"
                     title="Clear chat"
                     data-testid={ChatNames.clearButton}
                   >
@@ -597,7 +597,7 @@ export const ChatBubble: React.FC<ChatBubbleProps> = ({
                 {/* Close button */}
                 <button
                   onClick={handleToggle}
-                  className="p-2 text-gray-600 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white transition-colors rounded-lg hover:bg-white/30"
+                  className="p-2 text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200 transition-colors rounded-lg hover:bg-white/30"
                   title="Close chat"
                 >
                   <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -667,10 +667,10 @@ export const ChatBubble: React.FC<ChatBubbleProps> = ({
                   <div
                     className={`inline-block px-5 py-3 rounded-2xl max-w-[80%] text-sm shadow-md transition-all ${
                       message.type === 'user'
-                        ? 'bg-blue-600 text-white ml-auto'
+                        ? 'bg-gradient-to-br from-blue-600 to-purple-600 text-white ml-auto'
                         : message.type === 'ai'
-                        ? 'bg-gray-100 dark:bg-gray-800 text-gray-900 dark:text-white border border-gray-200 dark:border-gray-700'
-                        : 'bg-yellow-100 dark:bg-yellow-900 text-yellow-900 dark:text-yellow-100 border border-yellow-200 dark:border-yellow-700'
+                        ? 'bg-white dark:bg-gray-800 text-gray-900 dark:text-white border border-gray-200 dark:border-gray-600'
+                        : 'bg-orange-100 dark:bg-orange-900/50 text-orange-900 dark:text-orange-200 border border-orange-200 dark:border-orange-700'
                     }`}
                     data-testid={`chat-message-${message.type}`}
                   >
@@ -698,7 +698,7 @@ export const ChatBubble: React.FC<ChatBubbleProps> = ({
                   value={inputValue}
                   onChange={(e) => setInputValue(e.target.value)}
                   placeholder={config.placeholder}
-                  className={`w-full pl-4 pr-12 py-3 text-sm text-gray-900 dark:text-white placeholder:text-gray-400 dark:placeholder:text-gray-500 border rounded-3xl focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all shadow-sm ${glassClasses}`}
+                  className={`w-full pl-4 pr-12 py-3 text-sm text-gray-900 dark:text-gray-100 placeholder:text-gray-500 dark:placeholder:text-gray-400 border rounded-3xl focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all shadow-sm ${glassClasses}`}
                   data-testid={ChatNames.input}
                 />
                 <button
