@@ -87,31 +87,31 @@ interface ChatBubbleProps {
 const DOCK_POSITIONS: Record<Position, { container: string; panel: string }> = {
   'bottom-right': {
     container: 'bottom-4 right-4 sm:bottom-6 sm:right-6',
-    panel: 'bottom-16 right-0',
+    panel: 'bottom-0 right-0',
   },
   'bottom-left': {
     container: 'bottom-4 left-4 sm:bottom-6 sm:left-6',
-    panel: 'bottom-16 left-0',
+    panel: 'bottom-0 left-0',
   },
   'top-right': {
     container: 'top-4 right-4 sm:top-6 sm:right-6',
-    panel: 'top-16 right-0',
+    panel: 'top-0 right-0',
   },
   'top-left': {
     container: 'top-4 left-4 sm:top-6 sm:left-6',
-    panel: 'top-16 left-0',
+    panel: 'top-0 left-0',
   },
   'left-center': {
     container: 'left-4 top-1/2 -translate-y-1/2',
-    panel: 'left-16 top-0',
+    panel: 'left-0 top-0',
   },
   'right-center': {
     container: 'right-4 top-1/2 -translate-y-1/2',
-    panel: 'right-16 top-0',
+    panel: 'right-0 top-0',
   },
   'bottom-center': {
     container: 'bottom-4 left-1/2 -translate-x-1/2',
-    panel: 'bottom-16 left-1/2 -translate-x-1/2',
+    panel: 'bottom-0 left-1/2 -translate-x-1/2',
   },
 };
 
@@ -343,7 +343,7 @@ const Avatar: React.FC<AvatarProps> = ({ avatar, size = 'normal' }) => {
   return <>{avatar}</>;
 };
 
-export const ChatBubble: React.FC<ChatBubbleProps> = ({
+export const ChatBubble = ({
   messages,
   onSendMessage,
   onClearChat,
@@ -352,7 +352,7 @@ export const ChatBubble: React.FC<ChatBubbleProps> = ({
   config: userConfig,
   defaultExpanded = true,
   storageKey = 'chat-bubble-state',
-}) => {
+}: ChatBubbleProps) => {
   const config = { ...DEFAULT_CONFIG, ...userConfig };
   const [isExpanded, setIsExpanded] = useState(defaultExpanded);
   const [isMinimized, setIsMinimized] = useState(false); // New minimized state
