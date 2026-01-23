@@ -375,7 +375,7 @@ export const ChatBubble: React.FC<ChatBubbleProps> = ({
     : 'bg-white dark:bg-gray-900 border-gray-200';
 
   const glassGradient = glassMode
-    ? 'bg-gradient-to-br from-white/90 via-white/70 to-white/50 dark:from-gray-900/90 dark:via-gray-900/70 dark:to-gray-900/50'
+    ? 'bg-gradient-to-br from-white/90 via-white/70 to-white/50 dark:from-gray-900/60 dark:via-gray-900/40 dark:to-gray-900/20'
     : 'bg-white dark:bg-gray-900';
 
   const lastMessage = messages[messages.length - 1];
@@ -690,7 +690,7 @@ export const ChatBubble: React.FC<ChatBubbleProps> = ({
             </div>
 
             {/* Input */}
-            <form onSubmit={handleSend} className={`p-4 border-t border-white/20 ${glassMode ? 'bg-gradient-to-r from-gray-50/50 to-gray-100/50 backdrop-blur-sm' : 'bg-gray-50'}`}>
+            <form onSubmit={handleSend} className={`p-4 ${glassMode ? 'bg-transparent' : 'bg-gray-50 dark:bg-gray-900'}`}>
               <div className="relative">
                 <input
                   ref={inputRef}
