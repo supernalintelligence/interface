@@ -25,6 +25,8 @@ import { ComponentRegistry } from '../background/registry/ComponentRegistry';
 import { isStatefulComponent } from '../interfaces/StatefulComponent';
 import { syncStateToDom, triggerStateChange } from '../state/StateSync';
 
+const DEBUG=false
+
 export interface ComponentConfig {
   /**
    * Component name (namespace)
@@ -97,7 +99,7 @@ export function Component(config: ComponentConfig) {
       // This ensures tools are registered even if @Tool decorator failed
       ToolRegistry.registerTool(constructor.name, toolMetadata.methodName, enhancedMetadata);
         
-        console.log(
+        DEBUG && console.log(
         `📦 [Component] Enhanced: ${constructor.name}.${toolMetadata.methodName} ` +
         `with component namespace '${componentName}' (${config.containerId || 'no container'})`
       );

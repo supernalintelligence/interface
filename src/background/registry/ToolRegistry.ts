@@ -15,8 +15,7 @@ import { ToolMetadata } from '../../decorators/Tool';
 import { LocationContext } from '../location/LocationContext';
 import type { AppLocation } from '../location/LocationContext';
 
-const DEBUG=true
-
+const DEBUG=false
 // Execution context types
 export interface UniversalExecutionContext {
   toolId: string;

@@ -240,6 +240,22 @@ class DOMExecutor implements ExecutorStrategy {
       }
     }
 
+    // Handle SELECT elements (dropdowns)
+    if (element.tagName === 'SELECT') {
+      if (_parameters.length > 0) {
+        const selectElement = element as HTMLSelectElement;
+        const value = String(_parameters[0]);
+        selectElement.value = value;
+        selectElement.dispatchEvent(new Event('change', { bubbles: true }));
+        return {
+          success: true,
+          message: `Changed ${tool.name} to "${value}"`
+        };
+      } else {
+        throw new Error(`SELECT element requires a value parameter`);
+      }
+    }
+
     throw new Error(`Unsupported element type: ${element.tagName}`);
   }
 }

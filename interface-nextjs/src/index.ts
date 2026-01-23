@@ -14,9 +14,9 @@ export {
 
 export { useChatContext, ChatProvider } from './contexts/ChatProvider';
 
-// Optional exports for customization (re-exported from base package)
-export { ChatBubble } from '../../src/ui/react/chat/ChatBubble';
-export { ChatInputProvider, useChatInput } from '../../src/contexts/ChatInputContext';
+// Optional exports for customization
+export { ChatBubble } from './components/ChatBubble';
+export { ChatInputProvider, useChatInput } from './contexts/ChatInputContext';
 export { AutoNavigationContext } from './components/AutoNavigationContext';
 export {
   DemoAIInterface,

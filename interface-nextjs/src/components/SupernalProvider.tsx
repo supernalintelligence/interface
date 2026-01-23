@@ -1,9 +1,9 @@
 'use client';
 
 import React from 'react';
-import { ChatInputProvider } from '../../../src/contexts/ChatInputContext';
+import { ChatInputProvider } from '../contexts/ChatInputContext';
 import { ChatProvider, useChatContext } from '../contexts/ChatProvider';
-import { ChatBubble } from '../../../src/ui/react/chat/ChatBubble';
+import { ChatBubble } from './ChatBubble';
 import { AutoNavigationContext } from './AutoNavigationContext';
 
 // Note: Provider auto-initialization will be added in a future version
