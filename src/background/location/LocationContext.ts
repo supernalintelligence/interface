@@ -64,14 +64,34 @@ export type LocationChangeListener = (
  */
 export type UnsubscribeFn = () => void;
 
+// Use global registry to ensure single instance across all module versions
+// This prevents issues when enterprise package uses built version
+// while source code uses source version
+const globalRegistry = (typeof global !== 'undefined' ? global : globalThis) as any;
+if (!globalRegistry.__SUPERNAL_LOCATION_CONTEXT__) {
+  globalRegistry.__SUPERNAL_LOCATION_CONTEXT__ = {
+    current: null as AppLocation | null,
+    listeners: new Set<LocationChangeListener>(),
+  };
+}
+
 /**
  * LocationContext - Global singleton for application location tracking
- * 
+ *
  * This is SDK core functionality. All location-aware features use this.
  */
 export class LocationContext {
-  private static current: AppLocation | null = null;
-  private static listeners: Set<LocationChangeListener> = new Set();
+  private static get current(): AppLocation | null {
+    return globalRegistry.__SUPERNAL_LOCATION_CONTEXT__.current;
+  }
+
+  private static set current(value: AppLocation | null) {
+    globalRegistry.__SUPERNAL_LOCATION_CONTEXT__.current = value;
+  }
+
+  private static get listeners(): Set<LocationChangeListener> {
+    return globalRegistry.__SUPERNAL_LOCATION_CONTEXT__.listeners;
+  }
   
   /**
    * Set the current application location

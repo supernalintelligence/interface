@@ -15,7 +15,7 @@ import { ToolMetadata } from '../../decorators/Tool';
 import { LocationContext } from '../location/LocationContext';
 import type { AppLocation } from '../location/LocationContext';
 
-const DEBUG=false
+const DEBUG=true
 
 // Execution context types
 export interface UniversalExecutionContext {
@@ -908,8 +908,25 @@ export class ToolRegistry {
     const { ContainerRegistry } = require('../architecture/Containers');
 
     const currentLocation = location !== undefined ? location : LocationContext.getCurrent();
-    console.log('[ToolRegistry.getToolsByLocation] Input location:', location);
-    console.log('[ToolRegistry.getToolsByLocation] Resolved currentLocation:', currentLocation);
+
+    DEBUG && console.log('=== ToolRegistry.getToolsByLocation DEBUG ===');
+    DEBUG && console.log('[1] Input location param:', location);
+    DEBUG && console.log('[2] Resolved currentLocation:', currentLocation);
+    DEBUG && console.log('[3] Total tools in registry:', this.tools.size);
+
+    // Log all tools with their containerIds
+    if (DEBUG) {
+      const toolsWithContainers = Array.from(this.tools.values())
+        .filter(t => t.containerId)
+        .map(t => ({ name: t.name, containerId: t.containerId, toolId: t.toolId }));
+      console.log('[4] Tools WITH containerId:', toolsWithContainers);
+
+      const uniqueContainerIds = new Set(Array.from(this.tools.values()).map(t => t.containerId).filter(Boolean));
+      console.log('[5] Unique containerIds in registry:', Array.from(uniqueContainerIds));
+
+      const allContainers = ContainerRegistry.getAllContainers();
+      console.log('[6] Containers in ContainerRegistry:', allContainers.map((c: any) => ({ id: c.id, route: c.route })));
+    }
 
     return Array.from(this.tools.values()).filter(tool => {
       // Check 1: LocationScope decorator (rich matching)
@@ -949,10 +966,19 @@ export class ToolRegistry {
         const currentPage = currentLocation.route || currentLocation.page || '';
 
         // Exact match or hierarchical match (e.g., route='/blog' matches page='/blog/post')
-        return currentPage === routeToMatch ||
-               currentPage.startsWith(routeToMatch + '/') ||
-               currentPage.startsWith('/' + routeToMatch) ||
-               currentPage === '/' + routeToMatch;
+        const exactMatch = currentPage === routeToMatch;
+        const hierarchicalMatch = currentPage.startsWith(routeToMatch + '/');
+        const slashPrefixMatch1 = currentPage.startsWith('/' + routeToMatch);
+        const slashPrefixMatch2 = currentPage === '/' + routeToMatch;
+        const matches = exactMatch || hierarchicalMatch || slashPrefixMatch1 || slashPrefixMatch2;
+
+        if (DEBUG && tool.containerId !== 'global') {
+          console.log(`[7] Tool: ${tool.name} | containerId: ${tool.containerId} | routeToMatch: ${routeToMatch} | currentPage: ${currentPage} | matches: ${matches}`);
+          console.log(`    - exactMatch: ${exactMatch} (${currentPage} === ${routeToMatch})`);
+          console.log(`    - hierarchicalMatch: ${hierarchicalMatch} (${currentPage}.startsWith(${routeToMatch}/))`);
+        }
+
+        return matches;
       }
 
       // No scope defined = available everywhere (global)
@@ -981,8 +1007,19 @@ export class ToolRegistry {
    */
   static getToolsForCurrentContext(): ToolMetadata[] {
     const currentLocation = LocationContext.getCurrent();
-    console.log('[ToolRegistry.getToolsForCurrentContext] LocationContext.getCurrent():', currentLocation);
-    return this.getToolsByLocation(currentLocation);
+    DEBUG && console.log('=== ToolRegistry.getToolsForCurrentContext ===');
+    DEBUG && console.log('[ToolRegistry.getToolsForCurrentContext] LocationContext.getCurrent():', currentLocation);
+    const result = this.getToolsByLocation(currentLocation);
+
+    if (DEBUG) {
+      const scoped = result.filter(t => t.containerId && t.containerId !== 'global');
+      const global = result.filter(t => !t.containerId || t.containerId === 'global');
+      console.log('[RESULT] Total tools returned:', result.length);
+      console.log('[RESULT] Scoped tools:', scoped.length, scoped.map(t => ({ name: t.name, containerId: t.containerId })));
+      console.log('[RESULT] Global tools:', global.length);
+    }
+
+    return result;
   }
   
   /**
