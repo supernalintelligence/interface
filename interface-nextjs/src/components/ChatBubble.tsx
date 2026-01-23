@@ -618,19 +618,19 @@ export const ChatBubble: React.FC<ChatBubbleProps> = ({
             <div className="flex-1 overflow-y-auto p-4 space-y-4">
               {/* Welcome Message */}
               {showWelcome && messages.length === 0 && config.welcome?.enabled && (
-                <div className="bg-gradient-to-br from-blue-500/20 to-purple-500/20 backdrop-blur-sm p-4 rounded-2xl border border-blue-200/30 shadow-lg">
+                <div className="bg-gradient-to-br from-blue-500/20 to-purple-500/20 backdrop-blur-sm p-4 rounded-2xl border border-blue-200/30 dark:border-blue-500/30 shadow-lg">
                   {config.welcome.title && (
                     <h4 className="font-bold text-gray-900 dark:text-white mb-2 text-sm">
                       {config.welcome.title}
                     </h4>
                   )}
                   {config.welcome.content && (
-                    <p className="text-sm text-gray-700 dark:text-gray-300 mb-3 leading-relaxed">
+                    <p className="text-sm text-gray-700 dark:text-gray-200 mb-3 leading-relaxed">
                       {config.welcome.content}
                     </p>
                   )}
                   {config.welcome.suggestedCommands && config.welcome.suggestedCommands.length > 0 && (
-                    <div className="bg-white/60 dark:bg-gray-800/60 backdrop-blur-sm p-3 rounded-xl border border-gray-200/30 shadow-sm">
+                    <div className="bg-white/60 dark:bg-gray-800/60 backdrop-blur-sm p-3 rounded-xl border border-gray-200/30 dark:border-gray-600/30 shadow-sm">
                       <p className="text-xs font-medium text-gray-900 dark:text-white mb-2">
                         Try these commands:
                       </p>
@@ -643,13 +643,13 @@ export const ChatBubble: React.FC<ChatBubbleProps> = ({
                               setShowWelcome(false);
                               setTimeout(() => inputRef.current?.focus(), 0);
                             }}
-                            className="w-full text-left px-3 py-2 rounded-xl hover:bg-white/70 dark:hover:bg-gray-700/70 transition-all group border border-transparent hover:border-blue-200/50 hover:shadow-md"
+                            className="w-full text-left px-3 py-2 rounded-xl hover:bg-white/70 dark:hover:bg-gray-700/70 transition-all group border border-transparent hover:border-blue-200/50 dark:hover:border-blue-400/50 hover:shadow-md"
                           >
-                            <div className="text-sm font-medium text-blue-700 dark:text-blue-400 group-hover:text-blue-900 dark:group-hover:text-blue-300">
+                            <div className="text-sm font-medium text-blue-700 dark:text-blue-300 group-hover:text-blue-900 dark:group-hover:text-blue-200">
                               "{cmd.text}"
                             </div>
                             {cmd.desc && (
-                              <div className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">
+                              <div className="text-xs text-gray-500 dark:text-gray-300 mt-0.5">
                                 {cmd.desc}
                               </div>
                             )}
@@ -698,18 +698,18 @@ export const ChatBubble: React.FC<ChatBubbleProps> = ({
                   value={inputValue}
                   onChange={(e) => setInputValue(e.target.value)}
                   placeholder={config.placeholder}
-                  className={`w-full pl-4 pr-12 py-3 text-sm border rounded-3xl focus:ring-2 focus:ring-purple-500 focus:border-transparent transition-all shadow-sm ${glassClasses}`}
+                  className={`w-full pl-4 pr-12 py-3 text-sm text-gray-900 dark:text-white placeholder:text-gray-400 dark:placeholder:text-gray-500 border rounded-3xl focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all shadow-sm ${glassClasses}`}
                   data-testid={ChatNames.input}
                 />
                 <button
                   type="submit"
                   disabled={!inputValue.trim()}
-                  className="absolute right-2 top-1/2 -translate-y-1/2 p-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:bg-gray-300 disabled:cursor-not-allowed transition-colors"
+                  className="absolute right-2 top-1/2 -translate-y-1/2 p-2 bg-blue-600 text-white rounded-full hover:bg-blue-700 disabled:bg-gray-300 disabled:cursor-not-allowed transition-all hover:scale-110"
                   data-testid={ChatNames.sendButton}
                   title={config.sendButtonLabel}
                 >
-                  <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 24 24">
-                    <path d="M2.01 21L23 12 2.01 3 2 10l15 2-15 2z" />
+                  <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth="2.5" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M13 5l7 7m0 0l-7 7m7-7H3" />
                   </svg>
                 </button>
               </div>
@@ -725,7 +725,7 @@ export const ChatBubble: React.FC<ChatBubbleProps> = ({
             data-testid={ChatNames.bubble}
             title="Open chat"
           >
-            <span className="text-xl font-bold">@/</span>
+            <img src="/logo.svg" alt="Supernal" className="w-8 h-8" />
 
             {/* Unread indicator */}
             {hasUnread && (
