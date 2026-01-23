@@ -151,6 +151,7 @@ export const ChatBubble: React.FC<ChatBubbleProps> = ({
 }) => {
   const config = { ...DEFAULT_CONFIG, ...userConfig };
   const [isExpanded, setIsExpanded] = useState(defaultExpanded);
+  const [isMinimized, setIsMinimized] = useState(false); // New minimized state
   const [inputValue, setInputValue] = useState('');
   const [lastReadMessageCount, setLastReadMessageCount] = useState(0);
   const [showWelcome, setShowWelcome] = useState(
@@ -173,6 +174,7 @@ export const ChatBubble: React.FC<ChatBubbleProps> = ({
         if (stored !== null) {
           const state = JSON.parse(stored);
           setIsExpanded(state.isExpanded ?? defaultExpanded);
+          setIsMinimized(state.isMinimized ?? false);
           setIsDocked(state.isDocked ?? true);
           setPanelPosition(state.panelPosition || { x: 0, y: 0 });
         }
@@ -188,13 +190,13 @@ export const ChatBubble: React.FC<ChatBubbleProps> = ({
       try {
         localStorage.setItem(
           storageKey,
-          JSON.stringify({ isExpanded, isDocked, panelPosition })
+          JSON.stringify({ isExpanded, isMinimized, isDocked, panelPosition })
         );
       } catch (error) {
         console.error('Failed to save chat state:', error);
       }
     }
-  }, [isExpanded, isDocked, panelPosition, storageKey, variant]);
+  }, [isExpanded, isMinimized, isDocked, panelPosition, storageKey, variant]);
 
   // Register with chat input context
   const { registerInput } = useChatInput();
@@ -347,16 +349,18 @@ export const ChatBubble: React.FC<ChatBubbleProps> = ({
   const primaryColor = config.theme?.primary || 'blue';
   const glassMode = config.glassMode ?? true;
 
-  // Calculate dynamic size based on message count
-  const messageCount = messages.length;
-  const baseHeight = 400;
-  const maxHeight = 700;
-  const dynamicHeight = Math.min(baseHeight + messageCount * 15, maxHeight);
+  // Calculate dynamic size - max 80vh
+  const maxHeightVh = 80;
+  const dynamicHeight = `min(${maxHeightVh}vh, 700px)`;
+  const panelWidth = 'min(650px, calc(100vw - 2rem))'; // Wider panel
 
-  // Glassmorphism classes
+  // Glassmorphism classes with edge fade
   const glassClasses = glassMode
-    ? 'backdrop-blur-2xl bg-white/70 dark:bg-gray-900/70 border-white/20'
+    ? 'backdrop-blur-2xl bg-gradient-to-b from-white/80 via-white/75 to-white/70 dark:from-gray-900/80 dark:via-gray-900/75 dark:to-gray-900/70 border-white/30'
     : 'bg-white dark:bg-gray-900 border-gray-200';
+
+  const lastMessage = messages[messages.length - 1];
+  const secondLastMessage = messages[messages.length - 2];
 
   // Floating variant - compact draggable bubble
   if (variant === 'floating') {
@@ -449,14 +453,41 @@ export const ChatBubble: React.FC<ChatBubbleProps> = ({
     <>
       {/* Chat Container */}
       <div className={`fixed ${isDocked ? dockClasses.container : ''} z-50`}>
+        {/* Minimized Compact View */}
+        {isExpanded && isMinimized && lastMessage && (
+          <div
+            className={`absolute ${dockClasses.panel} ${glassClasses} rounded-3xl shadow-2xl border p-4 transition-all duration-300 cursor-pointer hover:scale-105`}
+            style={{ width: panelWidth, maxWidth: '400px' }}
+            onClick={() => setIsMinimized(false)}
+          >
+            <div className="space-y-2">
+              {/* Last AI message */}
+              {lastMessage.type === 'ai' && (
+                <div className="text-sm text-gray-700 dark:text-gray-300 line-clamp-2">
+                  {lastMessage.text}
+                </div>
+              )}
+              {/* Last user message if different */}
+              {secondLastMessage && secondLastMessage.type === 'user' && (
+                <div className="text-xs text-blue-600 dark:text-blue-400 line-clamp-1">
+                  You: {secondLastMessage.text}
+                </div>
+              )}
+              <div className="text-xs text-gray-400 text-center">
+                Click to expand
+              </div>
+            </div>
+          </div>
+        )}
+
         {/* Expanded Chat Panel */}
-        {isExpanded && (
+        {isExpanded && !isMinimized && (
           <div
             ref={panelRef}
             className={`${isDocked ? 'absolute ' + dockClasses.panel : 'fixed'} ${glassClasses} rounded-3xl shadow-2xl border flex flex-col overflow-hidden transition-all duration-300`}
             style={{
-              width: 'min(500px, calc(100vw - 2rem))',
-              height: `${dynamicHeight}px`,
+              width: panelWidth,
+              height: dynamicHeight,
               ...((!isDocked && {
                 left: '50%',
                 top: '50%',
@@ -521,6 +552,16 @@ export const ChatBubble: React.FC<ChatBubbleProps> = ({
                     </svg>
                   </button>
                 )}
+                {/* Minimize to compact button */}
+                <button
+                  onClick={() => setIsMinimized(true)}
+                  className="p-2 text-gray-600 dark:text-gray-300 hover:text-purple-600 dark:hover:text-purple-400 transition-colors rounded-lg hover:bg-white/30"
+                  title="Minimize to compact view"
+                >
+                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M20 12H4" />
+                  </svg>
+                </button>
                 {/* Clear button */}
                 {onClearChat && (
                   <button
@@ -534,14 +575,14 @@ export const ChatBubble: React.FC<ChatBubbleProps> = ({
                     </svg>
                   </button>
                 )}
-                {/* Minimize button */}
+                {/* Close button */}
                 <button
                   onClick={handleToggle}
                   className="p-2 text-gray-600 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white transition-colors rounded-lg hover:bg-white/30"
-                  title="Minimize chat"
+                  title="Close chat"
                 >
                   <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
                   </svg>
                 </button>
               </div>
@@ -605,19 +646,24 @@ export const ChatBubble: React.FC<ChatBubbleProps> = ({
               {messages.map((message) => (
                 <div key={message.id} className="flex flex-col group">
                   <div
-                    className={`inline-block px-4 py-3 rounded-2xl max-w-[85%] text-sm shadow-lg transition-all ${
+                    className={`inline-block px-5 py-3 rounded-3xl max-w-[80%] text-sm shadow-lg transition-all hover:scale-[1.02] ${
                       message.type === 'user'
-                        ? 'bg-gradient-to-br from-blue-500 to-blue-600 text-white ml-auto shadow-blue-500/50 hover:shadow-blue-500/70'
+                        ? 'bg-gradient-to-br from-indigo-500 via-purple-500 to-pink-500 text-white ml-auto shadow-purple-500/30 hover:shadow-purple-500/50'
                         : message.type === 'ai'
-                        ? 'bg-gradient-to-br from-gray-100 to-gray-200 dark:from-gray-700 dark:to-gray-800 text-gray-900 dark:text-white border border-gray-200/50 dark:border-gray-600/50 hover:shadow-xl'
-                        : 'bg-gradient-to-br from-yellow-100 to-yellow-200 text-yellow-900 border border-yellow-200/50 hover:shadow-xl'
+                        ? 'bg-gradient-to-br from-slate-50 via-gray-50 to-zinc-50 dark:from-slate-800 dark:via-gray-800 dark:to-zinc-800 text-gray-800 dark:text-gray-100 border border-gray-200/30 dark:border-gray-700/30 hover:shadow-xl'
+                        : 'bg-gradient-to-br from-amber-50 to-orange-100 text-orange-900 border border-orange-200/30 hover:shadow-xl'
                     }`}
                     data-testid={`chat-message-${message.type}`}
                   >
                     <div className="break-words leading-relaxed">{message.text}</div>
-                  </div>
-                  <div className={`text-xs text-gray-400 dark:text-gray-500 mt-1 px-1 opacity-0 group-hover:opacity-100 transition-opacity ${message.type === 'user' ? 'text-right' : ''}`}>
-                    {typeof window !== 'undefined' ? new Date(message.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : ''}
+                    {/* Timestamp inside bubble on hover */}
+                    <div className={`text-xs mt-1 pt-1 border-t opacity-0 group-hover:opacity-70 transition-opacity ${
+                      message.type === 'user'
+                        ? 'border-white/20 text-white/80'
+                        : 'border-gray-300/30 dark:border-gray-600/30 text-gray-500 dark:text-gray-400'
+                    }`}>
+                      {typeof window !== 'undefined' ? new Date(message.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : ''}
+                    </div>
                   </div>
                 </div>
               ))}
@@ -626,23 +672,26 @@ export const ChatBubble: React.FC<ChatBubbleProps> = ({
 
             {/* Input */}
             <form onSubmit={handleSend} className={`p-4 border-t border-white/20 ${glassMode ? 'bg-gradient-to-r from-gray-50/50 to-gray-100/50 backdrop-blur-sm' : 'bg-gray-50'}`}>
-              <div className="flex space-x-2">
+              <div className="relative">
                 <input
                   ref={inputRef}
                   type="text"
                   value={inputValue}
                   onChange={(e) => setInputValue(e.target.value)}
                   placeholder={config.placeholder}
-                  className={`flex-1 px-4 py-3 text-sm border rounded-2xl focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all shadow-sm ${glassClasses}`}
+                  className={`w-full pl-4 pr-12 py-3 text-sm border rounded-3xl focus:ring-2 focus:ring-purple-500 focus:border-transparent transition-all shadow-sm ${glassClasses}`}
                   data-testid={ChatNames.input}
                 />
                 <button
                   type="submit"
                   disabled={!inputValue.trim()}
-                  className="px-5 py-3 bg-gradient-to-r from-blue-500 to-blue-600 text-white rounded-2xl hover:from-blue-600 hover:to-blue-700 disabled:from-gray-300 disabled:to-gray-400 disabled:cursor-not-allowed transition-all text-sm font-medium shadow-md hover:shadow-xl disabled:shadow-none"
+                  className="absolute right-2 top-1/2 -translate-y-1/2 p-2 bg-gradient-to-br from-indigo-500 via-purple-500 to-pink-500 text-white rounded-full hover:from-indigo-600 hover:via-purple-600 hover:to-pink-600 disabled:from-gray-300 disabled:to-gray-400 disabled:cursor-not-allowed transition-all shadow-md hover:shadow-lg hover:scale-110 disabled:shadow-none disabled:scale-100"
                   data-testid={ChatNames.sendButton}
+                  title={config.sendButtonLabel}
                 >
-                  {config.sendButtonLabel}
+                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 5l7 7-7 7M5 5l7 7-7 7" />
+                  </svg>
                 </button>
               </div>
             </form>
