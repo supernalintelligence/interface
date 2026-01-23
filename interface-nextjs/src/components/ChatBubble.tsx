@@ -369,10 +369,14 @@ export const ChatBubble: React.FC<ChatBubbleProps> = ({
   const dynamicHeight = `min(${maxHeightVh}vh, 700px)`;
   const panelWidth = 'min(650px, calc(100vw - 2rem))'; // Wider panel
 
-  // Glassmorphism classes with edge fade
+  // Liquid glass effect - subtle transparency increasing towards edges
   const glassClasses = glassMode
-    ? 'backdrop-blur-2xl bg-gradient-to-b from-white/80 via-white/75 to-white/70 dark:from-gray-900/80 dark:via-gray-900/75 dark:to-gray-900/70 border-white/30'
+    ? 'backdrop-blur-xl bg-white/70 dark:bg-gray-900/70 border border-white/20 dark:border-white/10'
     : 'bg-white dark:bg-gray-900 border-gray-200';
+
+  const glassGradient = glassMode
+    ? 'bg-gradient-to-br from-white/90 via-white/70 to-white/50 dark:from-gray-900/90 dark:via-gray-900/70 dark:to-gray-900/50'
+    : 'bg-white dark:bg-gray-900';
 
   const lastMessage = messages[messages.length - 1];
   const secondLastMessage = messages[messages.length - 2];
@@ -499,7 +503,7 @@ export const ChatBubble: React.FC<ChatBubbleProps> = ({
         {isExpanded && !isMinimized && (
           <div
             ref={panelRef}
-            className={`${isDocked ? 'absolute ' + dockClasses.panel : 'fixed'} ${glassClasses} rounded-3xl shadow-2xl border flex flex-col overflow-hidden transition-all duration-300`}
+            className={`${isDocked ? 'absolute ' + dockClasses.panel : 'fixed'} ${glassGradient} rounded-3xl shadow-2xl border border-white/20 dark:border-white/10 backdrop-blur-xl flex flex-col overflow-hidden transition-all duration-300`}
             style={{
               width: panelWidth,
               height: dynamicHeight,
@@ -665,7 +669,7 @@ export const ChatBubble: React.FC<ChatBubbleProps> = ({
                       message.type === 'user'
                         ? 'bg-blue-600 text-white ml-auto'
                         : message.type === 'ai'
-                        ? 'bg-white dark:bg-gray-800 text-gray-900 dark:text-white border border-gray-200 dark:border-gray-700'
+                        ? 'bg-gray-100 dark:bg-gray-800 text-gray-900 dark:text-white border border-gray-200 dark:border-gray-700'
                         : 'bg-yellow-100 dark:bg-yellow-900 text-yellow-900 dark:text-yellow-100 border border-yellow-200 dark:border-yellow-700'
                     }`}
                     data-testid={`chat-message-${message.type}`}
@@ -675,7 +679,7 @@ export const ChatBubble: React.FC<ChatBubbleProps> = ({
                     <div className={`text-xs mt-1 pt-1 border-t opacity-0 group-hover:opacity-70 transition-opacity ${
                       message.type === 'user'
                         ? 'border-white/20 text-white/80'
-                        : 'border-gray-300/30 dark:border-gray-600/30 text-gray-600 dark:text-gray-400'
+                        : 'border-gray-300/30 dark:border-gray-500/30 text-gray-600 dark:text-gray-300'
                     }`}>
                       {typeof window !== 'undefined' ? new Date(message.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : ''}
                     </div>
@@ -704,8 +708,8 @@ export const ChatBubble: React.FC<ChatBubbleProps> = ({
                   data-testid={ChatNames.sendButton}
                   title={config.sendButtonLabel}
                 >
-                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8" />
+                  <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 24 24">
+                    <path d="M2.01 21L23 12 2.01 3 2 10l15 2-15 2z" />
                   </svg>
                 </button>
               </div>
@@ -717,17 +721,15 @@ export const ChatBubble: React.FC<ChatBubbleProps> = ({
         {!isExpanded && (
           <button
             onClick={handleToggle}
-            className="w-14 h-14 bg-gradient-to-br from-blue-500 to-blue-600 hover:from-blue-600 hover:to-blue-700 text-white rounded-full shadow-xl hover:shadow-2xl transition-all duration-300 flex items-center justify-center relative hover:scale-110"
+            className="w-14 h-14 bg-blue-600 hover:bg-blue-700 text-white rounded-full shadow-xl hover:shadow-2xl transition-all duration-300 flex items-center justify-center relative hover:scale-110"
             data-testid={ChatNames.bubble}
             title="Open chat"
           >
-            <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
-            </svg>
+            <span className="text-xl font-bold">@/</span>
 
             {/* Unread indicator */}
             {hasUnread && (
-              <div className="absolute -top-1 -right-1 w-5 h-5 bg-gradient-to-br from-red-500 to-red-600 rounded-full flex items-center justify-center animate-pulse shadow-lg" data-testid="unread-indicator">
+              <div className="absolute -top-1 -right-1 w-5 h-5 bg-red-500 rounded-full flex items-center justify-center animate-pulse shadow-lg" data-testid="unread-indicator">
                 <span className="text-xs text-white font-bold">{unreadCount > 9 ? '9+' : unreadCount}</span>
               </div>
             )}
