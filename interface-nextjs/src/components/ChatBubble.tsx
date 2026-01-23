@@ -115,6 +115,63 @@ const DOCK_POSITIONS: Record<Position, { container: string; panel: string }> = {
   },
 };
 
+// Inline styles for critical elements - ensures they work even with aggressive host CSS
+const INLINE_STYLES = {
+  // Input field
+  input: (isDark: boolean): React.CSSProperties => ({
+    color: isDark ? '#ffffff' : '#111827',
+    // Fallback for placeholder handled via ::placeholder CSS or separate element
+  }),
+
+  // Message bubbles
+  messageUser: (): React.CSSProperties => ({
+    background: 'linear-gradient(to bottom right, rgb(37, 99, 235), rgb(147, 51, 234))',
+    color: '#ffffff',
+  }),
+
+  messageAI: (isDark: boolean): React.CSSProperties => ({
+    backgroundColor: isDark ? 'rgba(31, 41, 55, 0.95)' : 'rgba(255, 255, 255, 0.95)',
+    color: isDark ? '#ffffff' : '#111827',
+  }),
+
+  messageSystem: (isDark: boolean): React.CSSProperties => ({
+    backgroundColor: isDark ? 'rgba(31, 41, 55, 0.7)' : 'rgba(255, 255, 255, 0.7)',
+    color: isDark ? '#e5e7eb' : '#374151',
+  }),
+
+  // Welcome message
+  welcomeTitle: (isDark: boolean): React.CSSProperties => ({
+    color: isDark ? '#ffffff' : '#111827',
+    fontWeight: 'bold',
+  }),
+
+  welcomeContent: (isDark: boolean): React.CSSProperties => ({
+    color: isDark ? '#ffffff' : '#374151',
+  }),
+
+  commandText: (isDark: boolean): React.CSSProperties => ({
+    color: isDark ? '#93c5fd' : '#1d4ed8',
+  }),
+
+  commandDesc: (isDark: boolean): React.CSSProperties => ({
+    color: isDark ? '#ffffff' : '#6b7280',
+  }),
+
+  // Info popup
+  infoText: (isDark: boolean): React.CSSProperties => ({
+    color: isDark ? '#ffffff' : '#374151',
+  }),
+
+  // Minimized message
+  minimizedMessage: (isDark: boolean): React.CSSProperties => ({
+    color: isDark ? '#ffffff' : '#374151',
+  }),
+
+  minimizedPrompt: (isDark: boolean): React.CSSProperties => ({
+    color: isDark ? '#ffffff' : '#9ca3af',
+  }),
+};
+
 // Theme classes - centralized styling for easy light/dark mode management
 const THEME_CLASSES = {
   // Message bubbles
@@ -587,6 +644,7 @@ export const ChatBubble: React.FC<ChatBubbleProps> = ({
               onChange={(e) => setInputValue(e.target.value)}
               placeholder={config.placeholder}
               className={`flex-1 px-2 py-1.5 text-xs border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all ${glassClasses}`}
+              style={INLINE_STYLES.input(theme === 'dark')}
               data-testid={ChatNames.input}
             />
             <button
@@ -620,7 +678,7 @@ export const ChatBubble: React.FC<ChatBubbleProps> = ({
                 <>
                   {/* Last AI message */}
                   {lastMessage.type === 'ai' && (
-                    <div className={THEME_CLASSES.text.minimizedMessage}>
+                    <div className={THEME_CLASSES.text.minimizedMessage} style={INLINE_STYLES.minimizedMessage(theme === 'dark')}>
                       {lastMessage.text}
                     </div>
                   )}
@@ -632,11 +690,11 @@ export const ChatBubble: React.FC<ChatBubbleProps> = ({
                   )}
                 </>
               ) : (
-                <div className={THEME_CLASSES.text.minimizedMessage}>
+                <div className={THEME_CLASSES.text.minimizedMessage} style={INLINE_STYLES.minimizedMessage(theme === 'dark')}>
                   No messages yet - Click to start chatting
                 </div>
               )}
-              <div className={THEME_CLASSES.text.minimizedPrompt}>
+              <div className={THEME_CLASSES.text.minimizedPrompt} style={INLINE_STYLES.minimizedPrompt(theme === 'dark')}>
                 Click to expand
               </div>
             </div>
@@ -797,9 +855,9 @@ export const ChatBubble: React.FC<ChatBubbleProps> = ({
 
             {/* Info popup */}
             {showInfo && (
-              <div className={THEME_CLASSES.text.infoPopup}>
+              <div className={THEME_CLASSES.text.infoPopup} style={INLINE_STYLES.infoText(theme === 'dark')}>
                 <div className="font-bold mb-2">How to Use</div>
-                <div className="space-y-2 text-xs">
+                <div className="space-y-2 text-xs" style={INLINE_STYLES.infoText(theme === 'dark')}>
                   <div>• <strong>Theme:</strong> Toggle between light and dark modes</div>
                   <div>• <strong>Home:</strong> Reset chat position to default</div>
                   <div>• <strong>Minimize:</strong> Compact view with last message</div>
@@ -821,12 +879,12 @@ export const ChatBubble: React.FC<ChatBubbleProps> = ({
               {showWelcome && messages.length === 0 && config.welcome?.enabled && (
                 <div className={THEME_CLASSES.welcome.container}>
                   {config.welcome.title && (
-                    <h4 className={THEME_CLASSES.welcome.title}>
+                    <h4 className={THEME_CLASSES.welcome.title} style={INLINE_STYLES.welcomeTitle(theme === 'dark')}>
                       {config.welcome.title}
                     </h4>
                   )}
                   {config.welcome.content && (
-                    <p className={THEME_CLASSES.welcome.content}>
+                    <p className={THEME_CLASSES.welcome.content} style={INLINE_STYLES.welcomeContent(theme === 'dark')}>
                       {config.welcome.content}
                     </p>
                   )}
@@ -846,11 +904,11 @@ export const ChatBubble: React.FC<ChatBubbleProps> = ({
                             }}
                             className={THEME_CLASSES.welcome.commandButton}
                           >
-                            <div className={THEME_CLASSES.welcome.commandText}>
+                            <div className={THEME_CLASSES.welcome.commandText} style={INLINE_STYLES.commandText(theme === 'dark')}>
                               "{cmd.text}"
                             </div>
                             {cmd.desc && (
-                              <div className={THEME_CLASSES.welcome.commandDesc}>
+                              <div className={THEME_CLASSES.welcome.commandDesc} style={INLINE_STYLES.commandDesc(theme === 'dark')}>
                                 {cmd.desc}
                               </div>
                             )}
@@ -873,6 +931,13 @@ export const ChatBubble: React.FC<ChatBubbleProps> = ({
                         ? THEME_CLASSES.message.ai
                         : THEME_CLASSES.message.system
                     }`}
+                    style={
+                      message.type === 'user'
+                        ? INLINE_STYLES.messageUser()
+                        : message.type === 'ai'
+                        ? INLINE_STYLES.messageAI(theme === 'dark')
+                        : INLINE_STYLES.messageSystem(theme === 'dark')
+                    }
                     data-testid={`chat-message-${message.type}`}
                   >
                     <div className="break-words leading-relaxed">{message.text}</div>
@@ -900,6 +965,7 @@ export const ChatBubble: React.FC<ChatBubbleProps> = ({
                   onChange={(e) => setInputValue(e.target.value)}
                   placeholder={config.placeholder}
                   className={`${THEME_CLASSES.input.field} ${glassClasses}`}
+                  style={INLINE_STYLES.input(theme === 'dark')}
                   data-testid={ChatNames.input}
                 />
                 <button
