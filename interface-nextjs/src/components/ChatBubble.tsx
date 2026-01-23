@@ -410,7 +410,7 @@ export const ChatBubble: React.FC<ChatBubbleProps> = ({
             {onClearChat && (
               <button
                 onClick={onClearChat}
-                className="p-1 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 transition-colors"
+                className="p-1 text-gray-400 dark:text-gray-300 hover:text-gray-600 dark:hover:text-gray-200 transition-colors"
                 title="Clear chat"
                 data-testid={ChatNames.clearButton}
               >
@@ -437,7 +437,7 @@ export const ChatBubble: React.FC<ChatBubbleProps> = ({
                   ? `${recentMessage.text.slice(0, 60)}...`
                   : recentMessage.text}
               </div>
-              <div className="text-xs text-gray-400 mt-1 px-1 opacity-0 group-hover:opacity-100 transition-opacity">
+              <div className="text-xs text-gray-400 dark:text-gray-300 mt-1 px-1 opacity-0 group-hover:opacity-100 transition-opacity">
                 {typeof window !== 'undefined' ? new Date(recentMessage.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : ''}
               </div>
             </div>
@@ -492,7 +492,7 @@ export const ChatBubble: React.FC<ChatBubbleProps> = ({
                   You: {secondLastMessage.text}
                 </div>
               )}
-              <div className="text-xs text-gray-400 text-center">
+              <div className="text-xs text-gray-400 dark:text-gray-300 text-center">
                 Click to expand
               </div>
             </div>
