@@ -12,6 +12,8 @@
  */
 
 import { ToolMetadata } from '../../decorators/Tool';
+import { LocationContext } from '../location/LocationContext';
+import type { AppLocation } from '../location/LocationContext';
 
 const DEBUG=false
 
@@ -901,9 +903,8 @@ export class ToolRegistry {
    * });
    * ```
    */
-  static getToolsByLocation(location?: import('../location/LocationContext').AppLocation | null): ToolMetadata[] {
-    // Lazy import to avoid circular dependencies
-    const { LocationContext } = require('../location/LocationContext');
+  static getToolsByLocation(location?: AppLocation | null): ToolMetadata[] {
+    // Import ContainerRegistry dynamically to avoid circular dependencies
     const { ContainerRegistry } = require('../architecture/Containers');
 
     const currentLocation = location !== undefined ? location : LocationContext.getCurrent();
@@ -979,7 +980,6 @@ export class ToolRegistry {
    * @returns Tools available at current location
    */
   static getToolsForCurrentContext(): ToolMetadata[] {
-    const { LocationContext } = require('../location/LocationContext');
     const currentLocation = LocationContext.getCurrent();
     console.log('[ToolRegistry.getToolsForCurrentContext] LocationContext.getCurrent():', currentLocation);
     return this.getToolsByLocation(currentLocation);
