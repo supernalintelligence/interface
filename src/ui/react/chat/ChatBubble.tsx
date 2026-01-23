@@ -1,5 +1,18 @@
 /**
- * Universal Chat Bubble Component
+ * Universal Chat Bubble Component - BASIC VERSION
+ *
+ * ⚠️ DEPRECATED: This is the basic ChatBubble implementation.
+ *
+ * For new projects, use the premium version from @supernal/interface-nextjs instead:
+ * - Located at: open-source/interface-nextjs/src/components/ChatBubble.tsx
+ * - Features: Glassmorphism, draggable panels, theme switching, better UX
+ *
+ * This basic version is only used by:
+ * - NativeAdapter (open-source/src/adapters/native/NativeAdapter.tsx)
+ *
+ * Consider migrating to the premium version for better user experience.
+ *
+ * ---
  *
  * A flexible, site-neutral chat interface that supports:
  * - Multiple positioning modes (left/right/bottom corners + edges)
@@ -556,6 +569,69 @@ export const ChatBubble: React.FC<ChatBubbleProps> = ({
                   {config.sendButtonLabel}
                 </button>
               </div>
+            </form>
+          </div>
+        )}
+
+        {/* Minimized Chat Preview (when collapsed) */}
+        {!isExpanded && (
+          <div className="bg-white rounded-lg shadow-xl border border-gray-200 p-3 max-w-xs sm:max-w-sm mb-3">
+            {/* Mini header */}
+            <div className="flex items-center justify-between mb-2">
+              <div className="flex items-center space-x-2">
+                {typeof config.avatar === 'string' ? (
+                  <span className="text-lg">{config.avatar}</span>
+                ) : (
+                  config.avatar
+                )}
+                {config.title && (
+                  <span className="font-medium text-sm text-gray-900">{config.title}</span>
+                )}
+              </div>
+              <button
+                onClick={handleToggle}
+                className="p-1 text-gray-400 hover:text-gray-600 transition-colors"
+                title="Expand chat"
+              >
+                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 15l7-7 7 7" />
+                </svg>
+              </button>
+            </div>
+
+            {/* Last AI response */}
+            {(() => {
+              // Find the last AI message
+              const lastAiMessage = [...messages].reverse().find(m => m.type === 'ai');
+              return lastAiMessage ? (
+                <div className="mb-2">
+                  <div className="text-xs px-2 py-1.5 rounded bg-gray-100 text-gray-800 border border-gray-200">
+                    {lastAiMessage.text.length > 80
+                      ? `${lastAiMessage.text.slice(0, 80)}...`
+                      : lastAiMessage.text}
+                  </div>
+                </div>
+              ) : null;
+            })()}
+
+            {/* Compact input */}
+            <form onSubmit={handleSend} className="flex space-x-1">
+              <input
+                type="text"
+                value={inputValue}
+                onChange={(e) => setInputValue(e.target.value)}
+                placeholder={config.placeholder}
+                className="flex-1 px-2 py-1.5 text-xs border border-gray-300 rounded focus:ring-2 focus:ring-blue-500 focus:border-transparent text-gray-800"
+                data-testid={ChatNames.input}
+              />
+              <button
+                type="submit"
+                disabled={!inputValue.trim()}
+                className={`px-3 py-1.5 bg-${primaryColor}-600 text-white rounded hover:bg-${primaryColor}-700 disabled:bg-gray-300 disabled:cursor-not-allowed transition-colors text-xs font-medium`}
+                data-testid={ChatNames.sendButton}
+              >
+                →
+              </button>
             </form>
           </div>
         )}

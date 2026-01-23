@@ -130,12 +130,12 @@ const INLINE_STYLES = {
   }),
 
   messageAI: (isDark: boolean): React.CSSProperties => ({
-    backgroundColor: isDark ? 'rgba(31, 41, 55, 0.95)' : 'rgba(255, 255, 255, 0.95)',
+    backgroundColor: isDark ? 'rgba(31, 41, 55, 1)' : 'rgba(255, 255, 255, 1)',
     color: isDark ? '#ffffff' : '#111827',
   }),
 
   messageSystem: (isDark: boolean): React.CSSProperties => ({
-    backgroundColor: isDark ? 'rgba(31, 41, 55, 0.7)' : 'rgba(255, 255, 255, 0.7)',
+    backgroundColor: isDark ? 'rgba(31, 41, 55, 0.95)' : 'rgba(255, 255, 255, 0.95)',
     color: isDark ? '#e5e7eb' : '#374151',
   }),
 
@@ -262,6 +262,87 @@ const DEFAULT_CONFIG: ChatBubbleConfig = {
   },
 };
 
+// Shared input component - defined OUTSIDE to prevent recreation on every render
+interface InputFieldProps {
+  compact?: boolean;
+  inputValue: string;
+  onInputChange: (value: string) => void;
+  onSubmit: (e: React.FormEvent) => void;
+  placeholder?: string;
+  glassClasses: string;
+  theme: 'light' | 'dark';
+  inputRef?: React.RefObject<HTMLInputElement>;
+  sendButtonLabel?: string;
+}
+
+const InputField: React.FC<InputFieldProps> = ({
+  compact = false,
+  inputValue,
+  onInputChange,
+  onSubmit,
+  placeholder,
+  glassClasses,
+  theme,
+  inputRef,
+  sendButtonLabel,
+}) => (
+  <form onSubmit={onSubmit} className={compact ? 'flex space-x-2' : THEME_CLASSES.bg.inputForm + ' ' + 'bg-transparent'}>
+    <div className={compact ? 'flex space-x-2 flex-1' : 'relative'}>
+      <input
+        ref={compact ? undefined : inputRef}
+        type="text"
+        value={inputValue}
+        onChange={(e) => onInputChange(e.target.value)}
+        placeholder={placeholder}
+        className={compact
+          ? `flex-1 px-3 py-2 text-xs border rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all ${glassClasses}`
+          : `${THEME_CLASSES.input.field} ${glassClasses}`
+        }
+        style={INLINE_STYLES.input(theme === 'dark')}
+        data-testid={Components.ChatInput}
+      />
+      <button
+        type="submit"
+        disabled={!inputValue.trim()}
+        className={compact
+          ? "px-3 py-2 bg-gradient-to-r from-blue-500 to-blue-600 text-white rounded-xl hover:from-blue-600 hover:to-blue-700 disabled:from-gray-300 disabled:to-gray-400 disabled:cursor-not-allowed transition-all text-xs font-medium shadow-md hover:shadow-lg"
+          : THEME_CLASSES.input.sendButton
+        }
+        data-testid={Components.ChatSendButton}
+        title={sendButtonLabel}
+      >
+        {compact ? '→' : (
+          <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth="2.5" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" d="M13 5l7 7m0 0l-7 7m7-7H3" />
+          </svg>
+        )}
+      </button>
+    </div>
+  </form>
+);
+
+// Shared avatar component - defined OUTSIDE to prevent recreation
+interface AvatarProps {
+  avatar?: string | React.ReactNode;
+  size?: 'small' | 'normal';
+}
+
+const Avatar: React.FC<AvatarProps> = ({ avatar, size = 'normal' }) => {
+  if (!avatar) return null;
+
+  if (typeof avatar === 'string') {
+    return size === 'small' ? (
+      <span className="text-lg">{avatar}</span>
+    ) : (
+      <div className="w-10 h-10 bg-blue-600 rounded-lg flex items-center justify-center shadow-md">
+        <span className="text-white text-sm font-bold">{avatar}</span>
+      </div>
+    );
+  }
+
+  return <>{avatar}</>;
+};
+
 export const ChatBubble: React.FC<ChatBubbleProps> = ({
   messages,
   onSendMessage,
@@ -286,10 +367,29 @@ export const ChatBubble: React.FC<ChatBubbleProps> = ({
   const [panelPosition, setPanelPosition] = useState({ x: 0, y: 0 });
   const [theme, setTheme] = useState<'light' | 'dark'>('light');
   const [showMoreMenu, setShowMoreMenu] = useState(false);
+  const [, setTimestampTick] = useState(0); // Forces re-render for timestamp updates
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
   const panelRef = useRef<HTMLDivElement>(null);
   const dragRef = useRef<{ startX: number; startY: number; initialX: number; initialY: number } | null>(null);
+
+  // Helper function to format relative time
+  const formatRelativeTime = (timestamp: string): string => {
+    const now = new Date();
+    const messageTime = new Date(timestamp);
+    const diffMs = now.getTime() - messageTime.getTime();
+    const diffSeconds = Math.floor(diffMs / 1000);
+    const diffMinutes = Math.floor(diffSeconds / 60);
+    const diffHours = Math.floor(diffMinutes / 60);
+    const diffDays = Math.floor(diffHours / 24);
+
+    if (diffSeconds < 60) return 'just now';
+    if (diffMinutes < 60) return `${diffMinutes} ${diffMinutes === 1 ? 'minute' : 'minutes'} ago`;
+    if (diffHours < 24) return `${diffHours} ${diffHours === 1 ? 'hour' : 'hours'} ago`;
+    if (diffDays < 7) return `${diffDays} ${diffDays === 1 ? 'day' : 'days'} ago`;
+
+    return messageTime.toLocaleDateString();
+  };
 
   // Load expanded state from localStorage after hydration
   useEffect(() => {
@@ -316,6 +416,14 @@ export const ChatBubble: React.FC<ChatBubbleProps> = ({
       const isDark = document.documentElement.getAttribute('data-theme') === 'dark';
       setTheme(isDark ? 'dark' : 'light');
     }
+  }, []);
+
+  // Auto-update timestamps every 60 seconds
+  useEffect(() => {
+    const interval = setInterval(() => {
+      setTimestampTick(tick => tick + 1);
+    }, 60000); // Update every minute
+    return () => clearInterval(interval);
   }, []);
 
   // Save state to localStorage
@@ -349,7 +457,7 @@ export const ChatBubble: React.FC<ChatBubbleProps> = ({
         }
       }, 100);
     });
-  }, [registerInput, onSendMessage, isExpanded, variant]);
+  }, [registerInput, onSendMessage]); // ✅ FIXED: Removed isExpanded, variant from dependencies
 
   // Track unread messages
   const unreadCount = Math.max(0, messages.length - lastReadMessageCount);
@@ -571,9 +679,6 @@ export const ChatBubble: React.FC<ChatBubbleProps> = ({
     ? 'bg-gradient-to-br from-white/90 via-white/70 to-white/50 dark:from-gray-900/80 dark:via-gray-900/70 dark:to-gray-900/60'
     : 'bg-white dark:bg-gray-900';
 
-  const lastMessage = messages[messages.length - 1];
-  const secondLastMessage = messages[messages.length - 2];
-
   // Floating variant - compact draggable bubble
   if (variant === 'floating') {
     const recentMessage = messages[messages.length - 1];
@@ -591,11 +696,7 @@ export const ChatBubble: React.FC<ChatBubbleProps> = ({
           {/* Mini header */}
           <div className="flex items-center justify-between mb-2">
             <div className="flex items-center space-x-2">
-              {typeof config.avatar === 'string' ? (
-                <span className="text-lg">{config.avatar}</span>
-              ) : (
-                config.avatar
-              )}
+              <Avatar avatar={config.avatar} size="small" />
               {config.title && (
                 <span className={THEME_CLASSES.text.floatingTitle}>{config.title}</span>
               )}
@@ -616,7 +717,7 @@ export const ChatBubble: React.FC<ChatBubbleProps> = ({
 
           {/* Recent message */}
           {recentMessage && (
-            <div className="mb-2 group">
+            <div className={`mb-2 group flex items-center gap-2 ${recentMessage.type === 'user' ? 'flex-row-reverse' : 'flex-row'}`}>
               <div
                 className={`text-xs px-3 py-2 rounded-xl transition-all ${
                   recentMessage.type === 'user'
@@ -630,32 +731,29 @@ export const ChatBubble: React.FC<ChatBubbleProps> = ({
                   ? `${recentMessage.text.slice(0, 60)}...`
                   : recentMessage.text}
               </div>
-              <div className={THEME_CLASSES.text.floatingTimestamp}>
-                {typeof window !== 'undefined' ? new Date(recentMessage.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : ''}
+              <div className={`text-xs opacity-0 group-hover:opacity-70 transition-opacity whitespace-nowrap flex-shrink-0 ${
+                recentMessage.type === 'user'
+                  ? 'text-gray-400 dark:text-gray-500 text-left'
+                  : 'text-gray-600 dark:text-gray-400 text-right'
+              }`}
+              title={typeof window !== 'undefined' ? new Date(recentMessage.timestamp).toLocaleString() : ''}
+              >
+                {typeof window !== 'undefined' ? formatRelativeTime(recentMessage.timestamp) : ''}
               </div>
             </div>
           )}
 
           {/* Compact input */}
-          <form onSubmit={handleSend} className="flex space-x-1">
-            <input
-              type="text"
-              value={inputValue}
-              onChange={(e) => setInputValue(e.target.value)}
-              placeholder={config.placeholder}
-              className={`flex-1 px-2 py-1.5 text-xs border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all ${glassClasses}`}
-              style={INLINE_STYLES.input(theme === 'dark')}
-              data-testid={ChatNames.input}
-            />
-            <button
-              type="submit"
-              disabled={!inputValue.trim()}
-              className="px-3 py-1.5 bg-gradient-to-r from-blue-500 to-blue-600 text-white rounded-lg hover:from-blue-600 hover:to-blue-700 disabled:from-gray-300 disabled:to-gray-400 disabled:cursor-not-allowed transition-all text-xs font-medium shadow-md hover:shadow-lg"
-              data-testid={ChatNames.sendButton}
-            >
-              →
-            </button>
-          </form>
+          <InputField
+            compact
+            inputValue={inputValue}
+            onInputChange={setInputValue}
+            onSubmit={handleSend}
+            placeholder={config.placeholder}
+            glassClasses={glassClasses}
+            theme={theme}
+            sendButtonLabel={config.sendButtonLabel}
+          />
         </div>
       </div>
     );
@@ -669,35 +767,59 @@ export const ChatBubble: React.FC<ChatBubbleProps> = ({
         {/* Minimized Compact View */}
         {isExpanded && isMinimized && (
           <div
-            className={`absolute ${dockClasses.panel} ${glassClasses} rounded-3xl shadow-2xl border p-4 transition-all duration-300 cursor-pointer hover:scale-105`}
+            className={`absolute ${dockClasses.panel} ${glassClasses} rounded-3xl shadow-2xl border p-4 transition-all duration-300`}
             style={{ width: panelWidth, maxWidth: '400px' }}
-            onClick={() => setIsMinimized(false)}
           >
-            <div className="space-y-2">
-              {lastMessage ? (
-                <>
-                  {/* Last AI message */}
-                  {lastMessage.type === 'ai' && (
-                    <div className={THEME_CLASSES.text.minimizedMessage} style={INLINE_STYLES.minimizedMessage(theme === 'dark')}>
-                      {lastMessage.text}
-                    </div>
-                  )}
-                  {/* Last user message if different */}
-                  {secondLastMessage && secondLastMessage.type === 'user' && (
-                    <div className={THEME_CLASSES.text.minimizedUser}>
-                      You: {secondLastMessage.text}
-                    </div>
-                  )}
-                </>
-              ) : (
-                <div className={THEME_CLASSES.text.minimizedMessage} style={INLINE_STYLES.minimizedMessage(theme === 'dark')}>
-                  No messages yet - Click to start chatting
-                </div>
-              )}
-              <div className={THEME_CLASSES.text.minimizedPrompt} style={INLINE_STYLES.minimizedPrompt(theme === 'dark')}>
-                Click to expand
+            {/* Header with expand button */}
+            <div className="flex items-center justify-between mb-3">
+              <div className="flex items-center space-x-2">
+                <Avatar avatar={config.avatar} size="small" />
+                {config.title && (
+                  <span className={THEME_CLASSES.text.floatingTitle}>{config.title}</span>
+                )}
               </div>
+              <button
+                onClick={() => setIsMinimized(false)}
+                className="p-1 text-gray-400 hover:text-gray-600 dark:text-gray-300 dark:hover:text-gray-200 transition-colors"
+                title="Expand chat"
+              >
+                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 15l7-7 7 7" />
+                </svg>
+              </button>
             </div>
+
+            {/* Last AI response only */}
+            {(() => {
+              const lastAiMessage = [...messages].reverse().find(m => m.type === 'ai');
+              return lastAiMessage ? (
+                <div className="mb-3">
+                  <div className={`text-xs px-3 py-2 rounded-xl ${THEME_CLASSES.message.ai}`} style={INLINE_STYLES.messageAI(theme === 'dark')}>
+                    {lastAiMessage.text.length > 100
+                      ? `${lastAiMessage.text.slice(0, 100)}...`
+                      : lastAiMessage.text}
+                  </div>
+                </div>
+              ) : (
+                <div className="mb-3">
+                  <div className={THEME_CLASSES.text.minimizedMessage} style={INLINE_STYLES.minimizedMessage(theme === 'dark')}>
+                    No AI responses yet
+                  </div>
+                </div>
+              );
+            })()}
+
+            {/* Shared input component */}
+            <InputField
+              compact
+              inputValue={inputValue}
+              onInputChange={setInputValue}
+              onSubmit={handleSend}
+              placeholder={config.placeholder}
+              glassClasses={glassClasses}
+              theme={theme}
+              sendButtonLabel={config.sendButtonLabel}
+            />
           </div>
         )}
 
@@ -727,13 +849,7 @@ export const ChatBubble: React.FC<ChatBubbleProps> = ({
                 {/* Avatar */}
                 {config.avatar && (
                   <div className="relative flex-shrink-0">
-                    {typeof config.avatar === 'string' ? (
-                      <div className="w-10 h-10 bg-blue-600 rounded-lg flex items-center justify-center shadow-md">
-                        <span className="text-white text-sm font-bold">{config.avatar}</span>
-                      </div>
-                    ) : (
-                      config.avatar
-                    )}
+                    <Avatar avatar={config.avatar} />
                     <div className="absolute -bottom-1 -right-1 w-3 h-3 bg-green-500 rounded-full border-2 border-white"></div>
                   </div>
                 )}
@@ -762,7 +878,7 @@ export const ChatBubble: React.FC<ChatBubbleProps> = ({
 
                 {/* More menu dropdown */}
                 {showMoreMenu && (
-                  <div className="absolute right-0 top-10 bg-white dark:bg-gray-800 rounded-lg shadow-xl border border-gray-200 dark:border-gray-600 p-2 z-50 min-w-[160px]" data-more-menu>
+                  <div className="absolute right-0 top-10 bg-white dark:bg-gray-800 rounded-lg shadow-xl border border-gray-200 dark:border-gray-600 p-2 z-[100] min-w-[160px]" data-more-menu>
                     {/* Theme toggle */}
                     <button
                       onClick={() => {
@@ -922,7 +1038,7 @@ export const ChatBubble: React.FC<ChatBubbleProps> = ({
 
               {/* Chat Messages */}
               {messages.map((message) => (
-                <div key={message.id} className="flex flex-col group">
+                <div key={message.id} className={`group flex items-center gap-2 mb-2 ${message.type === 'user' ? 'flex-row-reverse' : 'flex-row'}`}>
                   <div
                     className={`inline-block px-4 py-2.5 rounded-2xl max-w-[80%] text-sm shadow-sm transition-all ${
                       message.type === 'user'
@@ -941,14 +1057,17 @@ export const ChatBubble: React.FC<ChatBubbleProps> = ({
                     data-testid={`chat-message-${message.type}`}
                   >
                     <div className="break-words leading-relaxed">{message.text}</div>
-                    {/* Timestamp inside bubble on hover */}
-                    <div className={`text-xs mt-1 pt-1 border-t opacity-0 group-hover:opacity-70 transition-opacity ${
+                  </div>
+                  {/* Timestamp beside bubble - relative time with hover tooltip */}
+                  <div
+                    className={`text-xs opacity-0 group-hover:opacity-70 transition-opacity whitespace-nowrap flex-shrink-0 ${
                       message.type === 'user'
-                        ? THEME_CLASSES.message.timestamp.user
-                        : THEME_CLASSES.message.timestamp.other
-                    }`}>
-                      {typeof window !== 'undefined' ? new Date(message.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : ''}
-                    </div>
+                        ? 'text-gray-400 dark:text-gray-500 text-left'
+                        : 'text-gray-600 dark:text-gray-400 text-right'
+                    }`}
+                    title={typeof window !== 'undefined' ? new Date(message.timestamp).toLocaleString() : ''}
+                  >
+                    {typeof window !== 'undefined' ? formatRelativeTime(message.timestamp) : ''}
                   </div>
                 </div>
               ))}
@@ -956,31 +1075,16 @@ export const ChatBubble: React.FC<ChatBubbleProps> = ({
             </div>
 
             {/* Input */}
-            <form onSubmit={handleSend} className={`${THEME_CLASSES.bg.inputForm} ${glassMode ? 'bg-transparent' : THEME_CLASSES.bg.inputFormLight}`}>
-              <div className="relative">
-                <input
-                  ref={inputRef}
-                  type="text"
-                  value={inputValue}
-                  onChange={(e) => setInputValue(e.target.value)}
-                  placeholder={config.placeholder}
-                  className={`${THEME_CLASSES.input.field} ${glassClasses}`}
-                  style={INLINE_STYLES.input(theme === 'dark')}
-                  data-testid={ChatNames.input}
-                />
-                <button
-                  type="submit"
-                  disabled={!inputValue.trim()}
-                  className={THEME_CLASSES.input.sendButton}
-                  data-testid={ChatNames.sendButton}
-                  title={config.sendButtonLabel}
-                >
-                  <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth="2.5" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" d="M13 5l7 7m0 0l-7 7m7-7H3" />
-                  </svg>
-                </button>
-              </div>
-            </form>
+            <InputField
+              inputValue={inputValue}
+              onInputChange={setInputValue}
+              onSubmit={handleSend}
+              placeholder={config.placeholder}
+              glassClasses={glassClasses}
+              theme={theme}
+              inputRef={inputRef}
+              sendButtonLabel={config.sendButtonLabel}
+            />
           </div>
         )}
 
