@@ -32,14 +32,14 @@ let useCopilotReadable: ((config: any) => void) | null = null;
 async function loadCopilotKit() {
   try {
     // Dynamic imports - these will fail if packages not installed
-    // @ts-expect-error - Peer dependencies not installed by default
     const reactCore = await import(/* webpackIgnore: true */ '@copilotkit/react-core');
-    // @ts-expect-error - Peer dependencies not installed by default
     const reactUI = await import(/* webpackIgnore: true */ '@copilotkit/react-ui');
-    
+
     useCopilotAction = reactCore.useCopilotAction;
     useCopilotReadable = reactCore.useCopilotReadable;
-    CopilotPopup = reactUI.CopilotPopup;
+    // CopilotPopup not available in @copilotkit/react-ui@0.2.0
+    // @ts-ignore - Property may not exist in all versions
+    CopilotPopup = reactUI.CopilotPopup || reactUI.default?.CopilotPopup;
     
     return true;
   } catch {
