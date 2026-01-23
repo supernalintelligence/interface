@@ -136,6 +136,10 @@ export type { ContainerDefinition } from './background/architecture/Containers';
 export { createNames, getComponentIds, isComponentId } from './names/createNames';
 export type { ComponentId } from './names/createNames';
 
+// Chat UI Components
+export { ChatBubble } from './ui/react/chat/ChatBubble';
+export { ChatInputProvider, useChatInput } from './contexts/ChatInputContext';
+
 // Chat UI Adapters (ALL OPEN - Key value proposition!)
 export {
   // Types

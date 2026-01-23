@@ -3,11 +3,6 @@ export { SupernalProvider, type SupernalProviderProps } from './components/Super
 
 // Hooks for advanced usage
 export {
-  useChatInput,
-  ChatInputProvider,
-} from './contexts/ChatInputContext';
-
-export {
   useNavigationGraph,
   useCurrentContext,
   useNavigationPath,
@@ -19,8 +14,9 @@ export {
 
 export { useChatContext, ChatProvider } from './contexts/ChatProvider';
 
-// Optional exports for customization
-export { ChatBubble } from './components/ChatBubble';
+// Optional exports for customization (re-exported from base package)
+export { ChatBubble } from '../../src/ui/react/chat/ChatBubble';
+export { ChatInputProvider, useChatInput } from '../../src/contexts/ChatInputContext';
 export { AutoNavigationContext } from './components/AutoNavigationContext';
 export {
   DemoAIInterface,
