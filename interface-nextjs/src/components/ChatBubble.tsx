@@ -671,14 +671,8 @@ export const ChatBubble = ({
   const dynamicHeight = `min(${maxHeightVh}vh, 700px)`;
   const panelWidth = 'min(650px, calc(100vw - 2rem))'; // Wider panel
 
-  // Liquid glass effect - subtle transparency increasing towards edges
-  const glassClasses = glassMode
-    ? 'backdrop-blur-xl bg-white/70 dark:bg-gray-900/70 border border-white/20 dark:border-white/10'
-    : 'bg-white dark:bg-gray-900 border-gray-200';
-
-  const glassGradient = glassMode
-    ? 'bg-gradient-to-br from-white/90 via-white/70 to-white/50 dark:from-gray-900/80 dark:via-gray-900/70 dark:to-gray-900/60'
-    : 'bg-white dark:bg-gray-900';
+  // Note: Keep class strings inline in JSX for Tailwind JIT detection
+  // Storing in variables causes Tailwind to miss them during scanning
 
   // Floating variant - compact draggable bubble
   if (variant === 'floating') {
@@ -693,7 +687,10 @@ export const ChatBubble = ({
         }}
         onMouseDown={handlePanelMouseDown}
       >
-        <div className={`${glassClasses} rounded-2xl shadow-2xl border p-3 max-w-xs`}>
+        <div className={glassMode
+          ? 'backdrop-blur-xl bg-white/70 dark:bg-gray-900/70 border border-white/20 dark:border-white/10 rounded-2xl shadow-2xl p-3 max-w-xs'
+          : 'bg-white dark:bg-gray-900 border-gray-200 rounded-2xl shadow-2xl border p-3 max-w-xs'
+        }>
           {/* Mini header */}
           <div className="flex items-center justify-between mb-2">
             <div className="flex items-center space-x-2">
@@ -751,7 +748,7 @@ export const ChatBubble = ({
             onInputChange={setInputValue}
             onSubmit={handleSend}
             placeholder={config.placeholder}
-            glassClasses={glassClasses}
+            glassClasses=""
             theme={theme}
             sendButtonLabel={config.sendButtonLabel}
           />
@@ -775,7 +772,10 @@ export const ChatBubble = ({
         {/* Minimized Compact View */}
         {isExpanded && isMinimized && (
           <div
-            className={`absolute ${glassClasses} rounded-3xl shadow-2xl border p-4 transition-all duration-300`}
+            className={glassMode
+              ? 'absolute backdrop-blur-xl bg-white/70 dark:bg-gray-900/70 border border-white/20 dark:border-white/10 rounded-3xl shadow-2xl p-4 transition-all duration-300'
+              : 'absolute bg-white dark:bg-gray-900 border-gray-200 rounded-3xl shadow-2xl border p-4 transition-all duration-300'
+            }
             style={{
               ...dockClasses.panel,
               width: panelWidth,
@@ -828,7 +828,7 @@ export const ChatBubble = ({
               onInputChange={setInputValue}
               onSubmit={handleSend}
               placeholder={config.placeholder}
-              glassClasses={glassClasses}
+              glassClasses=""
               theme={theme}
               sendButtonLabel={config.sendButtonLabel}
             />
@@ -839,15 +839,18 @@ export const ChatBubble = ({
         {isExpanded && !isMinimized && (
           <div
             ref={panelRef}
-            className={`${isDocked ? 'absolute ' + dockClasses.panel : 'fixed'} ${glassGradient} rounded-3xl shadow-2xl border border-white/20 dark:border-white/10 backdrop-blur-xl flex flex-col overflow-hidden transition-all duration-300`}
+            className={`${isDocked ? 'absolute' : 'fixed'} ${glassMode
+              ? 'bg-gradient-to-br from-white/90 via-white/70 to-white/50 dark:from-gray-900/80 dark:via-gray-900/70 dark:to-gray-900/60'
+              : 'bg-white dark:bg-gray-900'
+            } rounded-3xl shadow-2xl border border-white/20 dark:border-white/10 backdrop-blur-xl flex flex-col overflow-hidden transition-all duration-300`}
             style={{
               width: panelWidth,
               height: dynamicHeight,
-              ...((!isDocked && {
+              ...(isDocked ? dockClasses.panel : {
                 left: '50%',
                 top: '50%',
                 transform: `translate(calc(-50% + ${panelPosition.x}px), calc(-50% + ${panelPosition.y}px))`,
-              })),
+              }),
               ...(isDragging && { cursor: 'grabbing' }),
             }}
           >
@@ -1092,7 +1095,7 @@ export const ChatBubble = ({
               onInputChange={setInputValue}
               onSubmit={handleSend}
               placeholder={config.placeholder}
-              glassClasses={glassClasses}
+              glassClasses=""
               theme={theme}
               inputRef={inputRef}
               sendButtonLabel={config.sendButtonLabel}
