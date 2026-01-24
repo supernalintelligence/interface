@@ -763,11 +763,11 @@ export const ChatBubble = ({
   return (
     <>
       {/* Chat Container */}
-      <div className="z-50">
+      <div className={`fixed ${dockClasses.container} z-50`}>
         {/* Minimized Compact View */}
         {isExpanded && isMinimized && (
           <div
-            className={`fixed ${dockClasses.container} ${glassClasses} rounded-3xl shadow-2xl border p-4 transition-all duration-300`}
+            className={`absolute ${dockClasses.panel} ${glassClasses} rounded-3xl shadow-2xl border p-4 transition-all duration-300`}
             style={{ width: panelWidth, maxWidth: '400px' }}
           >
             {/* Header with expand button */}
@@ -827,7 +827,7 @@ export const ChatBubble = ({
         {isExpanded && !isMinimized && (
           <div
             ref={panelRef}
-            className={`${isDocked ? 'fixed ' + dockClasses.container : 'fixed'} ${glassGradient} rounded-3xl shadow-2xl border border-white/20 dark:border-white/10 backdrop-blur-xl flex flex-col overflow-hidden transition-all duration-300`}
+            className={`${isDocked ? 'absolute ' + dockClasses.panel : 'fixed'} ${glassGradient} rounded-3xl shadow-2xl border border-white/20 dark:border-white/10 backdrop-blur-xl flex flex-col overflow-hidden transition-all duration-300`}
             style={{
               width: panelWidth,
               height: dynamicHeight,
