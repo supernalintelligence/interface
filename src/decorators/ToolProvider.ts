@@ -18,23 +18,10 @@ function getToolRegistry(): typeof ToolRegistryType {
   return ToolRegistryRef!;
 }
 
-/**
- * ContainerScope constant for use in ToolProviderConfig.containerId
- * - 'global': Tool available on all pages (default)
- * - Route path (e.g., '/examples'): Tool scoped to that route and sub-routes
- */
-export const CONTAINER_SCOPE_GLOBAL = 'global' as const;
-
 export interface ToolProviderConfig {
   name?: string; // Provider name (defaults to class name)
   description?: string; // Human-readable description of this provider
   category?: string; // Default category for all tools
-  /**
-   * Container/context scoping for tools
-   * - 'global' (default): Available on all pages
-   * - Route path (e.g., '/examples'): Scoped to that route and sub-routes
-   */
-  containerId?: string;
   aiEnabled?: boolean; // Default AI enablement
   dangerLevel?: 'safe' | 'moderate' | 'dangerous' | 'destructive';
   requiresApproval?: boolean; // Default approval requirement
@@ -54,51 +41,36 @@ export interface ToolProviderConfig {
  * Automatically binds instances when they're created, so users don't need
  * to manually call ToolRegistry.bindInstance().
  *
- * @example Shorthand syntax (just containerId)
+ * @example Zero-config syntax (no parameters needed)
  * ```typescript
- * @ToolProvider('MyContainer')
+ * @ToolProvider()
  * class MyTools {
- *   @Tool('button', { examples: ['click'] })
+ *   @Tool({ elementId: 'button', examples: ['click'] })
  *   async action() {}
  * }
  * ```
- * 
+ *
  * @example Full config syntax
  * ```typescript
  * @ToolProvider({
- *   containerId: 'MyContainer',
  *   category: 'user_interaction',
  *   aiEnabled: true
  * })
  * class MyTools { }
  * ```
- * 
- * @param configOrContainerId Provider configuration or just containerId for shorthand
+ *
+ * @param config Provider configuration (optional)
  */
-// Type-safe overloads
 // eslint-disable-next-line no-redeclare
-export function ToolProvider(containerId: string): <T extends { new (...args: any[]): {} }>(constructor: T) => T;
-// eslint-disable-next-line no-redeclare
-export function ToolProvider(config: ToolProviderConfig): <T extends { new (...args: any[]): {} }>(constructor: T) => T;
-// eslint-disable-next-line no-redeclare
-export function ToolProvider(
-  configOrContainerId: ToolProviderConfig | string
-): <T extends { new (...args: any[]): {} }>(constructor: T) => T {
+export function ToolProvider(config?: ToolProviderConfig): <T extends { new (...args: any[]): {} }>(constructor: T) => T {
   return function <T extends { new (...args: any[]): {} }>(constructor: T): T {
-    // Normalize to ToolProviderConfig
-    const config: ToolProviderConfig = typeof configOrContainerId === 'string'
-      ? { containerId: configOrContainerId }
-      : configOrContainerId;
-
-    // Default containerId to 'global' if not specified
-    if (!config.containerId) {
-      config.containerId = CONTAINER_SCOPE_GLOBAL;
-    }
+    // Use empty config if not provided
+    const providerConfig: ToolProviderConfig = config || {};
 
     // Store provider config on the class
     (constructor as any).__toolProvider__ = {
       name: constructor.name,
-      config,
+      config: providerConfig,
       registeredAt: new Date().toISOString(),
     };
 
@@ -108,11 +80,8 @@ export function ToolProvider(
       const tools = TR.getToolsByProvider(constructor.name);
       tools.forEach((tool: any) => {
         // Apply inherited values from provider config
-        if (config.containerId && !tool.containerId) {
-          tool.containerId = config.containerId;
-        }
-        if (config.aiEnabled !== undefined && tool.aiEnabled === undefined) {
-          tool.aiEnabled = config.aiEnabled;
+        if (providerConfig.aiEnabled !== undefined && tool.aiEnabled === undefined) {
+          tool.aiEnabled = providerConfig.aiEnabled;
         }
       });
     }

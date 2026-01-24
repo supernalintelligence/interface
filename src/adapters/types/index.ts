@@ -41,8 +41,6 @@ export interface ToolExecution {
   timestamp: Date;
   /** How long execution took (ms) */
   duration: number;
-  /** Container where tool was executed */
-  containerId?: string;
   /** Tool's danger classification */
   dangerLevel?: 'safe' | 'moderate' | 'dangerous' | 'destructive';
   /** Whether approval was required */

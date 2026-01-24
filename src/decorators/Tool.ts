@@ -40,11 +40,8 @@ export interface ToolConfig {
 
   // IMPROVED: Better naming conventions (replaces testId)
   toolId?: string; // Unique tool identifier (primary)
-  elementId?: string; // DOM element ID (for UI tools)
+  elementId?: string; // DOM element ID (for UI tools) - REQUIRED for zero-config inference
   selector?: string; // CSS selector (for UI tools)
-  
-  // NEW: Container/modal context
-  containerId?: string; // Container/modal this tool operates within
 
   // For standalone functions (when no class context)
   providerName?: string; // Provider name for standalone functions
@@ -111,13 +108,10 @@ export interface ToolShorthandConfig {
   
   /** Override inferred danger level (optional) */
   dangerLevel?: 'safe' | 'moderate' | 'dangerous' | 'destructive';
-  
+
   /** Override AI enablement (optional, defaults to inferred from toolType) */
   aiEnabled?: boolean;
-  
-  /** Override inferred container (optional, inherits from @ToolProvider) */
-  containerId?: string;
-  
+
   /** State storage callbacks (optional) */
   callbacks?: {
     storage?: boolean;
@@ -146,15 +140,12 @@ export interface ToolMetadata {
 
   // IMPROVED: Better identifiers
   toolId: string; // Primary tool identifier
-  elementId?: string; // DOM element ID
+  elementId?: string; // DOM element ID - REQUIRED for zero-config inference
   selector?: string; // CSS selector
-  
-  // NEW: Container/modal context
-  containerId?: string; // Container/modal this tool operates within
-  
-  // NEW: Location scope (where tool is available)
+
+  // NEW: Location scope (where tool is available - inferred from element visibility)
   locationScope?: import('../background/location/LocationContext').LocationScope;
-  
+
   // NEW: Component namespace support
   componentName?: string; // Component this tool belongs to (for namespacing)
   stateful?: boolean; // Whether this component is stateful
@@ -241,7 +232,6 @@ function normalizeShorthand(
     name: options?.name,
     dangerLevel: options?.dangerLevel,
     aiEnabled: options?.aiEnabled,
-    containerId: options?.containerId,
     callbacks: options?.callbacks,
     
     // Everything else will be inferred by existing logic:
@@ -269,11 +259,10 @@ function normalizeShorthand(
  * }
  * ```
  * 
- * @example Full config syntax (backward compatible) - for standalone functions
+ * @example Full config syntax - for standalone functions
  * ```typescript
  * const myTool = Tool({
  *   elementId: 'my-button',
- *   containerId: 'MyContainer',
  *   examples: ['click button'],
  * })(async () => { });
  * ```
@@ -344,10 +333,7 @@ function decorateStandaloneFunction(func: Function, config: ToolConfig) {
     toolId: config.toolId || generateToolId(providerName, functionName),
     elementId: config.elementId,
     selector: config.selector,
-    
-    // NEW: Container/modal context
-    containerId: config.containerId,
-    
+
     // NEW: Callback capabilities
     callbacks: config.callbacks,
 
@@ -564,13 +550,10 @@ function generateToolMetadata(className: string, methodName: string, config: Too
     toolId: config.toolId || generateToolId(className, methodName),
     elementId: config.elementId,
     selector: config.selector,
-    
-    // NEW: Container/modal context (with inheritance)
-    containerId: config.containerId || providerConfig?.containerId,
-    
-    // NEW: Location scope (read from @LocationScope decorator)
+
+    // NEW: Location scope (read from @LocationScope decorator - inferred from element visibility)
     locationScope: getLocationScopeFromMethod(target, methodName),
-    
+
     // NEW: Callback capabilities
     callbacks: config.callbacks,
 

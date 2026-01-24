@@ -143,7 +143,6 @@ function BaseTool<P = any>(
       toolId: config.toolId || `${componentName}-tool`,
       elementId: config.elementId,
       selector: config.selector,
-      containerId: config.containerId,
       callbacks: config.callbacks,
       providerName: config.providerName || 'UIComponents',
       isStandalone: true,
@@ -176,9 +175,8 @@ function BaseTool<P = any>(
     // console.log(`✅ [ToolHelpers] Registered ${componentName}. Total tools: ${ToolRegistry.getAllTools().size}`);
     
     // Register tool → component mapping at module load
-    // Pass containerId if specified to override stack-based inference
     if (config.elementId) {
-      TreeBuilder.registerTool(config.elementId, componentName, config.containerId);
+      TreeBuilder.registerTool(config.elementId, componentName);
     }
     
     // Create wrapper component with callbacks (no hooks - keeping it simple)

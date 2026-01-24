@@ -219,44 +219,34 @@ export class ToolRegistry {
   }
 
   /**
-   * Search tools with container scoping
-   * 
-   * Prioritizes tools in currentContainer, then global tools.
-   * This enables "local > global" resolution like lexical scope.
-   * 
+   * Search tools with zero-config element-based filtering
+   *
+   * Only searches through tools that are currently visible (based on LocationContext.elements).
+   * This enables automatic scoping based on what's on screen.
+   *
    * @param query Search query
-   * @param currentContainer Current page/container context
-   * @returns Tools sorted by: local matches, global matches
+   * @param _deprecated Deprecated parameter (was currentContainer), no longer used
+   * @returns Matching visible tools
    */
   static searchScoped(
     query: string,
-    currentContainer?: string
+    _deprecated?: string
   ): ToolMetadata[] {
     if (!query || typeof query !== 'string') {
       console.error('❌ [ToolRegistry] Invalid search query:', query);
       return [];
     }
-    
+
     const queryLower = query.toLowerCase();
-    DEBUG && console.log(`🔍 [ToolRegistry] Scoped search: "${query}" (container: ${currentContainer || 'none'})`);
+    DEBUG && console.log(`🔍 [ToolRegistry] Search: "${query}"`);
 
-    const allTools = Array.from(this.tools.values());
+    // Get only visible tools (zero-config inference)
+    const visibleTools = this.getToolsByLocation();
 
-    // DEBUG: Log all tools with their containerIds
-    DEBUG && console.log(`🔍 [ToolRegistry] Total tools in registry: ${allTools.length}`);
-    DEBUG && console.log(`🔍 [ToolRegistry] currentContainer = "${currentContainer}"`);
-
-    if (currentContainer) {
-      const toolsForContainer = allTools.filter(t => t.containerId === currentContainer);
-      DEBUG && console.log(`🔍 [ToolRegistry] Tools with containerId="${currentContainer}":`, toolsForContainer.map(t => ({ name: t.name, examples: t.examples?.slice(0, 2) })));
-
-      // DEBUG: Show ALL containerIds in registry
-      const allContainerIds = new Set(allTools.map(t => t.containerId).filter(Boolean));
-      DEBUG && console.log(`🔍 [ToolRegistry] All unique containerIds in registry:`, Array.from(allContainerIds));
-    }
+    DEBUG && console.log(`🔍 [ToolRegistry] Total visible tools: ${visibleTools.length}`);
 
     // Search in tool metadata (including component names)
-    const matches = allTools.filter(tool => {
+    const matches = visibleTools.filter(tool => {
       const examplePatterns = (tool.examples || [])
         .filter(Boolean)
         .map(ex => ex.toLowerCase().replace(/\{[^}]+\}/g, '').trim())
@@ -264,7 +254,7 @@ export class ToolRegistry {
 
       const startsWithPattern = examplePatterns.some(pattern => queryLower.startsWith(pattern));
       if (startsWithPattern) {
-        DEBUG && console.log(`  ✓ [ToolRegistry] Tool matched: ${tool.name} (container: ${tool.containerId || 'none'})`);
+        DEBUG && console.log(`  ✓ [ToolRegistry] Tool matched: ${tool.name}`);
         return true;
       }
 
@@ -279,33 +269,15 @@ export class ToolRegistry {
       ]
         .filter(Boolean)
         .map(s => (s || '').toLowerCase()); // Ensure s is not undefined
-      
-      return searchFields.some(field => 
+
+      return searchFields.some(field =>
         field.includes(queryLower) || queryLower.includes(field)
       );
     });
-    
-    if (!currentContainer) {
-      return matches;
-    }
-    
-    // Split into local (current container) and global (no container or different)
-    const local = matches.filter(t => t.containerId === currentContainer);
-    const global = matches.filter(t => !t.containerId || t.containerId !== currentContainer);
 
-    DEBUG && console.log(
-      `📊 [ToolRegistry] Found: ${local.length} local, ${global.length} global`
-    );
+    DEBUG && console.log(`📊 [ToolRegistry] Found ${matches.length} matching visible tools`);
 
-    // LOCAL OVERRIDE: If any local tools match, ONLY return local tools
-    // This implements lexical scoping: local shadows global
-    if (local.length > 0) {
-      DEBUG && console.log(`🎯 [ToolRegistry] Local tools found - shadowing ${global.length} global tools`);
-      return local;
-    }
-
-    // Fallback to global if no local matches
-    return global;
+    return matches;
   }
   
   /**
@@ -322,31 +294,6 @@ export class ToolRegistry {
       tool => tool.componentName === componentName
     );
   }
-  
-  /**
-   * Get tools by container (page scope)
-   */
-  static getToolsByContainer(containerId: string): ToolMetadata[] {
-    return Array.from(this.tools.values()).filter(
-      tool => tool.containerId === containerId
-    );
-  }
-  
-  /**
-   * Get component names in a container
-   * 
-   * @example
-   * getComponentsInContainer('Dashboard')
-   * // → ['counter', 'chart', 'settings']
-   */
-  static getComponentsInContainer(containerId: string): string[] {
-    const tools = this.getToolsByContainer(containerId);
-    const components = new Set(
-      tools.map(t => t.componentName).filter((name): name is string => !!name)
-    );
-    return Array.from(components);
-  }
-
   /**
    * Find tool by natural language query (alias for searchTools)
    */
@@ -816,68 +763,59 @@ export class ToolRegistry {
   }
 
   /**
-   * Get tools grouped by container for MCP/AI consumption
-   * 
+   * Get tools grouped by component for MCP/AI consumption
+   *
    * Returns a hierarchical structure:
    * {
-   *   global: [...tools without containerId...],
-   *   DemoSimple: [...tools with containerId='DemoSimple'...],
-   *   Examples: [...tools with containerId='Examples'...],
+   *   Counter: [...counter tools...],
+   *   Chat: [...chat tools...],
+   *   Navigation: [...navigation tools...],
    *   ...
    * }
-   * 
+   *
    * This helps AI agents understand tool organization and prioritize
    * contextually relevant tools.
    */
-  static getToolsGroupedByContainer(): Record<string, ToolMetadata[]> {
+  static getToolsGroupedByComponent(): Record<string, ToolMetadata[]> {
     const grouped: Record<string, ToolMetadata[]> = {
-      global: [],
+      ungrouped: [],
     };
-    
+
     for (const tool of this.tools.values()) {
-      const container = tool.containerId || 'global';
-      if (!grouped[container]) {
-        grouped[container] = [];
+      const component = tool.componentName || 'ungrouped';
+      if (!grouped[component]) {
+        grouped[component] = [];
       }
-      grouped[container].push(tool);
+      grouped[component].push(tool);
     }
-    
+
     return grouped;
   }
 
   /**
-   * Get tools grouped by component within a container
-   * 
+   * Get tools grouped by category
+   *
    * Returns a hierarchical structure:
    * {
-   *   DemoSimple: {
-   *     counter: [...counter tools...],
-   *     timer: [...timer tools...],
-   *   },
-   *   global: {
-   *     navigation: [...navigation tools...],
-   *     theme: [...theme tools...],
-   *   }
+   *   user_interaction: [...interaction tools...],
+   *   data_management: [...data tools...],
+   *   navigation: [...navigation tools...],
+   *   ...
    * }
    */
-  static getToolsGroupedByComponentAndContainer(): Record<string, Record<string, ToolMetadata[]>> {
-    const grouped: Record<string, Record<string, ToolMetadata[]>> = {};
-    
+  static getToolsGroupedByCategory(): Record<string, ToolMetadata[]> {
+    const grouped: Record<string, ToolMetadata[]> = {};
+
     for (const tool of this.tools.values()) {
-      const container = tool.containerId || 'global';
-      const component = tool.componentName || 'ungrouped';
-      
-      if (!grouped[container]) {
-        grouped[container] = {};
+      const category = tool.category || 'uncategorized';
+
+      if (!grouped[category]) {
+        grouped[category] = [];
       }
-      
-      if (!grouped[container][component]) {
-        grouped[container][component] = [];
-      }
-      
-      grouped[container][component].push(tool);
+
+      grouped[category].push(tool);
     }
-    
+
     return grouped;
   }
   
@@ -903,28 +841,13 @@ export class ToolRegistry {
    * ```
    */
   static getToolsByLocation(location?: AppLocation | null): ToolMetadata[] {
-    // Import ContainerRegistry dynamically to avoid circular dependencies
-    const { ContainerRegistry } = require('../architecture/Containers');
-
     const currentLocation = location !== undefined ? location : LocationContext.getCurrent();
 
-    DEBUG && console.log('=== ToolRegistry.getToolsByLocation DEBUG ===');
-    DEBUG && console.log('[1] Input location param:', location);
-    DEBUG && console.log('[2] Resolved currentLocation:', currentLocation);
-    DEBUG && console.log('[3] Total tools in registry:', this.tools.size);
-
-    // Log all tools with their containerIds
     if (DEBUG) {
-      const toolsWithContainers = Array.from(this.tools.values())
-        .filter(t => t.containerId)
-        .map(t => ({ name: t.name, containerId: t.containerId, toolId: t.toolId }));
-      console.log('[4] Tools WITH containerId:', toolsWithContainers);
-
-      const uniqueContainerIds = new Set(Array.from(this.tools.values()).map(t => t.containerId).filter(Boolean));
-      console.log('[5] Unique containerIds in registry:', Array.from(uniqueContainerIds));
-
-      const allContainers = ContainerRegistry.getAllContainers();
-      console.log('[6] Containers in ContainerRegistry:', allContainers.map((c: any) => ({ id: c.id, route: c.route })));
+      console.log('=== ToolRegistry.getToolsByLocation (Zero-Config) ===');
+      console.log('[ToolRegistry] Current location:', currentLocation);
+      console.log('[ToolRegistry] Visible elements:', currentLocation?.elements || []);
+      console.log('[ToolRegistry] Total tools in registry:', this.tools.size);
     }
 
     return Array.from(this.tools.values()).filter(tool => {
@@ -933,54 +856,20 @@ export class ToolRegistry {
         return LocationContext.matchesScope(tool.locationScope, currentLocation);
       }
 
-      // Check 2: containerId-based scoping (unified with LocationScope)
-      if (tool.containerId) {
-        // Global container tools are always available
-        if (tool.containerId === 'global') return true;
+      // Check 2: Zero-config element-based inference
+      // Tools with elementId are only available when their element is visible
+      if (tool.elementId) {
+        const visibleElements = currentLocation?.elements || [];
+        const isVisible = visibleElements.includes(tool.elementId);
 
-        // Resolve containerId to route if it's a container name (not a route)
-        let routeToMatch = tool.containerId;
-        if (!tool.containerId.startsWith('/')) {
-          // Try to resolve containerId to route via ContainerRegistry
-          const containerRoute = ContainerRegistry.getContainerRoute(tool.containerId);
-          if (containerRoute) {
-            console.log(`[ToolRegistry] Resolved containerId="${tool.containerId}" → route="${containerRoute}" for tool ${tool.name}`);
-            routeToMatch = containerRoute;
-          } else {
-            // Container not found in registry - treat as grouping-only, not scoping
-            const allContainers = ContainerRegistry.getAllContainers().map((c: any) => `${c.id}=${c.route}`);
-            console.warn(`[ToolRegistry] ⚠️  containerId="${tool.containerId}" NOT found in ContainerRegistry for tool ${tool.name}. Treating as GLOBAL. Registry has:`, allContainers);
-            // This maintains backward compatibility for non-registered containers
-            return true;
-          }
+        if (DEBUG) {
+          console.log(`[ToolRegistry] Tool "${tool.name}" (elementId: ${tool.elementId}):`, isVisible ? 'VISIBLE' : 'HIDDEN');
         }
 
-        // No location set = global context, only global tools available
-        if (!currentLocation) return false;
-
-        // Match route against current page/route
-        // CRITICAL: Check .route FIRST (actual route like '/demo')
-        // NavigationGraph sets: page='Demo' (ID), route='/demo' (path)
-        // If we check .page first, we get 'Demo' which doesn't match '/demo'
-        const currentPage = currentLocation.route || currentLocation.page || '';
-
-        // Exact match or hierarchical match (e.g., route='/blog' matches page='/blog/post')
-        const exactMatch = currentPage === routeToMatch;
-        const hierarchicalMatch = currentPage.startsWith(routeToMatch + '/');
-        const slashPrefixMatch1 = currentPage.startsWith('/' + routeToMatch);
-        const slashPrefixMatch2 = currentPage === '/' + routeToMatch;
-        const matches = exactMatch || hierarchicalMatch || slashPrefixMatch1 || slashPrefixMatch2;
-
-        if (DEBUG && tool.containerId !== 'global') {
-          console.log(`[7] Tool: ${tool.name} | containerId: ${tool.containerId} | routeToMatch: ${routeToMatch} | currentPage: ${currentPage} | matches: ${matches}`);
-          console.log(`    - exactMatch: ${exactMatch} (${currentPage} === ${routeToMatch})`);
-          console.log(`    - hierarchicalMatch: ${hierarchicalMatch} (${currentPage}.startsWith(${routeToMatch}/))`);
-        }
-
-        return matches;
+        return isVisible;
       }
 
-      // No scope defined = available everywhere (global)
+      // No scope defined = available everywhere (global tools without UI elements)
       return true;
     });
   }
@@ -1006,45 +895,46 @@ export class ToolRegistry {
    */
   static getToolsForCurrentContext(): ToolMetadata[] {
     const currentLocation = LocationContext.getCurrent();
-    DEBUG && console.log('=== ToolRegistry.getToolsForCurrentContext ===');
-    DEBUG && console.log('[ToolRegistry.getToolsForCurrentContext] LocationContext.getCurrent():', currentLocation);
     const result = this.getToolsByLocation(currentLocation);
 
     if (DEBUG) {
-      const scoped = result.filter(t => t.containerId && t.containerId !== 'global');
-      const global = result.filter(t => !t.containerId || t.containerId === 'global');
+      const withElements = result.filter(t => t.elementId);
+      const withoutElements = result.filter(t => !t.elementId);
+      console.log('=== ToolRegistry.getToolsForCurrentContext (Zero-Config) ===');
+      console.log('[ToolRegistry] Current location:', currentLocation);
       console.log('[RESULT] Total tools returned:', result.length);
-      console.log('[RESULT] Scoped tools:', scoped.length, scoped.map(t => ({ name: t.name, containerId: t.containerId })));
-      console.log('[RESULT] Global tools:', global.length);
+      console.log('[RESULT] Element-based tools:', withElements.length, withElements.map(t => ({ name: t.name, elementId: t.elementId })));
+      console.log('[RESULT] Global tools (no elementId):', withoutElements.length);
     }
 
     return result;
   }
   
   /**
-   * Get tools grouped by container, filtered by location
-   * 
-   * Combines location filtering with container grouping.
-   * 
+   * Get tools grouped by component, filtered by location (visible tools only)
+   *
+   * Combines location filtering with component grouping.
+   * Only returns tools that are currently visible.
+   *
    * @param location - Optional location to filter by
-   * @returns Tools grouped by container, filtered by location
+   * @returns Visible tools grouped by component
    */
-  static getToolsGroupedByContainerForLocation(
+  static getToolsGroupedByComponentForLocation(
     location?: import('../location/LocationContext').AppLocation | null
   ): Record<string, ToolMetadata[]> {
     const tools = this.getToolsByLocation(location);
     const grouped: Record<string, ToolMetadata[]> = {
-      global: [],
+      ungrouped: [],
     };
-    
+
     for (const tool of tools) {
-      const container = tool.containerId || 'global';
-      if (!grouped[container]) {
-        grouped[container] = [];
+      const component = tool.componentName || 'ungrouped';
+      if (!grouped[component]) {
+        grouped[component] = [];
       }
-      grouped[container].push(tool);
+      grouped[component].push(tool);
     }
-    
+
     return grouped;
   }
 }

@@ -58,15 +58,14 @@ export function registerPendingPreset(className: string, toolId: string, userCon
  * 
  * @example
  * ```typescript
- * @ToolPreset({ 
+ * @ToolPreset({
  *   category: ToolCategory.CHAT,
- *   containerId: 'chat-modal',
  *   tags: ['chat', 'messaging']
  * })
  * class ChatTools {
- *   @AITool({ toolId: 'send-message' })
+ *   @AITool({ toolId: 'send-message', elementId: 'send-btn' })
  *   async sendMessage(text: string) {
- *     // Inherits category, containerId, tags from preset
+ *     // Inherits category, tags from preset
  *   }
  *   
  *   @AITool({ 
@@ -224,9 +223,9 @@ export const PresetTemplates = {
  * 
  * @example
  * ```typescript
- * @ToolPreset(createPreset('Chat', { containerId: 'chat-modal' }))
+ * @ToolPreset(createPreset('Chat', { category: ToolCategory.CHAT }))
  * class ChatTools {
- *   // All tools inherit Chat preset + containerId
+ *   // All tools inherit Chat preset
  * }
  * ```
  */
@@ -245,30 +244,31 @@ export function createPreset(
 // ============================================================================
 
 /**
- * Create a preset for tools within a specific container/modal
- * 
+ * Create a preset for tools within a specific component
+ *
+ * Note: Component grouping is now handled automatically by the @Component decorator
+ * via the componentName field. This helper is mainly for setting category and other
+ * common config for component-specific tools.
+ *
  * @example
  * ```typescript
- * @ToolPreset(containerPreset('chat-modal', ToolCategory.CHAT))
+ * @ToolPreset(componentPreset('ChatModal', ToolCategory.CHAT))
  * class ChatModalTools {
  *   @AITool({ toolId: 'send' })
  *   async send(text: string) {
- *     // Automatically knows it's in chat-modal
+ *     // Automatically grouped by component via @Component decorator
  *   }
  * }
  * ```
  */
-export function containerPreset(
-  containerId: string,
+export function componentPreset(
+  _componentName: string,
   category: ToolCategory,
   additionalConfig: Partial<ToolConfig> = {}
 ): Partial<ToolConfig> {
+  // Note: componentName is now set by @Component decorator, not here
   return {
-    containerId,
     category,
-    origin: {
-      modal: containerId,
-    },
     ...additionalConfig,
   };
 }

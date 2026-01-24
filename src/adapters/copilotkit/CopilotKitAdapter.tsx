@@ -247,7 +247,6 @@ function CopilotKitChatWrapper({
             success: true,
             timestamp: new Date(),
             duration: Date.now() - start,
-            containerId: tool.containerId,
             dangerLevel: tool.dangerLevel,
             approvalRequired: tool.requiresApproval,
           };
@@ -269,7 +268,6 @@ function CopilotKitChatWrapper({
             error: error instanceof Error ? error : new Error(String(error)),
             timestamp: new Date(),
             duration: Date.now() - start,
-            containerId: tool.containerId,
             dangerLevel: tool.dangerLevel,
             approvalRequired: tool.requiresApproval,
           };

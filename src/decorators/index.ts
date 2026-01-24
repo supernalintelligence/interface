@@ -4,26 +4,19 @@
  * Enhanced decorators for automatic AI tool generation with safety controls.
  */
 
-// Container scope constants
+// Zero-config element-based inference
 /**
- * ContainerScope - Named constants for tool container scoping
+ * Tool Availability - Automatic element-based inference
  *
- * Usage:
- * - ContainerScope.GLOBAL: Tool available on all pages (default)
- * - Route path (e.g., '/examples'): Tool scoped to that route and sub-routes
+ * Tools are automatically available when their elements are visible on screen.
+ * No manual configuration needed!
  *
  * @example
  * ```typescript
- * @ToolProvider({ containerId: ContainerScope.GLOBAL })  // Available everywhere
- * @ToolProvider({ containerId: '/examples' })            // Only on /examples pages
+ * @Tool({ elementId: 'my-button' })  // Available when button is visible
+ * async onClick() { }
  * ```
  */
-export const ContainerScope = {
-  /** Tool available on all pages - the default if no containerId specified */
-  GLOBAL: 'global',
-} as const;
-
-export type ContainerScopeType = typeof ContainerScope[keyof typeof ContainerScope] | string;
 
 // Base decorators
 export { Tool, ToolConfig, ToolMetadata } from './Tool';
@@ -65,7 +58,7 @@ export {
   clearToolPresets,
   PresetTemplates,
   createPreset,
-  containerPreset,
+  componentPreset,
   pathPreset,
 } from './ToolPreset';
 

@@ -1,10 +1,11 @@
 'use client';
 
-import React from 'react';
+import React, { useEffect } from 'react';
 import { ChatInputProvider } from '../contexts/ChatInputContext';
 import { ChatProvider, useChatContext } from '../contexts/ChatProvider';
 import { ChatBubble } from './ChatBubble';
 import { AutoNavigationContext } from './AutoNavigationContext';
+import { ExposureCollector, ToolRegistry } from '@supernal/interface/browser';
 
 // Note: Provider auto-initialization will be added in a future version
 // when AllProviders is available from @supernal/interface/browser
@@ -65,6 +66,53 @@ export function SupernalProvider({
   const shouldRenderChatBubble = !disabled;
   console.log('[SupernalProvider] disabled:', disabled, 'type:', typeof disabled);
   console.log('[SupernalProvider] shouldRenderChatBubble:', shouldRenderChatBubble);
+
+  // 🎯 AUTO-INITIALIZE ExposureCollector (Zero-Config Element-Based Inference)
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+
+    const collector = ExposureCollector.getInstance();
+    const registeredToolIds = new Set<string>();
+
+    // Register all tools with their DOM elements
+    const registerTools = () => {
+      const allTools = ToolRegistry.getAllTools();
+
+      allTools.forEach(tool => {
+        if (tool.elementId && !registeredToolIds.has(tool.toolId)) {
+          // Find element by data-testid attribute
+          const element = document.querySelector(`[data-testid="${tool.elementId}"]`);
+
+          if (element) {
+            collector.registerTool(tool.toolId, element, {
+              name: tool.name,
+              description: tool.description,
+            });
+            registeredToolIds.add(tool.toolId);
+          }
+        }
+      });
+    };
+
+    // Initial registration
+    registerTools();
+
+    // Set up MutationObserver to detect dynamically added elements
+    const observer = new MutationObserver(() => {
+      registerTools(); // Re-scan when DOM changes
+    });
+
+    observer.observe(document.body, {
+      childList: true,
+      subtree: true,
+    });
+
+    // Cleanup
+    return () => {
+      observer.disconnect();
+      collector.destroy();
+    };
+  }, []);
 
   return (
     <ChatInputProvider>

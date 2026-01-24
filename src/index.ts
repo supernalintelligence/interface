@@ -16,12 +16,10 @@ export {
   ToolProviderConfig,
   getToolProviderConfig,
   isToolProvider,
-  CONTAINER_SCOPE_GLOBAL,
 } from './decorators/ToolProvider';
 
-// Container scope constants
-export { ContainerScope, ContainerScopeType } from './decorators';
-export { 
+// Tool HOC helpers
+export {
   ClickTool, 
   ChangeTool, 
   TypeTool, 
@@ -51,7 +49,7 @@ export {
   clearToolPresets,
   PresetTemplates,
   createPreset,
-  containerPreset,
+  componentPreset,
   pathPreset,
 } from './decorators/ToolPreset';
 

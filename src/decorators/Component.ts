@@ -1,14 +1,13 @@
 /**
  * Component Decorator - Component Namespace Pattern
- * 
+ *
  * Registers all @Tool methods under this component's namespace.
- * Provides scoping via containerId for locality resolution.
+ * Uses zero-config element-based inference for scoping.
  * 
  * @example
  * ```typescript
  * @Component({
  *   name: 'counter',
- *   containerId: 'Examples',
  *   elementId: 'counter-widget'
  * })
  * export class Counter {
@@ -30,16 +29,9 @@ const DEBUG=false
 export interface ComponentConfig {
   /**
    * Component name (namespace)
-   * Must be unique within containerId
    * Use lowercase kebab-case: 'counter', 'user-form', 'settings-panel'
    */
   name: string;
-  
-  /**
-   * Container/page this component belongs to
-   * Used for scoped tool resolution (local > global)
-   */
-  containerId?: string;
   
   /**
    * Root element ID (data-testid)
@@ -87,7 +79,6 @@ export function Component(config: ComponentConfig) {
         ...toolMetadata, // Preserve ALL fields from @Tool
         // Add/override component-specific fields
         componentName,
-        containerId: config.containerId || toolMetadata.containerId,
         elementId: toolMetadata.elementId || config.elementId,
         stateful: config.stateful,
         // Only override description if tool didn't provide one
@@ -101,7 +92,7 @@ export function Component(config: ComponentConfig) {
         
         DEBUG && console.log(
         `📦 [Component] Enhanced: ${constructor.name}.${toolMetadata.methodName} ` +
-        `with component namespace '${componentName}' (${config.containerId || 'no container'})`
+        `with component namespace '${componentName}'`
       );
     });
     

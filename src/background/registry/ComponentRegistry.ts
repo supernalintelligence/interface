@@ -39,12 +39,7 @@ export interface ComponentMetadata {
    * Description
    */
   description?: string;
-  
-  /**
-   * Container ID
-   */
-  containerId?: string;
-  
+
   /**
    * HTML semantics (for UI components, SSR-required)
    */
@@ -183,7 +178,6 @@ export class ComponentRegistry {
       kind: 'ui-component',
       componentId: meta.componentId,
       description: meta.description,
-      containerId: meta.containerId,
       htmlTag: meta.htmlTag!,
       htmlType: meta.htmlType,
       htmlRole: meta.htmlRole,
@@ -274,7 +268,6 @@ export class ComponentRegistry {
       kind: 'function-tool',
       componentId: meta.componentId,
       description: meta.description,
-      containerId: meta.containerId,
       operationType: meta.operationType!,
       executionCount: 0,
     };

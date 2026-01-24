@@ -147,12 +147,7 @@ export interface BaseComponentState {
    * Human-readable description
    */
   description?: string;
-  
-  /**
-   * Container this component belongs to
-   */
-  containerId?: string;
-  
+
   /**
    * Current state version for migration
    */

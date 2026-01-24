@@ -13,19 +13,18 @@ import { ToolRegistry } from '../../background/registry/ToolRegistry';
 
 export interface ChatContext {
   // Location context
-  containerId?: string;
   currentRoute?: string;
   viewType?: string;
-  
+
   // User context
   userId?: string;
   userRole?: string;
-  
+
   // Application state
   appState?: Record<string, any>;
   filters?: Record<string, any>;
   searchQuery?: string;
-  
+
   // Additional context
   metadata?: Record<string, any>;
 }
@@ -52,17 +51,16 @@ export interface PromptWithContext {
 
 export interface UseChatWithContextConfig {
   // Context configuration
-  containerId?: string;
   userId?: string;
-  
+
   // Optional callbacks
   onMessage?: (message: ChatMessage) => void;
   onToolExecute?: (toolId: string, args: any, result: any) => void;
   onError?: (error: Error) => void;
-  
+
   // Custom context provider
   getAppState?: () => Record<string, any>;
-  
+
   // System prompt customization
   systemPrompt?: string;
 }
@@ -71,19 +69,14 @@ export function useChatWithContext(config: UseChatWithContextConfig = {}) {
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [isProcessing, setIsProcessing] = useState(false);
   
-  // Get available tools for current container
+  // Get available tools based on element visibility
   const availableTools = useMemo(() => {
-    if (!config.containerId) {
-      return Array.from(ToolRegistry.getAllTools().values())
-        .filter(t => t.aiEnabled);
-    }
-    return ToolRegistry.searchScoped('', config.containerId);
-  }, [config.containerId]);
+    return ToolRegistry.getToolsByLocation().filter(t => t.aiEnabled);
+  }, []);
   
   // Build context object
   const getCurrentContext = useCallback((): ChatContext => {
     return {
-      containerId: config.containerId,
       userId: config.userId,
       appState: config.getAppState?.(),
       metadata: {
@@ -91,7 +84,7 @@ export function useChatWithContext(config: UseChatWithContextConfig = {}) {
         toolCount: availableTools.length
       }
     };
-  }, [config.containerId, config.userId, config.getAppState, availableTools.length]);
+  }, [config.userId, config.getAppState, availableTools.length]);
   
   // Build prompt with context
   const buildPromptWithContext = useCallback((userMessage: string): PromptWithContext => {
@@ -103,7 +96,6 @@ export function useChatWithContext(config: UseChatWithContextConfig = {}) {
     const systemPrompt = config.systemPrompt || `You are an AI assistant with access to application tools.
 
 Current Context:
-- Container: ${context.containerId || 'global'}
 - Available Tools: ${toolNames.join(', ')}
 ${context.appState ? `- Application State: ${JSON.stringify(context.appState, null, 2)}` : ''}
 

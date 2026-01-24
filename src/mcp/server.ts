@@ -158,17 +158,17 @@ export class SupernalMCPServer implements MCPServer {
 
   /**
    * Handle tools/list request
-   * 
+   *
    * Returns location-filtered tools based on LocationContext.getCurrent()
-   * Uses @LocationScope decorators to determine tool availability
+   * Uses zero-config element-based inference to determine tool availability
    */
   private handleToolsList(id?: string | number): MCPResponse {
-    const toolsByContainer = ToolRegistry.getToolsGroupedByContainerForLocation();
+    const toolsByComponent = ToolRegistry.getToolsGroupedByComponentForLocation();
     const mcpTools: MCPTool[] = [];
 
-    for (const [container, containerTools] of Object.entries(toolsByContainer)) {
-      for (const tool of containerTools) {
-        mcpTools.push(this.convertToMCPTool(container, tool));
+    for (const [component, componentTools] of Object.entries(toolsByComponent)) {
+      for (const tool of componentTools) {
+        mcpTools.push(this.convertToMCPTool(component, tool));
       }
     }
 
@@ -193,19 +193,17 @@ export class SupernalMCPServer implements MCPServer {
       return this.errorResponse(id, MCPErrorCode.INVALID_PARAMS, 'Missing tool name');
     }
 
-    // Parse tool name (format: container.toolName)
-    const [container, toolName] = name.split('.');
+    // Parse tool name (format: component.toolName)
+    const [component, toolName] = name.split('.');
 
-    if (!container || !toolName) {
-      return this.errorResponse(id, MCPErrorCode.INVALID_PARAMS, `Invalid tool name format: ${name}. Expected: container.toolName`);
+    if (!component || !toolName) {
+      return this.errorResponse(id, MCPErrorCode.INVALID_PARAMS, `Invalid tool name format: ${name}. Expected: component.toolName`);
     }
 
-    // Find tool by containerId and tool name
-    // The tool may be registered with its class name, but exposed with containerId
-    // Handle undefined containerId (treat as matching the container name used in MCP)
+    // Find tool by componentName and tool name
     const tool = Array.from(ToolRegistry.getAllTools().values()).find(t => {
-      const toolContainer = t.containerId || 'global'; // undefined becomes 'global'
-      return toolContainer === container && t.name === toolName;
+      const toolComponent = t.componentName || 'ungrouped';
+      return toolComponent === component && t.name === toolName;
     });
 
     if (!tool) {

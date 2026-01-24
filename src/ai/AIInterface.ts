@@ -108,16 +108,14 @@ export class AIInterface {
     const context = this.getCurrentContext();
     console.log(`📍 [AI] Current context:`, context);
 
-    // Use ToolRegistry.getToolsForCurrentContext() which properly resolves container IDs via ContainerRegistry
-    const contextTools = ToolRegistry.getToolsForCurrentContext();
+    // Use ToolRegistry.getToolsByLocation() which filters based on element visibility
+    const contextTools = ToolRegistry.getToolsByLocation();
 
     // Separate for logging
-    const scopedTools = contextTools.filter(tool => tool.containerId && tool.containerId !== 'global');
-    const globalTools = contextTools.filter(tool => !tool.containerId || tool.containerId === 'global');
     const navigationTools = contextTools.filter(tool => tool.category === 'navigation');
 
-    console.log(`📦 [AI] Scoped tools: ${scopedTools.length}, Global tools: ${globalTools.length}, Navigation tools: ${navigationTools.length}`);
-    console.log(`📦 [AI] Navigation tools available:`, navigationTools.map(t => `${t.name} (containerId: ${t.containerId || 'GLOBAL'}, examples: ${(t as any).examples?.slice(0, 2).join(', ') || 'none'})`));
+    console.log(`📦 [AI] Total tools: ${contextTools.length}, Navigation tools: ${navigationTools.length}`);
+    console.log(`📦 [AI] Navigation tools available:`, navigationTools.map(t => `${t.name} (component: ${t.componentName || 'ungrouped'}, examples: ${(t as any).examples?.slice(0, 2).join(', ') || 'none'})`));
 
     console.log(`📦 [AI] Total filtered to ${contextTools.length} tools for context: ${context.currentContainer}`);
 
@@ -153,15 +151,8 @@ export class AIInterface {
   ): Promise<AIResponse> {
     if (commands.length === 0) {
       // Use SuggestionEngine for intelligent "Did You Mean?" suggestions
-      const toolsMap = ToolRegistry.getAllTools();
-      const allTools = Array.from(toolsMap.values());
-      const context = this.getCurrentContext();
-
-      // Get available commands for current context
-      const contextTools = allTools.filter(t =>
-        t.aiEnabled &&
-        (!t.containerId || t.containerId === context.currentContainer || t.category === 'navigation')
-      );
+      // Get tools filtered by location (element visibility)
+      const contextTools = ToolRegistry.getToolsByLocation().filter(t => t.aiEnabled);
 
       // Generate intelligent suggestions based on the query
       const query = originalQuery || commands[0]?.query || '';
@@ -251,15 +242,9 @@ export class AIInterface {
 
     // All tools failed - provide helpful suggestions
     const query = originalQuery || commands[0]?.query || '';
-    const toolsMap = ToolRegistry.getAllTools();
-    const allTools = Array.from(toolsMap.values());
-    const context = this.getCurrentContext();
 
-    // Get context-aware tools for suggestions
-    const contextTools = allTools.filter(t =>
-      t.aiEnabled &&
-      (!t.containerId || t.containerId === context.currentContainer || t.category === 'navigation')
-    );
+    // Get context-aware tools for suggestions (filtered by element visibility)
+    const contextTools = ToolRegistry.getToolsByLocation().filter(t => t.aiEnabled);
 
     const suggestions = this.suggestionEngine.getSuggestions(query, contextTools, 3);
 
@@ -290,8 +275,8 @@ export class AIInterface {
    * Get all available commands for help/autocomplete
    */
   getAvailableCommands(): string[] {
-    // Use ToolRegistry to get properly filtered tools
-    const contextTools = ToolRegistry.getToolsForCurrentContext();
+    // Use ToolRegistry to get tools filtered by element visibility
+    const contextTools = ToolRegistry.getToolsByLocation();
 
     // Extract examples
     const commands: string[] = [];

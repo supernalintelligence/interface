@@ -1,11 +1,14 @@
 /**
  * Architecture Definition: Containers
- * 
- * Single source of truth for application containers (pages, modals, sections).
- * This file defines the navigation graph structure of the application.
- * 
+ *
+ * @deprecated Containers are deprecated in favor of zero-config element-based inference.
+ * Tools are now automatically available based on element visibility, not manual container scoping.
+ *
+ * This file is kept for backwards compatibility only.
+ * New projects should use zero-config inference instead.
+ *
  * Pattern: Like ComponentNames, but for high-level navigation boundaries.
- * 
+ *
  * NOTE: This is the CORE library. Applications should define their own containers
  * in their own codebase and register them with NavigationGraph.
  */

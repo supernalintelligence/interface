@@ -249,7 +249,7 @@ class FuzzyMatcher implements MatcherStrategy {
       
       // Only include if confidence > 50%
       if (bestScore > 0.5) {
-        console.log(`[FuzzyMatcher] ✓ Match found! Tool: ${tool.name}, Score: ${Math.round(bestScore * 100)}%, Reason: ${bestMatch}, ContainerId: ${tool.containerId || 'GLOBAL'}`);
+        console.log(`[FuzzyMatcher] ✓ Match found! Tool: ${tool.name}, Score: ${Math.round(bestScore * 100)}%, Reason: ${bestMatch}, Component: ${tool.componentName || 'ungrouped'}`);
         matches.push({
           tool,
           confidence: Math.round(bestScore * 100),
