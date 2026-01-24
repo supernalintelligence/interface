@@ -12,6 +12,7 @@ import {
   ExposureStateObserver,
   WaitForStateOptions,
 } from '../types/ExposureState';
+import { LocationContext } from '../background/location/LocationContext';
 
 export class ExposureCollector {
   private static instance: ExposureCollector;
@@ -190,11 +191,41 @@ export class ExposureCollector {
     if (metadata) {
       currentState.metadata = { ...currentState.metadata, ...metadata };
     }
-    
+
+    // Sync to LocationContext
+    this.syncToLocationContext();
+
     // Notify observers
     this.notifyObservers(change);
   }
-  
+
+  /**
+   * Sync visible tools to LocationContext.elements
+   *
+   * This enables automatic tool filtering based on element visibility.
+   * Tools with @LocationScope({ elements: [...] }) will automatically
+   * be available when their target elements are visible.
+   */
+  private syncToLocationContext(): void {
+    // Get all tools that are at least VISIBLE (in DOM and not hidden)
+    const visibleElementIds = Array.from(this.states.values())
+      .filter(state => state.state >= ExposureState.VISIBLE)
+      .map(state => state.toolId);
+
+    // Get current location
+    const currentLocation = LocationContext.getCurrent();
+    if (!currentLocation) {
+      // No location set yet - skip sync
+      return;
+    }
+
+    // Update LocationContext with currently visible elements
+    LocationContext.setCurrent({
+      ...currentLocation,
+      elements: visibleElementIds,
+    });
+  }
+
   /**
    * Initialize DOM mutation observer to detect element additions/removals
    */

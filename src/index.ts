@@ -153,8 +153,7 @@ export {
   withChatUI,
   // Adapters
   // NOTE: CopilotKitAdapter is exported separately via @supernal/interface/adapters/copilotkit
-  NativeAdapter,
-  createNativeAdapter,
+  // NOTE: NativeAdapter removed - use SupernalProvider from @supernal/interface-nextjs
   // Bridge utilities
   bridgeToolRegistry,
   bridgeComponentState,
@@ -162,9 +161,8 @@ export {
   createAuditTrail,
   setupBridge,
 } from './adapters';
-export type { 
-  CopilotKitAdapterConfig, 
-  NativeAdapterConfig,
+export type {
+  CopilotKitAdapterConfig,
   BridgeToolRegistryOptions,
   BridgeComponentStateOptions,
   AuditTrailOptions,

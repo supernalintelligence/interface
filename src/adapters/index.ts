@@ -34,8 +34,8 @@ export { ChatUIProvider, ChatUI, useChatUI, useChatUIOptional, withChatUI } from
 // export type { CopilotKitAdapterConfig } from './copilotkit';
 export type { CopilotKitAdapterConfig } from './copilotkit';
 
-export { NativeAdapter, createNativeAdapter } from './native';
-export type { NativeAdapterConfig } from './native';
+// NativeAdapter removed - use SupernalProvider from @supernal/interface-nextjs instead
+// SupernalProvider provides the same pattern-matching functionality with premium UI
 
 // Bridge utilities
 export {
