@@ -84,34 +84,35 @@ interface ChatBubbleProps {
   storageKey?: string;
 }
 
-const DOCK_POSITIONS: Record<Position, { container: string; panel: string }> = {
+// Positioning styles (inline CSS - no Tailwind dependency, works everywhere)
+const DOCK_POSITIONS: Record<Position, { container: React.CSSProperties; panel: React.CSSProperties }> = {
   'bottom-right': {
-    container: 'bottom-4 right-4 sm:bottom-6 sm:right-6',
-    panel: 'bottom-0 right-0',
+    container: { bottom: '1rem', right: '1rem' },
+    panel: { bottom: 0, right: 0 },
   },
   'bottom-left': {
-    container: 'bottom-4 left-4 sm:bottom-6 sm:left-6',
-    panel: 'bottom-0 left-0',
+    container: { bottom: '1rem', left: '1rem' },
+    panel: { bottom: 0, left: 0 },
   },
   'top-right': {
-    container: 'top-4 right-4 sm:top-6 sm:right-6',
-    panel: 'top-0 right-0',
+    container: { top: '1rem', right: '1rem' },
+    panel: { top: 0, right: 0 },
   },
   'top-left': {
-    container: 'top-4 left-4 sm:top-6 sm:left-6',
-    panel: 'top-0 left-0',
+    container: { top: '1rem', left: '1rem' },
+    panel: { top: 0, left: 0 },
   },
   'left-center': {
-    container: 'left-4 top-1/2 -translate-y-1/2',
-    panel: 'left-0 top-0',
+    container: { left: '1rem', top: '50%', transform: 'translateY(-50%)' },
+    panel: { left: 0, top: 0 },
   },
   'right-center': {
-    container: 'right-4 top-1/2 -translate-y-1/2',
-    panel: 'right-0 top-0',
+    container: { right: '1rem', top: '50%', transform: 'translateY(-50%)' },
+    panel: { right: 0, top: 0 },
   },
   'bottom-center': {
-    container: 'bottom-4 left-1/2 -translate-x-1/2',
-    panel: 'bottom-0 left-1/2 -translate-x-1/2',
+    container: { bottom: '1rem', left: '50%', transform: 'translateX(-50%)' },
+    panel: { bottom: 0, left: '50%', transform: 'translateX(-50%)' },
   },
 };
 
@@ -764,8 +765,9 @@ export const ChatBubble = ({
     <>
       {/* Chat Container */}
       <div
-        className={`fixed ${dockClasses.container} z-50`}
+        className="fixed z-50"
         style={{
+          ...dockClasses.container,
           width: panelWidth,
           height: isMinimized ? 'auto' : dynamicHeight,
         }}
@@ -773,8 +775,12 @@ export const ChatBubble = ({
         {/* Minimized Compact View */}
         {isExpanded && isMinimized && (
           <div
-            className={`absolute ${dockClasses.panel} ${glassClasses} rounded-3xl shadow-2xl border p-4 transition-all duration-300`}
-            style={{ width: panelWidth, maxWidth: '400px' }}
+            className={`absolute ${glassClasses} rounded-3xl shadow-2xl border p-4 transition-all duration-300`}
+            style={{
+              ...dockClasses.panel,
+              width: panelWidth,
+              maxWidth: '400px',
+            }}
           >
             {/* Header with expand button */}
             <div className="flex items-center justify-between mb-3">
@@ -833,15 +839,15 @@ export const ChatBubble = ({
         {isExpanded && !isMinimized && (
           <div
             ref={panelRef}
-            className={`${isDocked ? 'absolute ' + dockClasses.panel : 'fixed'} ${glassGradient} rounded-3xl shadow-2xl border border-white/20 dark:border-white/10 backdrop-blur-xl flex flex-col overflow-hidden transition-all duration-300`}
+            className={`${isDocked ? 'absolute' : 'fixed'} ${glassGradient} rounded-3xl shadow-2xl border border-white/20 dark:border-white/10 backdrop-blur-xl flex flex-col overflow-hidden transition-all duration-300`}
             style={{
               width: panelWidth,
               height: dynamicHeight,
-              ...((!isDocked && {
+              ...(isDocked ? dockClasses.panel : {
                 left: '50%',
                 top: '50%',
                 transform: `translate(calc(-50% + ${panelPosition.x}px), calc(-50% + ${panelPosition.y}px))`,
-              })),
+              }),
               ...(isDragging && { cursor: 'grabbing' }),
             }}
           >
