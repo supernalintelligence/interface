@@ -763,7 +763,7 @@ export const ChatBubble = ({
   return (
     <>
       {/* Chat Container */}
-      <div className={`fixed ${dockClasses.container} z-50`}>
+      <div className="z-50">
         {/* Minimized Compact View */}
         {isExpanded && isMinimized && (
           <div
