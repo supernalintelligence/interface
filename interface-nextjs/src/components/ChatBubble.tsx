@@ -765,8 +765,13 @@ export const ChatBubble = ({
         className="fixed z-50"
         style={{
           ...dockClasses.container,
-          width: panelWidth,
-          height: isMinimized ? 'auto' : dynamicHeight,
+          ...(isExpanded ? {
+            width: panelWidth,
+            height: isMinimized ? 'auto' : dynamicHeight,
+          } : {
+            width: 'auto',
+            height: 'auto',
+          }),
         }}
       >
         {/* Minimized Compact View */}
