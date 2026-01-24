@@ -839,15 +839,15 @@ export const ChatBubble = ({
         {isExpanded && !isMinimized && (
           <div
             ref={panelRef}
-            className={`${isDocked ? 'absolute' : 'fixed'} ${glassGradient} rounded-3xl shadow-2xl border border-white/20 dark:border-white/10 backdrop-blur-xl flex flex-col overflow-hidden transition-all duration-300`}
+            className={`${isDocked ? 'absolute ' + dockClasses.panel : 'fixed'} ${glassGradient} rounded-3xl shadow-2xl border border-white/20 dark:border-white/10 backdrop-blur-xl flex flex-col overflow-hidden transition-all duration-300`}
             style={{
               width: panelWidth,
               height: dynamicHeight,
-              ...(isDocked ? dockClasses.panel : {
+              ...((!isDocked && {
                 left: '50%',
                 top: '50%',
                 transform: `translate(calc(-50% + ${panelPosition.x}px), calc(-50% + ${panelPosition.y}px))`,
-              }),
+              })),
               ...(isDragging && { cursor: 'grabbing' }),
             }}
           >
