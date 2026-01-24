@@ -7,6 +7,7 @@
 import { SupernalMCPServer, createSupernalMCPServer } from '../server';
 import { MCPRequest, MCPResponse, MCPErrorCode, MCPTransport } from '../types';
 import { ToolRegistry } from '../../background/registry/ToolRegistry';
+import { LocationContext } from '../../background/location/LocationContext';
 import { Tool } from '../../decorators/Tool';
 import { Component } from '../../decorators/Component';
 
@@ -40,8 +41,8 @@ class MockTransport implements MCPTransport {
 
 // Test tools
 @Component({
-  name: 'test-component',
-  containerId: 'TestContainer'
+  name: 'test-component'
+  // No containerId needed - using element-based scoping
 })
 class TestComponent {
   @Tool({ name: 'greet', description: 'Say hello' })
@@ -73,6 +74,12 @@ describe('MCP Server', () => {
   });
 
   beforeEach(() => {
+    // Reset location context
+    LocationContext.reset();
+
+    // Set a basic location (no filtering - all tools available)
+    LocationContext.setCurrent({ page: '/' });
+
     // Create server
     server = createSupernalMCPServer({
       name: 'test-server',
@@ -148,13 +155,13 @@ describe('MCP Server', () => {
         expect(response!.jsonrpc).toBe('2.0');
         expect(response!.id).toBe(1);
         expect(response!.result).toHaveProperty('tools');
-        
+
         const { tools } = response!.result as any;
         expect(Array.isArray(tools)).toBe(true);
         expect(tools.length).toBeGreaterThan(0);
-        
-        // Find greet tool
-        const greetTool = tools.find((t: any) => t.name === 'TestContainer.greet');
+
+        // Find greet tool - MCP uses componentName.methodName format
+        const greetTool = tools.find((t: any) => t.name === 'test-component.greet');
         expect(greetTool).toBeDefined();
         expect(greetTool.description).toBe('Say hello');
       });
@@ -170,9 +177,8 @@ describe('MCP Server', () => {
         expect(response).toBeDefined();
         const { tools } = response!.result as any;
 
-        const greetTool = tools.find((t: any) => t.name === 'TestContainer.greet');
+        const greetTool = tools.find((t: any) => t.name === 'test-component.greet');
         expect(greetTool.annotations).toMatchObject({
-          container: 'TestContainer',
           componentName: 'test-component'
         });
       });
@@ -185,7 +191,7 @@ describe('MCP Server', () => {
           id: 1,
           method: 'tools/call',
           params: {
-            name: 'TestContainer.greet',
+            name: 'test-component.greet',
             arguments: { 0: 'World' }
           }
         };
@@ -213,7 +219,7 @@ describe('MCP Server', () => {
           id: 1,
           method: 'tools/call',
           params: {
-            name: 'TestContainer.add',
+            name: 'test-component.add',
             arguments: { 0: 5, 1: 3 }
           }
         };
@@ -270,7 +276,7 @@ describe('MCP Server', () => {
           id: 1,
           method: 'tools/call',
           params: {
-            name: 'TestContainer.fail',
+            name: 'test-component.fail',
             arguments: {}
           }
         };
@@ -301,7 +307,7 @@ describe('MCP Server', () => {
   });
 
   describe('Tool name format', () => {
-    it('should use container.toolName format', async () => {
+    it('should use providerClass.toolName format', async () => {
       const request: MCPRequest = {
         jsonrpc: '2.0',
         id: 1,
@@ -314,8 +320,8 @@ describe('MCP Server', () => {
 
       tools.forEach((tool: any) => {
         expect(tool.name).toMatch(/^.+\..+$/); // Should contain dot
-        const [container, toolName] = tool.name.split('.');
-        expect(container).toBeTruthy();
+        const [providerClass, toolName] = tool.name.split('.');
+        expect(providerClass).toBeTruthy();
         expect(toolName).toBeTruthy();
       });
     });

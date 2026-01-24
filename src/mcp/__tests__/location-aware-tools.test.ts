@@ -7,14 +7,15 @@ import { LocationScope } from '../../decorators/LocationScope';
 
 // Mock tool providers with location-scoped tools
 // These are defined OUTSIDE the test suite so decorators run at module load time
-@ToolProvider('blog')
+// Since these tests don't use element-based scoping, they'll appear as "ungrouped"
+@ToolProvider({ name: 'blog' })
 class BlogTools {
   @Tool({ name: 'createPost', description: 'Create blog post' })
   @LocationScope({ pages: ['/blog', '/posts'] })
   async createPost() {
     return { success: true };
   }
-  
+
   @Tool({ name: 'editPost', description: 'Edit blog post' })
   @LocationScope({ pages: ['/blog', '/posts'] })
   async editPost() {
@@ -22,7 +23,7 @@ class BlogTools {
   }
 }
 
-@ToolProvider('dashboard')
+@ToolProvider({ name: 'dashboard' })
 class DashboardTools {
   @Tool({ name: 'viewStats', description: 'View dashboard stats' })
   @LocationScope({ pages: ['/dashboard'] })
@@ -82,14 +83,15 @@ describe('Location-Aware MCP Server (Full System)', () => {
       
       const tools = (response.result as any).tools;
       const toolNames = tools.map((t: any) => t.name);
-      
+
       // Should include blog-specific tools + global tools
-      expect(toolNames).toContain('blog.createPost');
-      expect(toolNames).toContain('blog.editPost');
-      expect(toolNames).toContain('global.search');
-      
+      // Note: Without @Component decorator, tools are grouped as "ungrouped"
+      expect(toolNames).toContain('ungrouped.createPost');
+      expect(toolNames).toContain('ungrouped.editPost');
+      expect(toolNames).toContain('ungrouped.search');
+
       // Should NOT include dashboard tools
-      expect(toolNames).not.toContain('dashboard.viewStats');
+      expect(toolNames).not.toContain('ungrouped.viewStats');
     });
     
     it('should show only dashboard tools when on /dashboard page', async () => {
@@ -110,14 +112,14 @@ describe('Location-Aware MCP Server (Full System)', () => {
       
       const tools = (response.result as any).tools;
       const toolNames = tools.map((t: any) => t.name);
-      
+
       // Should include dashboard-specific tools + global tools
-      expect(toolNames).toContain('dashboard.viewStats');
-      expect(toolNames).toContain('global.search');
-      
+      expect(toolNames).toContain('ungrouped.viewStats');
+      expect(toolNames).toContain('ungrouped.search');
+
       // Should NOT include blog tools
-      expect(toolNames).not.toContain('blog.createPost');
-      expect(toolNames).not.toContain('blog.editPost');
+      expect(toolNames).not.toContain('ungrouped.createPost');
+      expect(toolNames).not.toContain('ungrouped.editPost');
     });
     
     it('should show all tools when no location set', async () => {
@@ -134,11 +136,11 @@ describe('Location-Aware MCP Server (Full System)', () => {
       
       const tools = (response.result as any).tools;
       const toolNames = tools.map((t: any) => t.name);
-      
+
       // Should only show global tools when no location
-      expect(toolNames).toContain('global.search');
-      expect(toolNames).not.toContain('blog.createPost');
-      expect(toolNames).not.toContain('dashboard.viewStats');
+      expect(toolNames).toContain('ungrouped.search');
+      expect(toolNames).not.toContain('ungrouped.createPost');
+      expect(toolNames).not.toContain('ungrouped.viewStats');
     });
     
     it('should show tools for matching route patterns', async () => {
@@ -159,10 +161,10 @@ describe('Location-Aware MCP Server (Full System)', () => {
       
       const tools = (response.result as any).tools;
       const toolNames = tools.map((t: any) => t.name);
-      
+
       // /posts should match blog tools (scope includes /posts)
-      expect(toolNames).toContain('blog.createPost');
-      expect(toolNames).toContain('blog.editPost');
+      expect(toolNames).toContain('ungrouped.createPost');
+      expect(toolNames).toContain('ungrouped.editPost');
     });
   });
   
@@ -179,9 +181,9 @@ describe('Location-Aware MCP Server (Full System)', () => {
       
       let tools = (response?.result as any)?.tools || [];
       let toolNames = tools.map((t: any) => t.name);
-      expect(toolNames).toContain('blog.createPost');
-      expect(toolNames).not.toContain('dashboard.viewStats');
-      
+      expect(toolNames).toContain('ungrouped.createPost');
+      expect(toolNames).not.toContain('ungrouped.viewStats');
+
       // Navigate to dashboard
       LocationContext.setCurrent({ page: '/dashboard' });
       response = await server.handle({
@@ -190,18 +192,18 @@ describe('Location-Aware MCP Server (Full System)', () => {
         method: 'tools/list',
         params: {}
       });
-      
+
       tools = (response?.result as any)?.tools || [];
       toolNames = tools.map((t: any) => t.name);
-      expect(toolNames).toContain('dashboard.viewStats');
-      expect(toolNames).not.toContain('blog.createPost');
+      expect(toolNames).toContain('ungrouped.viewStats');
+      expect(toolNames).not.toContain('ungrouped.createPost');
     });
   });
   
   describe('Component-Specific Tools', () => {
     it('should filter by mounted components', async () => {
       // Define tools that require specific components
-      @ToolProvider('editor')
+      @ToolProvider({ name: 'editor' })
       class EditorTools {
         @Tool({ name: 'formatText', description: 'Format text' })
         @LocationScope({ components: ['rich-editor'] })
@@ -209,7 +211,7 @@ describe('Location-Aware MCP Server (Full System)', () => {
           return { success: true };
         }
       }
-      
+
       new EditorTools();
       
       // Without component mounted
@@ -226,24 +228,24 @@ describe('Location-Aware MCP Server (Full System)', () => {
       
       let tools = (response?.result as any)?.tools || [];
       let toolNames = tools.map((t: any) => t.name);
-      expect(toolNames).not.toContain('editor.formatText');
-      
+      expect(toolNames).not.toContain('ungrouped.formatText');
+
       // With component mounted
       LocationContext.setCurrent({
         page: '/blog',
         components: ['rich-editor']
       });
-      
+
       response = await server.handle({
         jsonrpc: '2.0',
         id: 2,
         method: 'tools/list',
         params: {}
       });
-      
+
       tools = (response?.result as any)?.tools || [];
       toolNames = tools.map((t: any) => t.name);
-      expect(toolNames).toContain('editor.formatText');
+      expect(toolNames).toContain('ungrouped.formatText');
     });
   });
 });
@@ -271,13 +273,21 @@ describe('Unified Scoping (containerId + LocationScope)', () => {
     }
   });
 
-  describe('containerId-based scoping', () => {
-    it('should filter tools by containerId matching current page', () => {
+  describe('element-based scoping', () => {
+    it('should filter tools by visible elements', () => {
+      // Create elements
+      const themeBtn = document.createElement('button');
+      const exportBtn = document.createElement('button');
+      themeBtn.setAttribute('data-testid', 'theme-btn');
+      exportBtn.setAttribute('data-testid', 'export-btn');
+      document.body.appendChild(themeBtn);
+      document.body.appendChild(exportBtn);
+
       // Register tools with unique names to avoid conflicts with other test files
       ToolRegistry.registerTool('UnifiedTest_Settings', 'changeTheme', {
         name: 'ut_changeTheme',
         description: 'Change app theme',
-        containerId: '/settings',
+        elementId: 'theme-btn',
         method: () => {},
         aiEnabled: true
       } as any);
@@ -285,58 +295,83 @@ describe('Unified Scoping (containerId + LocationScope)', () => {
       ToolRegistry.registerTool('UnifiedTest_Settings', 'exportData', {
         name: 'ut_exportData',
         description: 'Export user data',
-        containerId: '/settings',
+        elementId: 'export-btn',
         method: () => {},
         aiEnabled: true
       } as any);
 
-      // On /settings page - should see settings tools
-      LocationContext.setCurrent({ page: '/settings', route: '/settings' });
+      // When elements are visible - should see tools
+      LocationContext.setCurrent({
+        page: '/settings',
+        route: '/settings',
+        elements: ['theme-btn', 'export-btn']
+      });
       let tools = ToolRegistry.getToolsByLocation();
       let toolNames = tools.map(t => t.name);
       expect(toolNames).toContain('ut_changeTheme');
       expect(toolNames).toContain('ut_exportData');
 
-      // On /blog page - should NOT see settings tools
-      LocationContext.setCurrent({ page: '/blog', route: '/blog' });
+      // When elements not visible - should NOT see tools
+      LocationContext.setCurrent({
+        page: '/settings',
+        route: '/settings',
+        elements: []
+      });
       tools = ToolRegistry.getToolsByLocation();
       toolNames = tools.map(t => t.name);
       expect(toolNames).not.toContain('ut_changeTheme');
       expect(toolNames).not.toContain('ut_exportData');
+
+      document.body.removeChild(themeBtn);
+      document.body.removeChild(exportBtn);
     });
 
-    it('should match containerId with subpaths', () => {
+    it('should show tools when their elements are visible', () => {
+      const element = document.createElement('button');
+      element.setAttribute('data-testid', 'example-btn');
+      document.body.appendChild(element);
+
       ToolRegistry.registerTool('UnifiedTest_Examples', 'runExample', {
         name: 'ut_runExample',
         description: 'Run an example',
-        containerId: '/examples',
+        elementId: 'example-btn',
         method: () => {},
         aiEnabled: true
       } as any);
 
-      // On /examples/counter - should see examples tools
-      LocationContext.setCurrent({ page: '/examples/counter', route: '/examples/counter' });
+      // Element visible - tool available
+      LocationContext.setCurrent({
+        page: '/examples/counter',
+        route: '/examples/counter',
+        elements: ['example-btn']
+      });
       let tools = ToolRegistry.getToolsByLocation();
       let toolNames = tools.map(t => t.name);
       expect(toolNames).toContain('ut_runExample');
 
-      // On /examples - should also see examples tools
-      LocationContext.setCurrent({ page: '/examples', route: '/examples' });
+      // Element not visible - tool not available
+      LocationContext.setCurrent({
+        page: '/examples',
+        route: '/examples',
+        elements: []
+      });
       tools = ToolRegistry.getToolsByLocation();
       toolNames = tools.map(t => t.name);
-      expect(toolNames).toContain('ut_runExample');
+      expect(toolNames).not.toContain('ut_runExample');
+
+      document.body.removeChild(element);
     });
 
-    it('should show global tools everywhere', () => {
+    it('should show tools without elementId everywhere', () => {
       ToolRegistry.registerTool('UnifiedTest_Navigation', 'goHome', {
         name: 'ut_goHome',
         description: 'Go to home',
-        containerId: 'global',
+        // No elementId - always available
         method: () => {},
         aiEnabled: true
       } as any);
 
-      // On any page, global tools should be visible
+      // On any page, tools without elementId should be visible
       LocationContext.setCurrent({ page: '/random-page', route: '/random-page' });
       let tools = ToolRegistry.getToolsByLocation();
       let toolNames = tools.map(t => t.name);
@@ -351,18 +386,29 @@ describe('Unified Scoping (containerId + LocationScope)', () => {
   });
 
   describe('getToolsForContext convenience method', () => {
-    it('should return tools for a specific context', () => {
+    it('should return tools for a specific context when elements are visible', () => {
+      const element = document.createElement('button');
+      element.setAttribute('data-testid', 'cart-btn');
+      document.body.appendChild(element);
+
       ToolRegistry.registerTool('UnifiedTest_Products', 'addToCart', {
         name: 'ut_addToCart',
         description: 'Add product to cart',
-        containerId: '/products',
+        elementId: 'cart-btn',
         method: () => {},
         aiEnabled: true
       } as any);
 
-      const tools = ToolRegistry.getToolsForContext('/products');
+      // Element visible - use getToolsForCurrentContext() which respects elements
+      LocationContext.setCurrent({
+        page: '/products',
+        elements: ['cart-btn']
+      });
+      const tools = ToolRegistry.getToolsForCurrentContext();
       const toolNames = tools.map(t => t.name);
       expect(toolNames).toContain('ut_addToCart');
+
+      document.body.removeChild(element);
     });
   });
 });

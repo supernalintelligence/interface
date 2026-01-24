@@ -38,31 +38,46 @@ describe('ToolRegistry', () => {
   } as ToolMetadata);
 
   describe('Unified Scope Filtering', () => {
-    it('filters by containerId when on matching page', () => {
+    it('filters by elementId when element is visible', () => {
+      // Create and register element
+      const element = document.createElement('button');
+      element.setAttribute('data-testid', 'create-post-btn');
+      document.body.appendChild(element);
+
       ToolRegistry.registerTool('Blog', 'createPost', createTool({
         name: 'createPost',
-        containerId: '/blog',
+        elementId: 'create-post-btn',
         toolId: 'Blog.createPost',
         methodName: 'createPost',
         providerClass: 'Blog',
       }));
 
-      LocationContext.setCurrent({ page: '/blog', route: '/blog' });
+      LocationContext.setCurrent({
+        page: '/blog',
+        route: '/blog',
+        elements: ['create-post-btn']
+      });
       const tools = ToolRegistry.getToolsForCurrentContext();
 
       expect(tools.find(t => t.name === 'createPost')).toBeDefined();
+
+      document.body.removeChild(element);
     });
 
-    it('filters out non-matching containerId tools', () => {
+    it('filters out tools when element is not visible', () => {
       ToolRegistry.registerTool('Blog', 'createPost', createTool({
         name: 'createPost',
-        containerId: '/blog',
+        elementId: 'create-post-btn',
         toolId: 'Blog.createPost',
         methodName: 'createPost',
         providerClass: 'Blog',
       }));
 
-      LocationContext.setCurrent({ page: '/dashboard', route: '/dashboard' });
+      LocationContext.setCurrent({
+        page: '/blog',
+        route: '/blog',
+        elements: [] // Element not visible
+      });
       const tools = ToolRegistry.getToolsForCurrentContext();
 
       expect(tools.find(t => t.name === 'createPost')).toBeUndefined();
@@ -98,10 +113,10 @@ describe('ToolRegistry', () => {
       expect(tools.find(t => t.name === 'save')).toBeUndefined();
     });
 
-    it('global tools always available', () => {
+    it('tools without elementId always available', () => {
       ToolRegistry.registerTool('Nav', 'goHome', createTool({
         name: 'goHome',
-        containerId: 'global',
+        // No elementId - always available
         toolId: 'Nav.goHome',
         methodName: 'goHome',
         providerClass: 'Nav',
@@ -129,80 +144,101 @@ describe('ToolRegistry', () => {
     });
   });
 
-  describe('ContainerRegistry Integration', () => {
-    it('resolves containerId to route via ContainerRegistry', () => {
-      // Register container
-      ContainerRegistry.registerContainer({
-        id: 'DemoSimple',
-        name: 'Simple Demo',
-        type: 'page',
-        route: '/demo/simple',
-        components: ['counter'],
-      });
+  describe('Element-based Scoping', () => {
+    it('shows tools when element is in visible elements list', () => {
+      // Create and register element
+      const element = document.createElement('button');
+      element.setAttribute('data-testid', 'increment-btn');
+      document.body.appendChild(element);
 
-      // Register tool with container ID (not route)
       ToolRegistry.registerTool('Counter', 'increment', createTool({
         name: 'increment',
-        containerId: 'DemoSimple', // Container ID, not route!
+        elementId: 'increment-btn',
         toolId: 'Counter.increment',
         methodName: 'increment',
         providerClass: 'Counter',
       }));
 
-      // Tool should be available on matching route
-      LocationContext.setCurrent({ page: '/demo/simple', route: '/demo/simple' });
+      // Tool available when element is visible
+      LocationContext.setCurrent({
+        page: '/demo/simple',
+        route: '/demo/simple',
+        elements: ['increment-btn']
+      });
       const toolsOnDemo = ToolRegistry.getToolsForCurrentContext();
       expect(toolsOnDemo.find(t => t.name === 'increment')).toBeDefined();
 
-      // Tool should NOT be available on non-matching route
-      LocationContext.setCurrent({ page: '/blog', route: '/blog' });
+      // Tool NOT available when element is not visible
+      LocationContext.setCurrent({
+        page: '/demo/simple',
+        route: '/demo/simple',
+        elements: []
+      });
       const toolsOnBlog = ToolRegistry.getToolsForCurrentContext();
       expect(toolsOnBlog.find(t => t.name === 'increment')).toBeUndefined();
+
+      document.body.removeChild(element);
     });
 
-    it('handles hierarchical route matching with resolved containerIds', () => {
-      // Register container
-      ContainerRegistry.registerContainer({
-        id: 'Demo',
-        name: 'Demo',
-        type: 'page',
-        route: '/demo',
-        components: ['widget'],
-      });
+    it('handles multiple visible elements', () => {
+      // Create elements
+      const btn1 = document.createElement('button');
+      const btn2 = document.createElement('button');
+      btn1.setAttribute('data-testid', 'action-btn');
+      btn2.setAttribute('data-testid', 'reset-btn');
+      document.body.appendChild(btn1);
+      document.body.appendChild(btn2);
 
-      // Register tool with container ID
+      // Register tools
       ToolRegistry.registerTool('Widget', 'action', createTool({
         name: 'action',
-        containerId: 'Demo',
+        elementId: 'action-btn',
         toolId: 'Widget.action',
         methodName: 'action',
         providerClass: 'Widget',
       }));
 
-      // Tool should be available on exact route
-      LocationContext.setCurrent({ page: '/demo', route: '/demo' });
-      expect(ToolRegistry.getToolsForCurrentContext().find(t => t.name === 'action')).toBeDefined();
+      ToolRegistry.registerTool('Widget', 'reset', createTool({
+        name: 'reset',
+        elementId: 'reset-btn',
+        toolId: 'Widget.reset',
+        methodName: 'reset',
+        providerClass: 'Widget',
+      }));
 
-      // Tool should be available on child routes
-      LocationContext.setCurrent({ page: '/demo/simple', route: '/demo/simple' });
+      // Both tools available when both elements visible
+      LocationContext.setCurrent({
+        page: '/demo',
+        route: '/demo',
+        elements: ['action-btn', 'reset-btn']
+      });
       expect(ToolRegistry.getToolsForCurrentContext().find(t => t.name === 'action')).toBeDefined();
+      expect(ToolRegistry.getToolsForCurrentContext().find(t => t.name === 'reset')).toBeDefined();
 
-      // Tool should NOT be available on sibling routes
-      LocationContext.setCurrent({ page: '/blog', route: '/blog' });
-      expect(ToolRegistry.getToolsForCurrentContext().find(t => t.name === 'action')).toBeUndefined();
+      // Only one tool available when only one element visible
+      LocationContext.setCurrent({
+        page: '/demo',
+        route: '/demo',
+        elements: ['action-btn']
+      });
+      expect(ToolRegistry.getToolsForCurrentContext().find(t => t.name === 'action')).toBeDefined();
+      expect(ToolRegistry.getToolsForCurrentContext().find(t => t.name === 'reset')).toBeUndefined();
+
+      document.body.removeChild(btn1);
+      document.body.removeChild(btn2);
     });
 
-    it('treats unregistered containerIds as grouping-only (backward compat)', () => {
-      // Register tool with containerId NOT in ContainerRegistry
+    it('tools without elementId always available (backward compat)', () => {
+      // Register tool without elementId
       ToolRegistry.registerTool('Legacy', 'oldTool', createTool({
         name: 'oldTool',
-        containerId: 'UnregisteredContainer',
+        // No elementId
         toolId: 'Legacy.oldTool',
         methodName: 'oldTool',
         providerClass: 'Legacy',
       }));
 
-      // Tool should be available everywhere (backward compat)
+      // Tool should be available everywhere
       LocationContext.setCurrent({ page: '/any-page', route: '/any-page' });
       const tools = ToolRegistry.getToolsForCurrentContext();
       expect(tools.find(t => t.name === 'oldTool')).toBeDefined();

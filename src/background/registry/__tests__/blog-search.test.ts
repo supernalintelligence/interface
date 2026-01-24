@@ -9,7 +9,7 @@ describe('Blog Search Tool Registration', () => {
     ToolRegistry.getAllTools().clear();
   });
 
-  it('should find tools with containerId="Blog"', () => {
+  it('should find navigation tools (no element-based scoping)', () => {
     // Simulate how NavigationGraph registers the blog search tool
     ToolRegistry.registerTool('NavigationTools', 'searchInBlog', {
       name: 'Search Blog',
@@ -28,7 +28,7 @@ describe('Blog Search Tool Registration', () => {
         'search {query}',
         'find {query}',
       ],
-      containerId: 'Blog', // This should match!
+      // No elementId - navigation tools are always available
       actionType: 'navigation' as const,
       toolType: 'navigation' as const,
       instance: {
@@ -36,12 +36,11 @@ describe('Blog Search Tool Registration', () => {
       }
     } as any);
 
-    // Now search with container="Blog"
-    const results = ToolRegistry.searchScoped('open your users', 'Blog');
+    // Search globally (no container needed)
+    const results = ToolRegistry.searchScoped('open your users');
 
     console.log('Search results:', results.map(t => ({
       name: t.name,
-      containerId: t.containerId,
       examples: t.examples?.slice(0, 3)
     })));
 
@@ -58,13 +57,13 @@ describe('Blog Search Tool Registration', () => {
       aiEnabled: true,
       dangerLevel: 'safe' as const,
       examples: ['open {query}'],
-      containerId: 'Blog',
+      // No elementId - navigation tools are always available
       instance: {
         searchInBlog: async () => ({ success: true, message: 'test' })
       }
     } as any);
 
-    const results = ToolRegistry.searchScoped('open your users', 'Blog');
+    const results = ToolRegistry.searchScoped('open your users');
 
     expect(results.length).toBe(1);
     expect(results[0].name).toBe('Search Blog');
