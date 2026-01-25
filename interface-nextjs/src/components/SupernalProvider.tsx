@@ -22,6 +22,7 @@ export interface SupernalProviderProps {
   routes?: Record<string, string>;
   disabled?: boolean;
   glassMode?: boolean;
+  logo?: string; // Custom logo URL or data URI
 
   // Advanced callbacks
   onNavigate?: (context: string) => void;
@@ -34,11 +35,13 @@ function ChatBubbleConnector({
   position,
   welcomeMessage,
   glassMode,
+  logo,
 }: {
   theme?: 'light' | 'dark' | 'auto';
   position?: 'bottom-right' | 'bottom-left' | 'top-right' | 'top-left';
   welcomeMessage?: string;
   glassMode?: boolean;
+  logo?: string;
 }) {
   const { messages, sendMessage, clearMessages } = useChatContext();
 
@@ -50,7 +53,7 @@ function ChatBubbleConnector({
       position={position}
       variant="full"
       defaultExpanded={true}
-      config={{ glassMode }}
+      config={{ glassMode, logo }}
     />
   );
 }
@@ -65,6 +68,7 @@ export function SupernalProvider({
   routes,
   disabled = false,
   glassMode = true,
+  logo,
   onNavigate,
   onToolExecute,
 }: SupernalProviderProps) {
@@ -132,6 +136,7 @@ export function SupernalProvider({
             position={position}
             welcomeMessage={welcomeMessage}
             glassMode={glassMode}
+            logo={logo}
           />
         ) : null}
       </ChatProvider>
