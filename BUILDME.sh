@@ -14,7 +14,17 @@ npm install --include=dev
 echo "🏗️  Building ESM and CJS bundles..."
 npm run build
 
+# Step 3: Build interface-nextjs
+echo ""
+echo "🏗️  Building @supernal/interface-nextjs..."
+cd interface-nextjs
+npm install --include=dev
+npm run build
+cd ..
+
+echo ""
 echo "✅ Build complete!"
 echo ""
 echo "📊 Build output:"
-ls -lh dist/esm/src/index.js dist/cjs/src/index.js 2>/dev/null || echo "⚠️  Warning: Build files not found"
+echo "  - interface:        $(ls -lh dist/esm/src/index.js 2>/dev/null | awk '{print $5}' || echo 'N/A')"
+echo "  - interface-nextjs: $(ls -lh interface-nextjs/dist/index.mjs 2>/dev/null | awk '{print $5}' || echo 'N/A')"
