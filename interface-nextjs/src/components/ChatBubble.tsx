@@ -378,6 +378,7 @@ export const ChatBubble = ({
   );
   const [showInfo, setShowInfo] = useState(false);
   const [isDragging, setIsDragging] = useState(false);
+  const [dragInitiated, setDragInitiated] = useState(false); // Track mouse down before threshold
   const [isDocked, setIsDocked] = useState(true);
   const [panelPosition, setPanelPosition] = useState({ x: 0, y: 0 });
   const [theme, setTheme] = useState<'light' | 'dark'>('light');
@@ -386,7 +387,8 @@ export const ChatBubble = ({
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
   const panelRef = useRef<HTMLDivElement>(null);
-  const dragRef = useRef<{ startX: number; startY: number; initialX: number; initialY: number } | null>(null);
+  const dragRef = useRef<{ startX: number; startY: number; initialX: number; initialY: number; thresholdMet: boolean } | null>(null);
+  const rafRef = useRef<number | null>(null); // requestAnimationFrame for smooth dragging
 
   // Helper function to format relative time
   const formatRelativeTime = (timestamp: string): string => {
@@ -566,53 +568,93 @@ export const ChatBubble = ({
     }
 
     e.preventDefault();
-    setIsDragging(true);
+    setDragInitiated(true); // Start tracking mouse movement
 
     const rect = panelRef.current?.getBoundingClientRect();
     if (!rect) return;
 
-    // Calculate current center of panel in viewport
-    const currentCenterX = rect.left + rect.width / 2;
-    const currentCenterY = rect.top + rect.height / 2;
+    // Pre-calculate position to prevent jump when undocking
+    if (isDocked) {
+      // Calculate current center of panel in viewport
+      const currentCenterX = rect.left + rect.width / 2;
+      const currentCenterY = rect.top + rect.height / 2;
 
-    // Calculate what panelPosition should be to place panel at current location
-    const viewportCenterX = window.innerWidth / 2;
-    const viewportCenterY = window.innerHeight / 2;
-    const targetX = currentCenterX - viewportCenterX;
-    const targetY = currentCenterY - viewportCenterY;
+      // Calculate what panelPosition should be to place panel at current location
+      const viewportCenterX = window.innerWidth / 2;
+      const viewportCenterY = window.innerHeight / 2;
+      const targetX = currentCenterX - viewportCenterX;
+      const targetY = currentCenterY - viewportCenterY;
 
-    setIsDocked(false);
-    setPanelPosition({ x: targetX, y: targetY });
+      // Set position immediately to prevent visual jump
+      setPanelPosition({ x: targetX, y: targetY });
 
-    dragRef.current = {
-      startX: e.clientX,
-      startY: e.clientY,
-      initialX: targetX,
-      initialY: targetY,
-    };
+      dragRef.current = {
+        startX: e.clientX,
+        startY: e.clientY,
+        initialX: targetX,
+        initialY: targetY,
+        thresholdMet: false,
+      };
+    } else {
+      // Already floating - use current position
+      dragRef.current = {
+        startX: e.clientX,
+        startY: e.clientY,
+        initialX: panelPosition.x,
+        initialY: panelPosition.y,
+        thresholdMet: false,
+      };
+    }
   };
 
   useEffect(() => {
-    if (!isDragging || !dragRef.current) return;
+    if (!dragInitiated || !dragRef.current) return;
+
+    const dragThresholdPx = 5; // 5px movement required before drag starts
 
     const handleMouseMove = (e: MouseEvent) => {
       if (!dragRef.current) return;
+
       const deltaX = e.clientX - dragRef.current.startX;
       const deltaY = e.clientY - dragRef.current.startY;
-      setPanelPosition({
-        x: dragRef.current.initialX + deltaX,
-        y: dragRef.current.initialY + deltaY,
+      const distance = Math.sqrt(deltaX ** 2 + deltaY ** 2);
+
+      // Check threshold - must move 5px before dragging starts
+      if (!dragRef.current.thresholdMet && distance < dragThresholdPx) {
+        return; // Not enough movement yet - ignore
+      }
+
+      // Threshold met - activate dragging (only once)
+      if (!dragRef.current.thresholdMet) {
+        dragRef.current.thresholdMet = true;
+        setIsDragging(true);
+        setIsDocked(false);
+      }
+
+      // Use requestAnimationFrame for smooth 60fps updates
+      if (rafRef.current) {
+        cancelAnimationFrame(rafRef.current);
+      }
+
+      rafRef.current = requestAnimationFrame(() => {
+        setPanelPosition({
+          x: dragRef.current!.initialX + deltaX,
+          y: dragRef.current!.initialY + deltaY,
+        });
       });
     };
 
     const handleMouseUp = () => {
-      setIsDragging(false);
-      dragRef.current = null;
+      // Cancel any pending animation frame
+      if (rafRef.current) {
+        cancelAnimationFrame(rafRef.current);
+        rafRef.current = null;
+      }
 
-      // Check if near edge to dock
-      if (panelRef.current) {
+      // Only auto-dock if we actually dragged (threshold was met)
+      if (dragRef.current?.thresholdMet && panelRef.current) {
         const rect = panelRef.current.getBoundingClientRect();
-        const threshold = 50;
+        const threshold = 20; // Reduced from 50px - less aggressive
         const windowWidth = window.innerWidth;
         const windowHeight = window.innerHeight;
 
@@ -624,6 +666,10 @@ export const ChatBubble = ({
           setPanelPosition({ x: 0, y: 0 });
         }
       }
+
+      setIsDragging(false);
+      setDragInitiated(false);
+      dragRef.current = null;
     };
 
     window.addEventListener('mousemove', handleMouseMove);
@@ -632,8 +678,11 @@ export const ChatBubble = ({
     return () => {
       window.removeEventListener('mousemove', handleMouseMove);
       window.removeEventListener('mouseup', handleMouseUp);
+      if (rafRef.current) {
+        cancelAnimationFrame(rafRef.current);
+      }
     };
-  }, [isDragging]);
+  }, [dragInitiated]);
 
   const handleSend = (e: React.FormEvent) => {
     e.preventDefault();
@@ -861,7 +910,7 @@ export const ChatBubble = ({
             className={`${isDocked ? 'absolute' : 'fixed'} ${glassMode
               ? 'bg-gradient-to-br from-white/90 via-white/70 to-white/50 dark:from-gray-900/80 dark:via-gray-900/70 dark:to-gray-900/60'
               : 'bg-white dark:bg-gray-900'
-            } rounded-3xl shadow-2xl border border-white/20 dark:border-white/10 backdrop-blur-xl flex flex-col overflow-hidden transition-all duration-300`}
+            } rounded-3xl shadow-2xl border border-white/20 dark:border-white/10 ${!isDragging && 'backdrop-blur-xl'} flex flex-col overflow-hidden ${!isDragging && 'transition-all duration-300'}`}
             style={{
               width: panelWidth,
               height: dynamicHeight,
