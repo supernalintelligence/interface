@@ -59,9 +59,9 @@
     "fix-esm": "node scripts/fix-esm-imports.js",
     "build:cjs": "tsc -p tsconfig.cjs.json",
     "build:watch": "tsc -p tsconfig.json --watch",
-    "test": "jest",
-    "test:watch": "jest --watch",
-    "test:coverage": "jest --coverage",
+    "test": "NODE_ENV=test npx jest",
+    "test:watch": "NODE_ENV=test npx jest --watch",
+    "test:coverage": "NODE_ENV=test npx jest --coverage",
     "lint": "eslint src --ext .ts,.tsx",
     "lint:fix": "eslint src --ext .ts,.tsx --fix",
     "prepack": "npm run build"
