@@ -14,6 +14,10 @@ import React, { useState, useRef, useEffect } from 'react';
 import { Components } from '../../../names/Components';
 import { useChatInput } from '../contexts/ChatInputContext';
 
+// Default logo as base64 data URI (Supernal Interface logo with "@/" symbol)
+// This ensures the logo works out of the box without requiring consumers to add files
+const DEFAULT_LOGO = 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNDAiIGhlaWdodD0iNDAiIHZpZXdCb3g9IjAgMCA0MCA0MCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj4KICA8ZGVmcz4KICAgIDxsaW5lYXJHcmFkaWVudCBpZD0ibG9nb0dyYWRpZW50IiB4MT0iMCUiIHkxPSIwJSIgeDI9IjEwMCUiIHkyPSIxMDAlIj4KICAgICAgPHN0b3Agb2Zmc2V0PSIwJSIgc3R5bGU9InN0b3AtY29sb3I6IzAwNjZmZjtzdG9wLW9wYWNpdHk6MSIgLz4KICAgICAgPHN0b3Agb2Zmc2V0PSI1MCUiIHN0eWxlPSJzdG9wLWNvbG9yOiM0ZDk0ZmY7c3RvcC1vcGFjaXR5OjEiIC8+CiAgICAgIDxzdG9wIG9mZnNldD0iMTAwJSIgc3R5bGU9InN0b3AtY29sb3I6IzAwY2NmZjtzdG9wLW9wYWNpdHk6MSIgLz4KICAgIDwvbGluZWFyR3JhZGllbnQ+CiAgPC9kZWZzPgoKICA8IS0tIENpcmNsZSBiYWNrZ3JvdW5kIHdpdGggZ3JhZGllbnQgLS0+CiAgPGNpcmNsZSBjeD0iMjAiIGN5PSIyMCIgcj0iMTgiIGZpbGw9InVybCgjbG9nb0dyYWRpZW50KSIgb3BhY2l0eT0iMC4xNSIgLz4KCiAgPCEtLSBUZXh0OiAnQC8nIC0gZWFzeSB0byBjaGFuZ2UgdG8gJ34rJyBvciBhbnkgb3RoZXIgY2hhcmFjdGVycyAtLT4KICA8dGV4dCB4PSIyMCIgeT0iMjciCiAgICAgICAgZm9udC1mYW1pbHk9InN5c3RlbS11aSwgLWFwcGxlLXN5c3RlbSwgQmxpbmtNYWNTeXN0ZW1Gb250LCAnU2Vnb2UgVUknLCBzYW5zLXNlcmlmIgogICAgICAgIGZvbnQtc2l6ZT0iMjAiCiAgICAgICAgZm9udC13ZWlnaHQ9IjcwMCIKICAgICAgICB0ZXh0LWFuY2hvcj0ibWlkZGxlIgogICAgICAgIGZpbGw9InVybCgjbG9nb0dyYWRpZW50KSI+QC88L3RleHQ+Cjwvc3ZnPg==';
+
 // Chat component names (use the flat Components namespace)
 const ChatNames = {
   bubble: Components.ChatToggleButton,
@@ -43,6 +47,8 @@ type Variant = 'full' | 'floating';
 interface ChatBubbleConfig {
   /** Optional title for the chat header */
   title?: string;
+  /** Optional logo URL or data URI. Defaults to embedded Supernal Interface logo */
+  logo?: string;
   /** Optional avatar/icon (emoji, URL, or React node) */
   avatar?: string | React.ReactNode;
   /** Optional description shown in info popup */
@@ -241,7 +247,8 @@ const THEME_CLASSES = {
 
 const DEFAULT_CONFIG: ChatBubbleConfig = {
   title: 'Supernal Interface',
-  avatar: <img src="/supernal-tts-logo.svg" alt="Supernal" className="w-6 h-6" />,
+  logo: DEFAULT_LOGO,
+  avatar: <img src={DEFAULT_LOGO} alt="Supernal" className="w-6 h-6" />,
   description: 'I\'m a TOOL system AI can use to control this site',
   placeholder: 'Try: toggle notifications',
   sendButtonLabel: 'Send',
@@ -272,7 +279,7 @@ interface InputFieldProps {
   placeholder?: string;
   glassClasses: string;
   theme: 'light' | 'dark';
-  inputRef?: React.RefObject<HTMLInputElement>;
+  inputRef?: React.RefObject<HTMLInputElement | null>;
   sendButtonLabel?: string;
 }
 
@@ -354,7 +361,14 @@ export const ChatBubble = ({
   defaultExpanded = true,
   storageKey = 'chat-bubble-state',
 }: ChatBubbleProps) => {
-  const config = { ...DEFAULT_CONFIG, ...userConfig };
+  const mergedConfig = { ...DEFAULT_CONFIG, ...userConfig };
+
+  // If custom logo provided, sync avatar to match
+  if (userConfig?.logo && !userConfig?.avatar) {
+    mergedConfig.avatar = <img src={userConfig.logo} alt="Supernal" className="w-6 h-6" />;
+  }
+
+  const config = mergedConfig;
   const [isExpanded, setIsExpanded] = useState(defaultExpanded);
   const [isMinimized, setIsMinimized] = useState(false); // New minimized state
   const [inputValue, setInputValue] = useState('');
@@ -1116,7 +1130,7 @@ export const ChatBubble = ({
             data-testid={ChatNames.bubble}
             title="Open chat"
           >
-            <img src="/supernal-tts-logo.svg" alt="Supernal" className="w-8 h-8" />
+            <img src={config.logo} alt="Supernal" className="w-8 h-8" />
 
             {/* Unread indicator */}
             {hasUnread && (
