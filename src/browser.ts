@@ -8,17 +8,50 @@
 // Core decorators and registry
 export { Tool, ToolConfig, ToolMetadata, setDefaultToolReporter } from './decorators/Tool';
 export { ToolProvider, ToolProviderConfig } from './decorators/ToolProvider';
-export { 
-  ClickTool, 
-  ChangeTool, 
-  TypeTool, 
-  HoverTool, 
-  MultiActionTool, 
+export {
+  ClickTool,
+  ChangeTool,
+  TypeTool,
+  HoverTool,
+  MultiActionTool,
   FormTool,
   setGlobalToolReporter,
   type ToolExecutionReporter
 } from './decorators/ToolHelpers';
 export { ToolRegistry } from './background/registry/ToolRegistry';
+
+// Component decorator
+export { Component, ComponentConfig } from './decorators/Component';
+
+// Specialized decorators
+export {
+  AITool,
+  TestTool,
+  OnboardingTool,
+  DangerousTool,
+  DestructiveTool,
+  DataReadTool,
+  DataWriteTool,
+  NavigationTool,
+  AIAndTestTool,
+  OnboardingAndTestTool,
+} from './decorators/SpecializedTools';
+
+// Tool presets
+export {
+  ToolPreset,
+  getToolPreset,
+  applyPreset,
+  registerPendingPreset,
+  clearToolPresets,
+  PresetTemplates,
+  createPreset,
+  componentPreset,
+  pathPreset,
+} from './decorators/ToolPreset';
+
+// Tool categories
+export { ToolCategory } from './types/Tool';
 
 // Container HOC
 export { useContainer } from './decorators/ContainerHelpers';
@@ -68,6 +101,13 @@ export { DOMExecutor } from './execution/DOMExecutor';
 // Note: usePersistedState excluded due to fs/promises dependency in StorageAdapter
 // export { usePersistedState } from './react/usePersistedState';
 export { useToolBinding } from './react';
+
+// AI (browser-safe)
+export { AIInterface, type AICommand, type AIResponse } from './ai/AIInterface';
+export { ToolMatcher, type MatchContext } from './ai/ToolMatcher';
+export { ParameterExtractor } from './ai/ParameterExtractor';
+export { ToolExecutor } from './ai/ToolExecutor';
+export { SuggestionEngine } from './ai/SuggestionEngine';
 
 // Note: CLI tools, generators, and Node.js-specific functionality
 // are excluded from browser builds

@@ -241,7 +241,7 @@ const THEME_CLASSES = {
 
 const DEFAULT_CONFIG: ChatBubbleConfig = {
   title: 'Supernal Interface',
-  avatar: <img src="/logo.svg" alt="Supernal" className="w-6 h-6" />,
+  avatar: <img src="/supernal-tts-logo.svg" alt="Supernal" className="w-6 h-6" />,
   description: 'I\'m a TOOL system AI can use to control this site',
   placeholder: 'Try: toggle notifications',
   sendButtonLabel: 'Send',
@@ -1116,7 +1116,7 @@ export const ChatBubble = ({
             data-testid={ChatNames.bubble}
             title="Open chat"
           >
-            <img src="/logo.svg" alt="Supernal" className="w-8 h-8" />
+            <img src="/supernal-tts-logo.svg" alt="Supernal" className="w-8 h-8" />
 
             {/* Unread indicator */}
             {hasUnread && (
