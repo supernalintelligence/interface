@@ -245,7 +245,7 @@ const DEFAULT_CONFIG: ChatBubbleConfig = {
   description: 'I\'m a TOOL system AI can use to control this site',
   placeholder: 'Try: toggle notifications',
   sendButtonLabel: 'Send',
-  glassMode: true,
+  glassMode: false,
   welcome: {
     enabled: true,
     title: 'Welcome - I\'m NOT an AI',
