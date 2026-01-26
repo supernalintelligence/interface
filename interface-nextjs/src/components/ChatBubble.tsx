@@ -438,33 +438,103 @@ export const ChatBubble = ({
         const stored = localStorage.getItem(storageKey);
         if (stored !== null) {
           const state = JSON.parse(stored);
-          setIsExpanded(state.isExpanded ?? defaultExpanded);
-          setIsMinimized(state.isMinimized ?? false);
-          setIsDocked(state.isDocked ?? true);
-          setDockPosition(state.dockPosition || position);
-          setPanelPosition(state.panelPosition || { x: 0, y: 0 });
-          setTheme(state.theme || 'light');
-          if (state.localGlassMode !== undefined) {
-            setLocalGlassMode(state.localGlassMode);
-          }
-          if (state.notifications !== undefined) {
-            setNotifications(state.notifications);
-          }
-          if (state.displayMode !== undefined) {
-            setDisplayMode(state.displayMode);
-          }
-          if (state.drawerSide !== undefined) {
-            setDrawerSide(state.drawerSide);
-          }
-          if (state.drawerOpen !== undefined) {
-            setDrawerOpen(state.drawerOpen);
+
+          // Validate stored position - if clearly invalid (too far off-screen), reset
+          const windowWidth = typeof window !== 'undefined' ? window.innerWidth : 1920;
+          const windowHeight = typeof window !== 'undefined' ? window.innerHeight : 1080;
+          const pos = state.panelPosition || { x: 0, y: 0 };
+
+          // If position is more than 2x viewport away, it's invalid - reset to docked
+          const isInvalidPosition =
+            Math.abs(pos.x) > windowWidth * 2 ||
+            Math.abs(pos.y) > windowHeight * 2;
+
+          if (isInvalidPosition) {
+            console.warn('ChatBubble: Invalid stored position detected, resetting to docked');
+            // Clear the invalid state
+            localStorage.removeItem(storageKey);
+            // Use defaults
+            setIsExpanded(defaultExpanded);
+            setIsMinimized(false);
+            setIsDocked(true);
+            setDockPosition(position);
+            setPanelPosition({ x: 0, y: 0 });
+          } else {
+            // Valid state - load it
+            setIsExpanded(state.isExpanded ?? defaultExpanded);
+            setIsMinimized(state.isMinimized ?? false);
+            setIsDocked(state.isDocked ?? true);
+            setDockPosition(state.dockPosition || position);
+            setPanelPosition(pos);
+            setTheme(state.theme || 'light');
+            if (state.localGlassMode !== undefined) {
+              setLocalGlassMode(state.localGlassMode);
+            }
+            if (state.notifications !== undefined) {
+              setNotifications(state.notifications);
+            }
+            if (state.displayMode !== undefined) {
+              setDisplayMode(state.displayMode);
+            }
+            if (state.drawerSide !== undefined) {
+              setDrawerSide(state.drawerSide);
+            }
+            if (state.drawerOpen !== undefined) {
+              setDrawerOpen(state.drawerOpen);
+            }
           }
         }
       } catch {
         // Keep default value
       }
     }
-  }, [storageKey, variant, defaultExpanded]);
+  }, [storageKey, variant, defaultExpanded, position]);
+
+  // Bounds checking: ensure panel is visible on screen
+  useEffect(() => {
+    if (!isExpanded || isDocked || !panelRef.current) return;
+
+    const checkBounds = () => {
+      const rect = panelRef.current?.getBoundingClientRect();
+      if (!rect) return;
+
+      const windowWidth = window.innerWidth;
+      const windowHeight = window.innerHeight;
+
+      // If panel is completely off-screen, reset to docked position
+      const isOffScreen =
+        rect.right < 0 ||
+        rect.left > windowWidth ||
+        rect.bottom < 0 ||
+        rect.top > windowHeight;
+
+      if (isOffScreen) {
+        console.warn('ChatBubble detected off-screen, resetting to docked position');
+        setIsDocked(true);
+        setPanelPosition({ x: 0, y: 0 });
+      }
+    };
+
+    // Check bounds after a brief delay to allow rendering
+    const timeoutId = setTimeout(checkBounds, 100);
+    return () => clearTimeout(timeoutId);
+  }, [isExpanded, isDocked]);
+
+  // Escape key handler: reset panel to default docked position
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      // Press Escape to reset ChatBubble to docked position
+      if (e.key === 'Escape' && isExpanded && !isDocked) {
+        console.log('ChatBubble reset via Escape key');
+        setIsDocked(true);
+        setDockPosition(position);
+        setPanelPosition({ x: 0, y: 0 });
+      }
+    };
+
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [isExpanded, isDocked, position]);
 
   // Detect system theme on mount
   useEffect(() => {
