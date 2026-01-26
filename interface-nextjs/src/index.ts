@@ -19,6 +19,11 @@ export { ChatBubble } from './components/ChatBubble';
 export { ChatBubbleSettingsModal, type ChatBubbleSettings } from './components/ChatBubbleSettingsModal';
 export { ChatInputProvider, useChatInput } from './contexts/ChatInputContext';
 export { AutoNavigationContext } from './components/AutoNavigationContext';
+
+// Markdown rendering components
+export { MessageRenderer } from './components/MessageRenderer';
+export { CodeBlock } from './components/CodeBlock';
+export { MermaidDiagram } from './components/MermaidDiagram';
 export {
   DemoAIInterface,
   type CommandResult,

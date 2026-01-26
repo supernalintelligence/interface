@@ -32,6 +32,7 @@
     "@types/node": "^20.0.0",
     "@types/react": "^18.0.0",
     "@types/react-dom": "^18.0.0",
+    "@types/react-syntax-highlighter": "^15.5.13",
     "tsup": "^8.0.0",
     "typescript": "^5.0.0"
   },
@@ -59,6 +60,14 @@
     "url": "https://github.com/supernalintelligence/supernal-interface/issues"
   },
   "dependencies": {
-    "cac": "^6.7.14"
+    "cac": "^6.7.14",
+    "react-markdown": "^9.0.1",
+    "remark-gfm": "^4.0.0",
+    "remark-math": "^6.0.0",
+    "remark-directive": "^3.0.0",
+    "rehype-katex": "^7.0.0",
+    "react-syntax-highlighter": "^15.5.0",
+    "mermaid": "^11.4.1",
+    "katex": "^0.16.11"
   }
 }

@@ -46,13 +46,13 @@ function getInitialMessages(): Message[] {
     },
     {
       id: '3',
-      text: '🎮 Try these commands:\n• "open menu" or "close menu"\n• "toggle notifications"\n• "set priority high"',
+      text: '🎮 **Try these commands:**\n\n- "open menu" or "close menu"\n- "toggle notifications"\n- "set priority high"',
       type: 'system',
       timestamp: new Date().toISOString()
     },
     {
       id: '4',
-      text: '🗺️  Navigate pages:\n• "architecture" or "dashboard"\n• "demo" or "home"\n• "docs" or "examples"',
+      text: '🗺️ **Navigate pages:**\n\n- "architecture" or "dashboard"\n- "demo" or "home"\n- "docs" or "examples"',
       type: 'system',
       timestamp: new Date().toISOString()
     },

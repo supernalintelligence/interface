@@ -13,6 +13,8 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { Components } from '../../../names/Components';
 import { useChatInput } from '../contexts/ChatInputContext';
+import { MessageRenderer } from './MessageRenderer';
+import '../styles/markdown.css';
 
 // Default logo as base64 data URI (Supernal Interface logo with "@/" symbol)
 // This ensures the logo works out of the box without requiring consumers to add files
@@ -662,7 +664,7 @@ export const ChatBubble = ({
     }
   }, [isExpanded, variant]);
 
-  // Keyboard shortcuts
+  // Keyboard shortcuts for full variant
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
       if (variant !== 'full') return;
@@ -700,6 +702,21 @@ export const ChatBubble = ({
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, [isExpanded, showMoreMenu, variant]);
 
+  // Keyboard shortcuts for drawer variant
+  useEffect(() => {
+    if (currentVariant !== 'drawer') return;
+
+    const handleKeyDown = (e: KeyboardEvent) => {
+      // ESC key closes drawer
+      if (e.key === 'Escape' && drawerOpen) {
+        setDrawerOpen(false);
+      }
+    };
+
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [currentVariant, drawerOpen]);
+
   // Close more menu when clicking outside
   useEffect(() => {
     if (!showMoreMenu) return;
@@ -714,6 +731,103 @@ export const ChatBubble = ({
     document.addEventListener('mousedown', handleClickOutside);
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, [showMoreMenu]);
+
+  // Touch gesture handlers for drawer (swipe from edge to open)
+  useEffect(() => {
+    if (typeof window === 'undefined' || currentVariant !== 'drawer') return;
+
+    const EDGE_ZONE_PX = 20; // Detection zone
+    const SWIPE_THRESHOLD = 0.4; // 40% of screen width
+    const VELOCITY_THRESHOLD = 0.5; // px/ms
+
+    const handleTouchStart = (e: TouchEvent) => {
+      const touch = e.touches[0];
+      const isRightEdge = touch.clientX > window.innerWidth - EDGE_ZONE_PX;
+      const isLeftEdge = touch.clientX < EDGE_ZONE_PX;
+
+      if ((drawerSide === 'right' && isRightEdge) || (drawerSide === 'left' && isLeftEdge)) {
+        setTouchStart({
+          x: touch.clientX,
+          y: touch.clientY,
+          time: Date.now(),
+        });
+      }
+    };
+
+    const handleTouchMove = (e: TouchEvent) => {
+      if (!touchStart || drawerOpen) return;
+
+      const touch = e.touches[0];
+      const deltaX = touch.clientX - touchStart.x;
+      const deltaY = Math.abs(touch.clientY - touchStart.y);
+
+      // Ignore vertical scrolls
+      if (deltaY > 10 && Math.abs(deltaX) < deltaY) {
+        setTouchStart(null);
+        return;
+      }
+
+      // Calculate progress (0-100)
+      const screenWidth = window.innerWidth;
+      const direction = drawerSide === 'right' ? -1 : 1;
+      const progress = Math.max(0, Math.min(100, (deltaX * direction / screenWidth) * 100));
+
+      setSwipeProgress(progress);
+
+      // Prevent scrolling during horizontal swipe
+      if (Math.abs(deltaX) > 10) {
+        e.preventDefault();
+      }
+    };
+
+    const handleTouchEnd = () => {
+      if (!touchStart) return;
+
+      const deltaTime = Date.now() - touchStart.time;
+      const velocity = swipeProgress / deltaTime;
+
+      // Commit if threshold met
+      if (swipeProgress > SWIPE_THRESHOLD * 100 || velocity > VELOCITY_THRESHOLD) {
+        setDrawerOpen(true);
+      }
+
+      // Reset state
+      setTouchStart(null);
+      setSwipeProgress(0);
+    };
+
+    window.addEventListener('touchstart', handleTouchStart, { passive: true });
+    window.addEventListener('touchmove', handleTouchMove, { passive: false });
+    window.addEventListener('touchend', handleTouchEnd);
+
+    return () => {
+      window.removeEventListener('touchstart', handleTouchStart);
+      window.removeEventListener('touchmove', handleTouchMove);
+      window.removeEventListener('touchend', handleTouchEnd);
+    };
+  }, [touchStart, swipeProgress, drawerOpen, drawerSide, currentVariant]);
+
+  // Edge hint auto-show/hide for drawer
+  useEffect(() => {
+    if (currentVariant !== 'drawer' || drawerOpen) return;
+
+    const showTimer = setTimeout(() => setShowEdgeHint(true), 2000);
+    const hideTimer = setTimeout(() => setShowEdgeHint(false), 7000);
+
+    return () => {
+      clearTimeout(showTimer);
+      clearTimeout(hideTimer);
+    };
+  }, [drawerOpen, currentVariant]);
+
+  // Hide edge hint on any touch
+  useEffect(() => {
+    if (currentVariant !== 'drawer') return;
+
+    const handleTouch = () => setShowEdgeHint(false);
+    window.addEventListener('touchstart', handleTouch);
+    return () => window.removeEventListener('touchstart', handleTouch);
+  }, [currentVariant]);
 
   // Drag handlers
   const handlePanelMouseDown = (e: React.MouseEvent) => {
@@ -899,6 +1013,49 @@ export const ChatBubble = ({
     }
   };
 
+  // Drawer touch handlers for swipe-to-close
+  const handleDrawerTouchStart = (e: React.TouchEvent) => {
+    if (!drawerOpen) return;
+    const touch = e.touches[0];
+    setTouchStart({
+      x: touch.clientX,
+      y: touch.clientY,
+      time: Date.now(),
+    });
+  };
+
+  const handleDrawerTouchMove = (e: React.TouchEvent) => {
+    if (!touchStart || !drawerOpen) return;
+
+    const touch = e.touches[0];
+    const deltaX = touch.clientX - touchStart.x;
+    const deltaY = Math.abs(touch.clientY - touchStart.y);
+
+    // Ignore vertical scrolls
+    if (deltaY > 10 && Math.abs(deltaX) < deltaY) {
+      return;
+    }
+
+    const screenWidth = window.innerWidth;
+    // Opposite direction for close
+    const direction = drawerSide === 'right' ? 1 : -1;
+    const progress = Math.max(0, Math.min(100, (deltaX * direction / screenWidth) * 100));
+
+    setSwipeProgress(progress);
+  };
+
+  const handleDrawerTouchEnd = () => {
+    if (!touchStart) return;
+
+    const SWIPE_THRESHOLD = 0.4; // 40% of screen width
+
+    if (swipeProgress > SWIPE_THRESHOLD * 100) {
+      setDrawerOpen(false);
+    }
+
+    setTouchStart(null);
+    setSwipeProgress(0);
+  };
 
   const dockClasses = DOCK_POSITIONS[dockPosition];
   const primaryColor = config.theme?.primary || 'blue';
@@ -1031,6 +1188,9 @@ export const ChatBubble = ({
           role="dialog"
           aria-modal="true"
           aria-label="Chat drawer"
+          onTouchStart={handleDrawerTouchStart}
+          onTouchMove={handleDrawerTouchMove}
+          onTouchEnd={handleDrawerTouchEnd}
         >
           <div className={`${THEME_CLASSES.bg.header} ${glassMode ? THEME_CLASSES.bg.headerGradient : THEME_CLASSES.bg.headerLight}`}>
             <div className="flex items-center space-x-3">
@@ -1077,7 +1237,7 @@ export const ChatBubble = ({
                     message.type === 'user' ? INLINE_STYLES.messageUser() : message.type === 'ai' ? INLINE_STYLES.messageAI(theme === 'dark') : INLINE_STYLES.messageSystem(theme === 'dark')
                   }
                 >
-                  <div className="break-words leading-relaxed">{message.text}</div>
+                  <MessageRenderer content={message.text} theme={theme} />
                 </div>
                 <div
                   className={`text-xs opacity-0 group-hover:opacity-70 transition-opacity whitespace-nowrap flex-shrink-0 ${
@@ -1499,14 +1659,7 @@ export const ChatBubble = ({
                       onClick={() => {
                         // Inject help messages into chat
                         const helpMessages = [
-                          '💡 **How to Use This Chat**',
-                          '• **Theme**: Toggle between light and dark modes',
-                          '• **Glass Effect**: Adjust transparency (Off/Low/Medium/High)',
-                          '• **Reset Position**: Return chat to default corner',
-                          '• **Minimize**: Compact view showing last message',
-                          '• **Clear**: Delete all messages and start fresh',
-                          '• **Drag**: Click and drag header to reposition chat',
-                          '• **Keyboard**: Press "/" to focus input, Esc to reset position'
+                          '💡 **How to Use This Chat**\n\n- **Theme**: Toggle between light and dark modes\n- **Glass Effect**: Adjust transparency (Off/Low/Medium/High)\n- **Reset Position**: Return chat to default corner\n- **Minimize**: Compact view showing last message\n- **Clear**: Delete all messages and start fresh\n- **Drag**: Click and drag header to reposition chat\n- **Keyboard**: Press "/" to focus input, Esc to reset position'
                         ];
 
                         helpMessages.forEach((text, index) => {
@@ -1636,7 +1789,7 @@ export const ChatBubble = ({
                     }
                     data-testid={`chat-message-${message.type}`}
                   >
-                    <div className="break-words leading-relaxed">{message.text}</div>
+                    <MessageRenderer content={message.text} theme={theme} />
                   </div>
                   {/* Timestamp beside bubble - relative time with hover tooltip */}
                   <div
