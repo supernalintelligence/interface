@@ -14,6 +14,9 @@ import React, { useState, useRef, useEffect } from 'react';
 import { Components } from '../../../names/Components';
 import { useChatInput } from '../contexts/ChatInputContext';
 import { MessageRenderer } from './MessageRenderer';
+import { useTTS } from '../hooks/useTTS';
+import { useSTT } from '../hooks/useSTT';
+import { TTSButton } from './TTSButton';
 import '../styles/markdown.css';
 
 // Default logo as base64 data URI (Supernal Interface logo with "@/" symbol)
@@ -289,6 +292,10 @@ interface InputFieldProps {
   theme: 'light' | 'dark';
   inputRef?: React.RefObject<HTMLInputElement>;
   sendButtonLabel?: string;
+  // Voice control
+  voiceEnabled?: boolean;
+  isListening?: boolean;
+  onMicClick?: () => void;
 }
 
 const InputField: React.FC<InputFieldProps> = ({
@@ -301,6 +308,9 @@ const InputField: React.FC<InputFieldProps> = ({
   theme,
   inputRef,
   sendButtonLabel,
+  voiceEnabled = false,
+  isListening = false,
+  onMicClick,
 }) => (
   <form onSubmit={onSubmit} className={compact ? 'flex space-x-2' : THEME_CLASSES.bg.inputForm + ' ' + 'bg-transparent'}>
     <div className={compact ? 'flex space-x-2 flex-1' : 'relative'}>
@@ -312,27 +322,53 @@ const InputField: React.FC<InputFieldProps> = ({
         placeholder={placeholder}
         className={compact
           ? `flex-1 px-3 py-2 text-xs border rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all ${glassClasses}`
-          : `${THEME_CLASSES.input.field} ${glassClasses}`
+          : `w-full pl-4 ${inputValue.trim() ? 'pr-12' : 'pr-12'} py-3 text-sm text-gray-900 dark:text-white placeholder:text-gray-500 dark:placeholder:text-gray-300 rounded-3xl focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all shadow-sm ${glassClasses}`
         }
         style={INLINE_STYLES.input(theme === 'dark')}
         data-testid={Components.ChatInput}
       />
-      <button
-        type="submit"
-        disabled={!inputValue.trim()}
-        className={compact
-          ? "px-3 py-2 bg-gradient-to-r from-blue-500 to-blue-600 text-white rounded-xl hover:from-blue-600 hover:to-blue-700 disabled:from-gray-300 disabled:to-gray-400 disabled:cursor-not-allowed transition-all text-xs font-medium shadow-md hover:shadow-lg"
-          : THEME_CLASSES.input.sendButton
-        }
-        data-testid={Components.ChatSendButton}
-        title={sendButtonLabel}
-      >
-        {compact ? '→' : (
-          <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth="2.5" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" d="M13 5l7 7m0 0l-7 7m7-7H3" />
-          </svg>
-        )}
-      </button>
+      {/* Microphone button (voice input) - only show when input is empty OR while recording */}
+      {voiceEnabled && onMicClick && !compact && (!inputValue.trim() || isListening) && (
+        <button
+          type="button"
+          onClick={onMicClick}
+          className={`absolute right-2 top-1/2 -translate-y-1/2 p-2 rounded-full transition-all ${
+            isListening
+              ? 'bg-red-500 text-white animate-pulse'
+              : 'text-gray-500 hover:text-blue-600 hover:bg-gray-100 dark:hover:bg-gray-700'
+          }`}
+          title={isListening ? 'Stop recording' : 'Voice input'}
+          data-testid="voice-input-button"
+        >
+          {isListening ? (
+            <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 24 24">
+              <rect x="6" y="6" width="12" height="12" rx="2" />
+            </svg>
+          ) : (
+            <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" d="M19 11a7 7 0 01-7 7m0 0a7 7 0 01-7-7m7 7v4m0 0H8m4 0h4m-4-8a3 3 0 01-3-3V5a3 3 0 116 0v6a3 3 0 01-3 3z" />
+            </svg>
+          )}
+        </button>
+      )}
+      {/* Send button - only show when user has typed something */}
+      {inputValue.trim() && (
+        <button
+          type="submit"
+          className={compact
+            ? "px-3 py-2 bg-gradient-to-r from-blue-500 to-blue-600 text-white rounded-xl hover:from-blue-600 hover:to-blue-700 disabled:from-gray-300 disabled:to-gray-400 disabled:cursor-not-allowed transition-all text-xs font-medium shadow-md hover:shadow-lg"
+            : THEME_CLASSES.input.sendButton
+          }
+          data-testid={Components.ChatSendButton}
+          title={sendButtonLabel}
+        >
+          {compact ? '→' : (
+            <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth="2.5" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" d="M13 5l7 7m0 0l-7 7m7-7H3" />
+            </svg>
+          )}
+        </button>
+      )}
     </div>
   </form>
 );
@@ -398,13 +434,22 @@ export const ChatBubble = ({
   const [glassOpacity, setGlassOpacity] = useState<'low' | 'medium' | 'high'>('medium'); // Glass opacity: Low/Medium/High
   const [notifications, setNotifications] = useState(true);
 
+  // Voice control settings - ENABLED BY DEFAULT for better discoverability
+  const [voiceEnabled, setVoiceEnabled] = useState(true);
+  const [usePremiumVoices, setUsePremiumVoices] = useState(false);
+  const [autoReadResponses, setAutoReadResponses] = useState(false);
+  const [ttsSpeed, setTtsSpeed] = useState(1.0);
+
+  // Initialize voice hooks
+  const { speak: speakTTS, stop: stopTTS, isPlaying: isTTSPlaying } = useTTS();
+  const { startListening, stopListening, transcript: sttTranscript, isListening, resetTranscript } = useSTT();
+
   // Drawer state variables
   const [displayMode, setDisplayMode] = useState<DisplayMode>(propDisplayMode);
   const [drawerSide, setDrawerSide] = useState<'left' | 'right'>(propDrawerSide);
   const [drawerOpen, setDrawerOpen] = useState(false);
   const [touchStart, setTouchStart] = useState<{x: number; y: number; time: number} | null>(null);
   const [swipeProgress, setSwipeProgress] = useState(0); // 0-100%
-  const [showEdgeHint, setShowEdgeHint] = useState(false);
   const [isMobile, setIsMobile] = useState(false);
 
   const messagesEndRef = useRef<HTMLDivElement>(null);
@@ -493,6 +538,19 @@ export const ChatBubble = ({
             }
             if (state.glassOpacity !== undefined) {
               setGlassOpacity(state.glassOpacity);
+            }
+            // Load voice settings
+            if (state.voiceEnabled !== undefined) {
+              setVoiceEnabled(state.voiceEnabled);
+            }
+            if (state.usePremiumVoices !== undefined) {
+              setUsePremiumVoices(state.usePremiumVoices);
+            }
+            if (state.autoReadResponses !== undefined) {
+              setAutoReadResponses(state.autoReadResponses);
+            }
+            if (state.ttsSpeed !== undefined) {
+              setTtsSpeed(state.ttsSpeed);
             }
           }
         }
@@ -613,13 +671,17 @@ export const ChatBubble = ({
             drawerSide,
             drawerOpen,
             glassOpacity,
+            voiceEnabled,
+            usePremiumVoices,
+            autoReadResponses,
+            ttsSpeed,
           })
         );
       } catch (error) {
         console.error('Failed to save chat state:', error);
       }
     }
-  }, [isExpanded, isMinimized, isDocked, dockPosition, panelPosition, theme, localGlassMode, notifications, displayMode, drawerSide, drawerOpen, glassOpacity, storageKey, variant]);
+  }, [isExpanded, isMinimized, isDocked, dockPosition, panelPosition, theme, localGlassMode, notifications, displayMode, drawerSide, drawerOpen, glassOpacity, voiceEnabled, usePremiumVoices, autoReadResponses, ttsSpeed, storageKey, variant]);
 
   // Register with chat input context
   const { registerInput } = useChatInput();
@@ -663,6 +725,31 @@ export const ChatBubble = ({
       inputRef.current?.focus();
     }
   }, [isExpanded, variant]);
+
+  // Auto-read AI responses (voice control)
+  useEffect(() => {
+    if (!voiceEnabled || !autoReadResponses || messages.length === 0) return;
+
+    const lastMessage = messages[messages.length - 1];
+
+    // Only auto-read AI messages
+    if (lastMessage.type === 'ai') {
+      speakTTS({
+        text: lastMessage.text,
+        speed: ttsSpeed,
+        usePremium: usePremiumVoices,
+        preferNative: !usePremiumVoices,
+      });
+    }
+  }, [messages, voiceEnabled, autoReadResponses, ttsSpeed, usePremiumVoices, speakTTS]);
+
+  // Wire up STT transcript to input field
+  useEffect(() => {
+    if (sttTranscript && voiceEnabled) {
+      setInputValue(sttTranscript);
+      resetTranscript();
+    }
+  }, [sttTranscript, voiceEnabled, resetTranscript]);
 
   // Keyboard shortcuts for full variant
   useEffect(() => {
@@ -807,27 +894,6 @@ export const ChatBubble = ({
     };
   }, [touchStart, swipeProgress, drawerOpen, drawerSide, currentVariant]);
 
-  // Edge hint auto-show/hide for drawer
-  useEffect(() => {
-    if (currentVariant !== 'drawer' || drawerOpen) return;
-
-    const showTimer = setTimeout(() => setShowEdgeHint(true), 2000);
-    const hideTimer = setTimeout(() => setShowEdgeHint(false), 7000);
-
-    return () => {
-      clearTimeout(showTimer);
-      clearTimeout(hideTimer);
-    };
-  }, [drawerOpen, currentVariant]);
-
-  // Hide edge hint on any touch
-  useEffect(() => {
-    if (currentVariant !== 'drawer') return;
-
-    const handleTouch = () => setShowEdgeHint(false);
-    window.addEventListener('touchstart', handleTouch);
-    return () => window.removeEventListener('touchstart', handleTouch);
-  }, [currentVariant]);
 
   // Drag handlers
   const handlePanelMouseDown = (e: React.MouseEvent) => {
@@ -1013,6 +1079,14 @@ export const ChatBubble = ({
     }
   };
 
+  const handleMicClick = () => {
+    if (isListening) {
+      stopListening();
+    } else {
+      startListening();
+    }
+  };
+
   // Drawer touch handlers for swipe-to-close
   const handleDrawerTouchStart = (e: React.TouchEvent) => {
     if (!drawerOpen) return;
@@ -1064,17 +1138,17 @@ export const ChatBubble = ({
   // Map glass opacity setting to CSS classes (original values, just adjustable)
   const glassClasses = glassMode
     ? glassOpacity === 'low'
-      ? 'backdrop-blur-xl bg-white/50 dark:bg-gray-900/50 border border-white/20 dark:border-white/10'
-      : glassOpacity === 'high'
       ? 'backdrop-blur-xl bg-white/90 dark:bg-gray-900/90 border border-white/20 dark:border-white/10'
+      : glassOpacity === 'high'
+      ? 'backdrop-blur-xl bg-white/50 dark:bg-gray-900/50 border border-white/20 dark:border-white/10'
       : 'backdrop-blur-xl bg-white/70 dark:bg-gray-900/70 border border-white/20 dark:border-white/10' // medium (original)
     : 'bg-white dark:bg-gray-900';
 
   const glassGradient = glassMode
     ? glassOpacity === 'low'
-      ? 'bg-gradient-to-br from-white/70 via-white/50 to-white/30 dark:from-gray-900/60 dark:via-gray-900/50 dark:to-gray-900/40'
-      : glassOpacity === 'high'
       ? 'bg-gradient-to-br from-white/95 via-white/85 to-white/70 dark:from-gray-900/90 dark:via-gray-900/80 dark:to-gray-900/70'
+      : glassOpacity === 'high'
+      ? 'bg-gradient-to-br from-white/70 via-white/50 to-white/30 dark:from-gray-900/60 dark:via-gray-900/50 dark:to-gray-900/40'
       : 'bg-gradient-to-br from-white/90 via-white/70 to-white/50 dark:from-gray-900/80 dark:via-gray-900/70 dark:to-gray-900/60' // medium (original)
     : 'bg-white dark:bg-gray-900';
 
@@ -1165,7 +1239,7 @@ export const ChatBubble = ({
 
   // Drawer variant - mobile swipeable drawer
   if (currentVariant === 'drawer') {
-    const drawerWidth = 'min(400px, 90vw)';
+    const drawerWidth = '100vw'; // Full screen width
     return (
       <>
         {(drawerOpen || swipeProgress > 0) && (
@@ -1228,9 +1302,9 @@ export const ChatBubble = ({
               </div>
             )}
             {messages.map((message) => (
-              <div key={message.id} className={`group flex items-center gap-2 mb-2 ${message.type === 'user' ? 'flex-row-reverse' : 'flex-row'}`}>
+              <div key={message.id} className={`group flex items-center gap-1 mb-2 ${message.type === 'user' ? 'flex-row-reverse' : 'flex-row'}`}>
                 <div
-                  className={`inline-block px-4 py-2.5 rounded-2xl max-w-[80%] text-sm shadow-sm transition-all ${
+                  className={`inline-block px-4 py-2.5 rounded-2xl max-w-[95%] text-sm shadow-sm transition-all ${
                     message.type === 'user' ? THEME_CLASSES.message.user : message.type === 'ai' ? THEME_CLASSES.message.ai : THEME_CLASSES.message.system
                   }`}
                   style={
@@ -1239,6 +1313,16 @@ export const ChatBubble = ({
                 >
                   <MessageRenderer content={message.text} theme={theme} />
                 </div>
+                {/* TTS button for AI messages */}
+                {message.type === 'ai' && voiceEnabled && (
+                  <TTSButton
+                    text={message.text}
+                    usePremiumVoices={usePremiumVoices}
+                    speed={ttsSpeed}
+                    theme={theme}
+                    size="small"
+                  />
+                )}
                 <div
                   className={`text-xs opacity-0 group-hover:opacity-70 transition-opacity whitespace-nowrap flex-shrink-0 ${
                     message.type === 'user' ? 'text-gray-400 dark:text-gray-500 text-left' : 'text-gray-600 dark:text-gray-400 text-right'
@@ -1251,18 +1335,33 @@ export const ChatBubble = ({
             ))}
             <div ref={messagesEndRef} />
           </div>
-          <InputField inputValue={inputValue} onInputChange={setInputValue} onSubmit={handleSend} placeholder={config.placeholder} glassClasses="" theme={theme} inputRef={inputRef} sendButtonLabel={config.sendButtonLabel} />
+          <InputField
+            inputValue={inputValue}
+            onInputChange={setInputValue}
+            onSubmit={handleSend}
+            placeholder={config.placeholder}
+            glassClasses=""
+            theme={theme}
+            inputRef={inputRef}
+            sendButtonLabel={config.sendButtonLabel}
+            voiceEnabled={voiceEnabled}
+            isListening={isListening}
+            onMicClick={handleMicClick}
+          />
         </div>
         {!drawerOpen && (
-          <div className={`fixed ${drawerSide === 'right' ? 'right-0' : 'left-0'} top-1/2 -translate-y-1/2 ${showEdgeHint ? 'opacity-60' : 'opacity-0'} transition-opacity duration-500 z-40 pointer-events-none`}>
-            <div className="bg-blue-600/80 backdrop-blur-sm text-white px-2 py-4 rounded-l-lg shadow-lg">
-              <span className="text-xl">{drawerSide === 'right' ? '‹' : '›'}</span>
+          <div
+            className={`fixed ${drawerSide === 'right' ? 'right-0' : 'left-0'} bottom-20 opacity-90 hover:opacity-100 transition-opacity duration-300 z-40 cursor-pointer`}
+            onClick={() => setDrawerOpen(true)}
+          >
+            <div className="bg-blue-600 text-white px-3 py-6 rounded-l-xl shadow-2xl flex flex-col items-center gap-2 animate-pulse hover:animate-none">
+              <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
+              </svg>
+              <span className="text-xs font-medium writing-mode-vertical-rl transform rotate-180">CHAT</span>
             </div>
           </div>
         )}
-        <button onClick={() => setDrawerOpen(!drawerOpen)} className="fixed bottom-4 left-4 z-50 bg-blue-600 text-white px-4 py-2 rounded-lg shadow-lg hover:bg-blue-700">
-          {drawerOpen ? 'Close' : 'Open'} Drawer
-        </button>
       </>
     );
   }
@@ -1637,7 +1736,24 @@ export const ChatBubble = ({
                       <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M20.354 15.354A9 9 0 018.646 3.646 9.003 9.003 0 0012 21a9.003 9.003 0 008.354-5.646z" />
                       </svg>
-                      <span>{theme === 'light' ? '🌙 Dark' : '☀️ Light'} Mode</span>
+                      <span>{theme === 'light' ? 'Dark' : 'Light'} Mode</span>
+                    </button>
+
+                    {/* Voice Control Toggle */}
+                    <button
+                      onClick={() => {
+                        setVoiceEnabled(!voiceEnabled);
+                        if (!voiceEnabled) {
+                          // Show help message when enabling voice
+                          onSendMessage('Voice control enabled! Use the microphone button to speak, or click speaker icons to hear messages.');
+                        }
+                      }}
+                      className="w-full flex items-center space-x-2 px-3 py-2 text-sm text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg transition-colors"
+                    >
+                      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 11a7 7 0 01-7 7m0 0a7 7 0 01-7-7m7 7v4m0 0H8m4 0h4m-4-8a3 3 0 01-3-3V5a3 3 0 116 0v6a3 3 0 01-3 3z" />
+                      </svg>
+                      <span>{voiceEnabled ? 'Disable' : 'Enable'} Voice</span>
                     </button>
 
                     {/* Home button */}
@@ -1659,7 +1775,7 @@ export const ChatBubble = ({
                       onClick={() => {
                         // Inject help messages into chat
                         const helpMessages = [
-                          '💡 **How to Use This Chat**\n\n- **Theme**: Toggle between light and dark modes\n- **Glass Effect**: Adjust transparency (Off/Low/Medium/High)\n- **Reset Position**: Return chat to default corner\n- **Minimize**: Compact view showing last message\n- **Clear**: Delete all messages and start fresh\n- **Drag**: Click and drag header to reposition chat\n- **Keyboard**: Press "/" to focus input, Esc to reset position'
+                          '**How to Use This Chat**\n\n- **Theme**: Toggle between light and dark modes\n- **Glass Effect**: Adjust transparency (Off/Low/Medium/High)\n- **Reset Position**: Return chat to default corner\n- **Minimize**: Compact view showing last message\n- **Clear**: Delete all messages and start fresh\n- **Drag**: Click and drag header to reposition chat\n- **Keyboard**: Press "/" to focus input, Esc to reset position'
                         ];
 
                         helpMessages.forEach((text, index) => {
@@ -1791,6 +1907,16 @@ export const ChatBubble = ({
                   >
                     <MessageRenderer content={message.text} theme={theme} />
                   </div>
+                  {/* TTS button for AI messages */}
+                  {message.type === 'ai' && voiceEnabled && (
+                    <TTSButton
+                      text={message.text}
+                      usePremiumVoices={usePremiumVoices}
+                      speed={ttsSpeed}
+                      theme={theme}
+                      size="small"
+                    />
+                  )}
                   {/* Timestamp beside bubble - relative time with hover tooltip */}
                   <div
                     className={`text-xs opacity-0 group-hover:opacity-70 transition-opacity whitespace-nowrap flex-shrink-0 ${
@@ -1817,6 +1943,9 @@ export const ChatBubble = ({
               theme={theme}
               inputRef={inputRef}
               sendButtonLabel={config.sendButtonLabel}
+              voiceEnabled={voiceEnabled}
+              isListening={isListening}
+              onMicClick={handleMicClick}
             />
           </div>
         )}
