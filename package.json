@@ -32,6 +32,16 @@
       "import": "./dist/esm/src/testing/index.js",
       "require": "./dist/cjs/src/testing/index.js"
     },
+    "./testing/graph-tester": {
+      "types": "./dist/esm/src/testing/graph-tester/index.d.ts",
+      "import": "./dist/esm/src/testing/graph-tester/index.js",
+      "require": "./dist/cjs/src/testing/graph-tester/index.js"
+    },
+    "./testing/graph-tester/fixtures": {
+      "types": "./dist/esm/src/testing/graph-tester/fixtures/index.d.ts",
+      "import": "./dist/esm/src/testing/graph-tester/fixtures/index.js",
+      "require": "./dist/cjs/src/testing/graph-tester/fixtures/index.js"
+    },
     "./testing/ComponentStateHelpers": {
       "types": "./dist/esm/src/testing/ComponentStateHelpers.d.ts",
       "import": "./dist/esm/src/testing/ComponentStateHelpers.js",
