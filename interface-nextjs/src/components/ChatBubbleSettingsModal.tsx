@@ -21,6 +21,9 @@ export interface ChatBubbleSettings {
   usePremiumVoices: boolean;
   autoReadResponses: boolean;
   ttsSpeed: number;
+  // STT Auto-Record settings (Shift+/ feature)
+  sttAutoRecordTimeout: number;
+  sttAutoExecute: boolean;
 }
 
 interface ChatBubbleSettingsModalProps {
@@ -416,6 +419,80 @@ export function ChatBubbleSettingsModal({
                     <span>1.0x (Normal)</span>
                     <span>2.0x (Fast)</span>
                   </div>
+                </div>
+
+                {/* Divider for STT Auto-Record section */}
+                <div className={`border-t ${isDark ? 'border-gray-700' : 'border-gray-200'} my-2`} />
+
+                {/* STT Auto-Record Header */}
+                <div className="mb-3">
+                  <h4 className="text-sm font-semibold mb-1">Voice Quick Record (Ctrl+/)</h4>
+                  <p className={`text-xs ${isDark ? 'text-gray-400' : 'text-gray-500'}`}>
+                    Press Ctrl+/ (or Cmd+/ on Mac) to auto-record and execute voice commands
+                  </p>
+                </div>
+
+                {/* Auto-Execute Commands Toggle */}
+                <div className="flex items-center justify-between pl-4 border-l-2 border-purple-500/30">
+                  <div>
+                    <label className="block text-sm font-medium mb-1">
+                      Auto-Execute Commands
+                    </label>
+                    <p className={`text-xs ${isDark ? 'text-gray-400' : 'text-gray-500'}`}>
+                      Automatically run recognized voice commands
+                    </p>
+                  </div>
+                  <button
+                    onClick={() =>
+                      setLocalSettings({ ...localSettings, sttAutoExecute: !localSettings.sttAutoExecute })
+                    }
+                    className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${
+                      localSettings.sttAutoExecute ? 'bg-purple-600' : isDark ? 'bg-gray-700' : 'bg-gray-300'
+                    }`}
+                    role="switch"
+                    aria-checked={localSettings.sttAutoExecute}
+                  >
+                    <span
+                      className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${
+                        localSettings.sttAutoExecute ? 'translate-x-6' : 'translate-x-1'
+                      }`}
+                    />
+                  </button>
+                </div>
+
+                {/* Recording Timeout Slider */}
+                <div className="pl-4 border-l-2 border-purple-500/30">
+                  <label className="block text-sm font-medium mb-2">
+                    Recording Timeout: {(localSettings.sttAutoRecordTimeout / 1000).toFixed(1)}s
+                  </label>
+                  <input
+                    type="range"
+                    min="2000"
+                    max="15000"
+                    step="1000"
+                    value={localSettings.sttAutoRecordTimeout}
+                    onChange={(e) =>
+                      setLocalSettings({ ...localSettings, sttAutoRecordTimeout: parseInt(e.target.value) })
+                    }
+                    className="w-full h-2 bg-gray-200 dark:bg-gray-700 rounded-lg appearance-none cursor-pointer accent-purple-600"
+                  />
+                  <div className="flex justify-between text-xs text-gray-400 mt-1">
+                    <span>2s</span>
+                    <span>8s</span>
+                    <span>15s</span>
+                  </div>
+                </div>
+
+                {/* STT Auto-Record Info Banner */}
+                <div className={`p-3 rounded-lg ${isDark ? 'bg-purple-900/20 border border-purple-500/30' : 'bg-purple-50 border border-purple-200'}`}>
+                  <p className={`text-xs ${isDark ? 'text-purple-300' : 'text-purple-800'} mb-1 font-medium`}>
+                    ⚡ Quick Tip: Press Ctrl+/ anywhere (even while typing!)
+                  </p>
+                  <p className={`text-xs ${isDark ? 'text-purple-400' : 'text-purple-700'}`}>
+                    {localSettings.sttAutoExecute
+                      ? 'Recording auto-stops and executes your command'
+                      : 'Recording auto-stops and fills the input (press Enter to send)'}
+                  </p>
                 </div>
 
                 {/* Info banner for free vs premium */}

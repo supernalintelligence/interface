@@ -10,7 +10,7 @@
  * - Professional animations
  */
 
-import React, { useState, useRef, useEffect } from 'react';
+import React, { useState, useRef, useEffect, useMemo } from 'react';
 import { Components } from '../../../names/Components';
 import { useChatInput } from '../contexts/ChatInputContext';
 import { MessageRenderer } from './MessageRenderer';
@@ -296,6 +296,7 @@ interface InputFieldProps {
   voiceEnabled?: boolean;
   isListening?: boolean;
   onMicClick?: () => void;
+  modKey?: string; // 'Cmd' or 'Ctrl' for tooltip
 }
 
 const InputField: React.FC<InputFieldProps> = ({
@@ -311,6 +312,7 @@ const InputField: React.FC<InputFieldProps> = ({
   voiceEnabled = false,
   isListening = false,
   onMicClick,
+  modKey = 'Ctrl',
 }) => (
   <form onSubmit={onSubmit} className={compact ? 'flex space-x-2' : THEME_CLASSES.bg.inputForm + ' ' + 'bg-transparent'}>
     <div className={compact ? 'flex space-x-2 flex-1' : 'relative'}>
@@ -337,7 +339,7 @@ const InputField: React.FC<InputFieldProps> = ({
               ? 'bg-red-500 text-white animate-pulse'
               : 'text-gray-500 hover:text-blue-600 hover:bg-gray-100 dark:hover:bg-gray-700'
           }`}
-          title={isListening ? 'Stop recording' : 'Voice input'}
+          title={isListening ? 'Stop recording (ESC)' : `Voice input (click or press ${modKey}+/)`}
           data-testid="voice-input-button"
         >
           {isListening ? (
@@ -440,6 +442,11 @@ export const ChatBubble = ({
   const [autoReadResponses, setAutoReadResponses] = useState(false);
   const [ttsSpeed, setTtsSpeed] = useState(1.0);
 
+  // STT Auto-Record settings (Shift+/ feature)
+  const [sttAutoRecordTimeout, setSttAutoRecordTimeout] = useState(5000); // 5 seconds default
+  const [sttAutoExecute, setSttAutoExecute] = useState(true); // Auto-execute commands
+  const sttAutoRecordTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+
   // Initialize voice hooks
   const { speak: speakTTS, stop: stopTTS, isPlaying: isTTSPlaying } = useTTS();
   const { startListening, stopListening, transcript: sttTranscript, isListening, resetTranscript } = useSTT();
@@ -451,6 +458,38 @@ export const ChatBubble = ({
   const [touchStart, setTouchStart] = useState<{x: number; y: number; time: number} | null>(null);
   const [swipeProgress, setSwipeProgress] = useState(0); // 0-100%
   const [isMobile, setIsMobile] = useState(false);
+
+  // Platform detection for keyboard shortcuts
+  const [isMac, setIsMac] = useState(false);
+  const [currentHintIndex, setCurrentHintIndex] = useState(0);
+
+  // Hydration state - prevents flicker during SSR/client mismatch
+  const [isHydrated, setIsHydrated] = useState(false);
+
+  // Detect platform on mount
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      const platform = window.navigator.platform.toLowerCase();
+      const isMacPlatform = platform.includes('mac');
+      setIsMac(isMacPlatform);
+    }
+  }, []);
+
+  // Rotating hints for input placeholder
+  const inputHints = useMemo(() => {
+    const modKey = isMac ? 'Cmd' : 'Ctrl';
+    return [
+      `Press ${modKey}+/ to start voice recording`,
+      'Press ESC to close this chat',
+      'Type your message or click the mic',
+      sttAutoExecute ? `Voice commands execute automatically` : 'Voice commands fill this input',
+    ];
+  }, [isMac, sttAutoExecute]);
+
+  // Advance hint to next one when messages change (after sending a message)
+  useEffect(() => {
+    setCurrentHintIndex((prev) => (prev + 1) % inputHints.length);
+  }, [messages.length, inputHints.length]);
 
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
@@ -552,13 +591,29 @@ export const ChatBubble = ({
             if (state.ttsSpeed !== undefined) {
               setTtsSpeed(state.ttsSpeed);
             }
+            // Load STT auto-record settings
+            if (state.sttAutoRecordTimeout !== undefined) {
+              setSttAutoRecordTimeout(state.sttAutoRecordTimeout);
+            }
+            if (state.sttAutoExecute !== undefined) {
+              setSttAutoExecute(state.sttAutoExecute);
+            }
           }
         }
       } catch {
         // Keep default value
       }
     }
+    // Mark as hydrated after loading state
+    setIsHydrated(true);
   }, [storageKey, variant, defaultExpanded, position]);
+
+  // For non-'full' variants, mark as hydrated immediately
+  useEffect(() => {
+    if (variant !== 'full') {
+      setIsHydrated(true);
+    }
+  }, [variant]);
 
   // Bounds checking: ensure panel is visible on screen
   useEffect(() => {
@@ -675,13 +730,15 @@ export const ChatBubble = ({
             usePremiumVoices,
             autoReadResponses,
             ttsSpeed,
+            sttAutoRecordTimeout,
+            sttAutoExecute,
           })
         );
       } catch (error) {
         console.error('Failed to save chat state:', error);
       }
     }
-  }, [isExpanded, isMinimized, isDocked, dockPosition, panelPosition, theme, localGlassMode, notifications, displayMode, drawerSide, drawerOpen, glassOpacity, voiceEnabled, usePremiumVoices, autoReadResponses, ttsSpeed, storageKey, variant]);
+  }, [isExpanded, isMinimized, isDocked, dockPosition, panelPosition, theme, localGlassMode, notifications, displayMode, drawerSide, drawerOpen, glassOpacity, voiceEnabled, usePremiumVoices, autoReadResponses, ttsSpeed, sttAutoRecordTimeout, sttAutoExecute, storageKey, variant]);
 
   // Register with chat input context
   const { registerInput } = useChatInput();
@@ -743,21 +800,71 @@ export const ChatBubble = ({
     }
   }, [messages, voiceEnabled, autoReadResponses, ttsSpeed, usePremiumVoices, speakTTS]);
 
-  // Wire up STT transcript to input field
+  // Wire up STT transcript to input field with auto-execution support
   useEffect(() => {
     if (sttTranscript && voiceEnabled) {
       setInputValue(sttTranscript);
       resetTranscript();
+
+      // Auto-execute command if enabled and triggered by Shift+/
+      if (sttAutoExecute && sttAutoRecordTimeoutRef.current) {
+        // Command was from auto-record, execute it immediately
+        onSendMessage(sttTranscript);
+        setInputValue(''); // Clear input after auto-execution
+      }
+
+      // Clear the timeout ref
+      if (sttAutoRecordTimeoutRef.current) {
+        clearTimeout(sttAutoRecordTimeoutRef.current);
+        sttAutoRecordTimeoutRef.current = null;
+      }
     }
-  }, [sttTranscript, voiceEnabled, resetTranscript]);
+  }, [sttTranscript, voiceEnabled, resetTranscript, sttAutoExecute, onSendMessage]);
 
   // Keyboard shortcuts for full variant
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
       if (variant !== 'full') return;
 
+      // Ctrl+/ or Cmd+/ to trigger auto-record STT with auto-execution (works everywhere, including input fields)
+      if ((e.metaKey || e.ctrlKey) && e.key === '/' && voiceEnabled) {
+        e.preventDefault();
+
+        // Open chat if not expanded
+        const wasExpanded = isExpanded;
+        if (!isExpanded) {
+          setIsExpanded(true);
+        }
+
+        // Start listening (with small delay if chat was closed to allow rendering)
+        if (!isListening) {
+          const startRecording = async () => {
+            try {
+              await startListening();
+
+              // Set timeout to auto-stop recording
+              sttAutoRecordTimeoutRef.current = setTimeout(() => {
+                stopListening();
+                sttAutoRecordTimeoutRef.current = null;
+              }, sttAutoRecordTimeout);
+            } catch (error) {
+              console.error('[ChatBubble] Failed to start recording:', error);
+            }
+          };
+
+          if (wasExpanded) {
+            // Chat already open, start immediately
+            startRecording();
+          } else {
+            // Chat was closed, wait for it to render
+            setTimeout(startRecording, 300);
+          }
+        }
+        return;
+      }
+
       // '/' key to open chat (only if not typing in input)
-      if (e.key === '/' && !isExpanded) {
+      if (e.key === '/' && !e.shiftKey && !e.ctrlKey && !e.metaKey && !isExpanded) {
         const target = e.target as HTMLElement;
         if (target.tagName !== 'INPUT' && target.tagName !== 'TEXTAREA') {
           e.preventDefault();
@@ -766,28 +873,32 @@ export const ChatBubble = ({
         }
       }
 
-      // Escape to close more menu or chat
+      // Escape to close more menu or chat (also stop auto-record)
       if (e.key === 'Escape') {
+        // Cancel auto-record timeout if active
+        if (sttAutoRecordTimeoutRef.current) {
+          clearTimeout(sttAutoRecordTimeoutRef.current);
+          sttAutoRecordTimeoutRef.current = null;
+          stopListening();
+        }
+
         if (showMoreMenu) {
           setShowMoreMenu(false);
         } else if (isExpanded) {
           setIsExpanded(false);
         }
       }
-
-      // Command+/ to focus input
-      if ((e.metaKey || e.ctrlKey) && e.key === '/') {
-        e.preventDefault();
-        if (!isExpanded) {
-          setIsExpanded(true);
-        }
-        inputRef.current?.focus();
-      }
     };
 
     window.addEventListener('keydown', handleKeyDown);
-    return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [isExpanded, showMoreMenu, variant]);
+    return () => {
+      window.removeEventListener('keydown', handleKeyDown);
+      // Cleanup timeout on unmount
+      if (sttAutoRecordTimeoutRef.current) {
+        clearTimeout(sttAutoRecordTimeoutRef.current);
+      }
+    };
+  }, [isExpanded, showMoreMenu, variant, voiceEnabled, isListening, startListening, stopListening, sttAutoRecordTimeout]);
 
   // Keyboard shortcuts for drawer variant
   useEffect(() => {
@@ -1237,6 +1348,11 @@ export const ChatBubble = ({
   // Note: Keep class strings inline in JSX for Tailwind JIT detection
   // Storing in variables causes Tailwind to miss them during scanning
 
+  // Prevent render until hydrated to avoid z-index flicker
+  if (!isHydrated) {
+    return null;
+  }
+
   // Drawer variant - mobile swipeable drawer
   if (currentVariant === 'drawer') {
     const drawerWidth = '100vw'; // Full screen width
@@ -1244,13 +1360,13 @@ export const ChatBubble = ({
       <>
         {(drawerOpen || swipeProgress > 0) && (
           <div
-            className="fixed inset-0 bg-black z-40 transition-opacity duration-300"
+            className="fixed inset-0 bg-black z-[9998] transition-opacity duration-300"
             style={{ opacity: touchStart && swipeProgress > 0 ? (swipeProgress / 100) * 0.5 : 0.5 }}
             onClick={() => setDrawerOpen(false)}
           />
         )}
         <div
-          className={`fixed ${drawerSide === 'right' ? 'right-0' : 'left-0'} top-0 h-full z-50 flex flex-col ${
+          className={`fixed ${drawerSide === 'right' ? 'right-0' : 'left-0'} top-0 h-full z-[9999] flex flex-col ${
             glassClasses
           } shadow-2xl`}
           style={{
@@ -1339,7 +1455,7 @@ export const ChatBubble = ({
             inputValue={inputValue}
             onInputChange={setInputValue}
             onSubmit={handleSend}
-            placeholder={config.placeholder}
+            placeholder={inputHints[currentHintIndex]}
             glassClasses=""
             theme={theme}
             inputRef={inputRef}
@@ -1347,11 +1463,12 @@ export const ChatBubble = ({
             voiceEnabled={voiceEnabled}
             isListening={isListening}
             onMicClick={handleMicClick}
+            modKey={isMac ? 'Cmd' : 'Ctrl'}
           />
         </div>
         {!drawerOpen && (
           <div
-            className={`fixed ${drawerSide === 'right' ? 'right-0' : 'left-0'} bottom-20 opacity-90 hover:opacity-100 transition-opacity duration-300 z-40 cursor-pointer`}
+            className={`fixed ${drawerSide === 'right' ? 'right-0' : 'left-0'} bottom-20 opacity-90 hover:opacity-100 transition-opacity duration-300 z-[9999] cursor-pointer`}
             onClick={() => setDrawerOpen(true)}
           >
             <div className={`${glassMode ? 'backdrop-blur-md bg-white/70 dark:bg-gray-800/70' : 'bg-white dark:bg-gray-800'} text-gray-700 dark:text-gray-200 px-4 py-4 ${drawerSide === 'right' ? 'rounded-l-xl' : 'rounded-r-xl'} shadow-lg hover:shadow-xl flex items-center justify-center transition-all`}>
@@ -1377,7 +1494,7 @@ export const ChatBubble = ({
 
     return (
       <div
-        className={`fixed z-50 ${isDragging ? 'cursor-grabbing' : 'cursor-grab'}`}
+        className={`fixed z-[9999] ${isDragging ? 'cursor-grabbing' : 'cursor-grab'}`}
         style={{
           transform: `translate(${panelPosition.x}px, ${panelPosition.y}px)`,
           ...(!isDragging && { transition: 'transform 0.3s cubic-bezier(0.4, 0, 0.2, 1)' }),
@@ -1441,10 +1558,11 @@ export const ChatBubble = ({
             inputValue={inputValue}
             onInputChange={setInputValue}
             onSubmit={handleSend}
-            placeholder={config.placeholder}
+            placeholder={inputHints[currentHintIndex]}
             glassClasses=""
             theme={theme}
             sendButtonLabel={config.sendButtonLabel}
+            modKey={isMac ? 'Cmd' : 'Ctrl'}
           />
         </div>
       </div>
@@ -1456,7 +1574,7 @@ export const ChatBubble = ({
     <>
       {/* Chat Container */}
       <div
-        className="fixed z-50"
+        className="fixed z-[9999]"
         style={{
           ...dockClasses.container,
           ...(isExpanded ? {
@@ -1472,7 +1590,7 @@ export const ChatBubble = ({
         {isExpanded && isMinimized && (
           <div
             ref={panelRef}
-            className={`${isDocked ? 'absolute' : 'fixed'} ${glassGradient} rounded-3xl shadow-2xl border border-white/20 dark:border-white/10 ${!isDragging && 'backdrop-blur-xl'} flex flex-col overflow-hidden ${!isDragging && 'transition-all duration-300'}`}
+            className={`${isDocked ? 'absolute' : 'fixed z-[9999]'} ${glassGradient} rounded-3xl shadow-2xl border border-white/20 dark:border-white/10 ${!isDragging && 'backdrop-blur-xl'} flex flex-col overflow-hidden ${!isDragging && 'transition-all duration-300'}`}
             style={{
               width: panelWidth,
               maxWidth: '400px',
@@ -1579,10 +1697,11 @@ export const ChatBubble = ({
                 inputValue={inputValue}
                 onInputChange={setInputValue}
                 onSubmit={handleSend}
-                placeholder={config.placeholder}
+                placeholder={inputHints[currentHintIndex]}
                 glassClasses=""
                 theme={theme}
                 sendButtonLabel={config.sendButtonLabel}
+                modKey={isMac ? 'Cmd' : 'Ctrl'}
               />
             </div>
           </div>
@@ -1592,7 +1711,7 @@ export const ChatBubble = ({
         {isExpanded && !isMinimized && (
           <div
             ref={panelRef}
-            className={`${isDocked ? 'absolute' : 'fixed'} ${glassGradient} rounded-3xl shadow-2xl border border-white/20 dark:border-white/10 ${!isDragging && 'backdrop-blur-xl'} flex flex-col overflow-hidden ${!isDragging && 'transition-all duration-300'}`}
+            className={`${isDocked ? 'absolute' : 'fixed z-[9999]'} ${glassGradient} rounded-3xl shadow-2xl border border-white/20 dark:border-white/10 ${!isDragging && 'backdrop-blur-xl'} flex flex-col overflow-hidden ${!isDragging && 'transition-all duration-300'}`}
             style={{
               width: panelWidth,
               height: dynamicHeight,
@@ -1656,7 +1775,7 @@ export const ChatBubble = ({
 
                 {/* More menu dropdown */}
                 {showMoreMenu && (
-                  <div className="absolute right-0 top-10 bg-white dark:bg-gray-800 rounded-lg shadow-xl border border-gray-200 dark:border-gray-600 p-2 min-w-[220px]" style={{ zIndex: 99999 }} data-more-menu>
+                  <div className="absolute right-0 top-10 bg-white dark:bg-gray-800 rounded-lg shadow-xl border border-gray-200 dark:border-gray-600 p-2 min-w-[220px] z-50" data-more-menu>
                     {/* Glass Mode - 4 icon buttons (Off, Low, Medium, High) */}
                     <div className="px-3 py-2 border-b border-gray-200 dark:border-gray-600 mb-2">
                       <div className="grid grid-cols-4 gap-1">
@@ -1943,7 +2062,7 @@ export const ChatBubble = ({
               inputValue={inputValue}
               onInputChange={setInputValue}
               onSubmit={handleSend}
-              placeholder={config.placeholder}
+              placeholder={inputHints[currentHintIndex]}
               glassClasses=""
               theme={theme}
               inputRef={inputRef}
@@ -1951,6 +2070,7 @@ export const ChatBubble = ({
               voiceEnabled={voiceEnabled}
               isListening={isListening}
               onMicClick={handleMicClick}
+              modKey={isMac ? 'Cmd' : 'Ctrl'}
             />
           </div>
         )}
@@ -1961,7 +2081,7 @@ export const ChatBubble = ({
             onClick={handleToggle}
             className={THEME_CLASSES.bg.bubble}
             data-testid={ChatNames.bubble}
-            title="Open chat"
+            title={`Open chat (press ${isMac ? 'Cmd' : 'Ctrl'}+/ for voice recording)`}
           >
             <img src={config.logo} alt="Supernal" className="w-8 h-8" />
 

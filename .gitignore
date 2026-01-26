@@ -39,4 +39,4 @@ dist/
 
 # Experimental validation runs
 .supernal/experiments/
-
+test-results/
