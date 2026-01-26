@@ -384,7 +384,6 @@ export const ChatBubble = ({
   const [showWelcome, setShowWelcome] = useState(
     config.welcome?.enabled && messages.length === 0
   );
-  const [showInfo, setShowInfo] = useState(false);
   const [isDragging, setIsDragging] = useState(false);
   const [dragInitiated, setDragInitiated] = useState(false); // Track mouse down before threshold
   const [isDocked, setIsDocked] = useState(true);
@@ -392,7 +391,6 @@ export const ChatBubble = ({
   const [panelPosition, setPanelPosition] = useState({ x: 0, y: 0 });
   const [theme, setTheme] = useState<'light' | 'dark'>('light');
   const [showMoreMenu, setShowMoreMenu] = useState(false);
-  const [showSettingsPanel, setShowSettingsPanel] = useState(false); // Embedded settings panel
   const [, setTimestampTick] = useState(0); // Forces re-render for timestamp updates
   const [localGlassMode, setLocalGlassMode] = useState(config.glassMode ?? true);
   const [glassOpacity, setGlassOpacity] = useState<'low' | 'medium' | 'high'>('medium'); // Glass opacity: Low/Medium/High
@@ -451,14 +449,23 @@ export const ChatBubble = ({
 
           if (isInvalidPosition) {
             console.warn('ChatBubble: Invalid stored position detected, resetting to docked');
-            // Clear the invalid state
-            localStorage.removeItem(storageKey);
-            // Use defaults
+            // Reset position but preserve other settings like glass mode
             setIsExpanded(defaultExpanded);
             setIsMinimized(false);
             setIsDocked(true);
             setDockPosition(position);
             setPanelPosition({ x: 0, y: 0 });
+            // Preserve glass settings and theme
+            setTheme(state.theme || 'light');
+            if (state.localGlassMode !== undefined) {
+              setLocalGlassMode(state.localGlassMode);
+            }
+            if (state.glassOpacity !== undefined) {
+              setGlassOpacity(state.glassOpacity);
+            }
+            if (state.notifications !== undefined) {
+              setNotifications(state.notifications);
+            }
           } else {
             // Valid state - load it
             setIsExpanded(state.isExpanded ?? defaultExpanded);
@@ -484,9 +491,6 @@ export const ChatBubble = ({
             }
             if (state.glassOpacity !== undefined) {
               setGlassOpacity(state.glassOpacity);
-            }
-            if (state.showSettingsPanel !== undefined) {
-              setShowSettingsPanel(state.showSettingsPanel);
             }
           }
         }
@@ -607,14 +611,13 @@ export const ChatBubble = ({
             drawerSide,
             drawerOpen,
             glassOpacity,
-            showSettingsPanel,
           })
         );
       } catch (error) {
         console.error('Failed to save chat state:', error);
       }
     }
-  }, [isExpanded, isMinimized, isDocked, dockPosition, panelPosition, theme, localGlassMode, notifications, displayMode, drawerSide, drawerOpen, glassOpacity, showSettingsPanel, storageKey, variant]);
+  }, [isExpanded, isMinimized, isDocked, dockPosition, panelPosition, theme, localGlassMode, notifications, displayMode, drawerSide, drawerOpen, glassOpacity, storageKey, variant]);
 
   // Register with chat input context
   const { registerInput } = useChatInput();
@@ -674,12 +677,10 @@ export const ChatBubble = ({
         }
       }
 
-      // Escape to close chat, info popup, or more menu
+      // Escape to close more menu or chat
       if (e.key === 'Escape') {
         if (showMoreMenu) {
           setShowMoreMenu(false);
-        } else if (showInfo) {
-          setShowInfo(false);
         } else if (isExpanded) {
           setIsExpanded(false);
         }
@@ -697,7 +698,7 @@ export const ChatBubble = ({
 
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [isExpanded, showInfo, showMoreMenu, variant]);
+  }, [isExpanded, showMoreMenu, variant]);
 
   // Close more menu when clicking outside
   useEffect(() => {
@@ -1391,20 +1392,92 @@ export const ChatBubble = ({
 
                 {/* More menu dropdown */}
                 {showMoreMenu && (
-                  <div className="absolute right-0 top-10 bg-white dark:bg-gray-800 rounded-lg shadow-xl border border-gray-200 dark:border-gray-600 p-2 z-[100] min-w-[160px]" data-more-menu>
-                    {/* Settings button */}
+                  <div className="absolute right-0 top-10 bg-white dark:bg-gray-800 rounded-lg shadow-xl border border-gray-200 dark:border-gray-600 p-2 min-w-[220px]" style={{ zIndex: 99999 }} data-more-menu>
+                    {/* Glass Mode - 4 icon buttons (Off, Low, Medium, High) */}
+                    <div className="px-3 py-2 border-b border-gray-200 dark:border-gray-600 mb-2">
+                      <div className="grid grid-cols-4 gap-1">
+                        <button
+                          onClick={() => setLocalGlassMode(false)}
+                          className={`flex items-center justify-center p-2 rounded transition-all ${
+                            !localGlassMode
+                              ? 'bg-blue-600 text-white shadow-sm'
+                              : 'bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-200 hover:bg-gray-200 dark:hover:bg-gray-600'
+                          }`}
+                          title="Glass Off"
+                        >
+                          <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 24 24">
+                            <rect x="8" y="8" width="8" height="8" rx="1" />
+                          </svg>
+                        </button>
+                        <button
+                          onClick={() => {
+                            setLocalGlassMode(true);
+                            setGlassOpacity('low');
+                          }}
+                          className={`flex items-center justify-center p-2 rounded transition-all ${
+                            localGlassMode && glassOpacity === 'low'
+                              ? 'bg-blue-600 text-white shadow-sm'
+                              : 'bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-200 hover:bg-gray-200 dark:hover:bg-gray-600'
+                          }`}
+                          title="Glass Low"
+                        >
+                          <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <rect x="9" y="9" width="6" height="6" rx="1" strokeWidth="2" />
+                          </svg>
+                        </button>
+                        <button
+                          onClick={() => {
+                            setLocalGlassMode(true);
+                            setGlassOpacity('medium');
+                          }}
+                          className={`flex items-center justify-center p-2 rounded transition-all ${
+                            localGlassMode && glassOpacity === 'medium'
+                              ? 'bg-blue-600 text-white shadow-sm'
+                              : 'bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-200 hover:bg-gray-200 dark:hover:bg-gray-600'
+                          }`}
+                          title="Glass Medium"
+                        >
+                          <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <rect x="8" y="8" width="8" height="8" rx="1" strokeWidth="2" />
+                            <rect x="10" y="10" width="4" height="4" rx="0.5" strokeWidth="1.5" />
+                          </svg>
+                        </button>
+                        <button
+                          onClick={() => {
+                            setLocalGlassMode(true);
+                            setGlassOpacity('high');
+                          }}
+                          className={`flex items-center justify-center p-2 rounded transition-all ${
+                            localGlassMode && glassOpacity === 'high'
+                              ? 'bg-blue-600 text-white shadow-sm'
+                              : 'bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-200 hover:bg-gray-200 dark:hover:bg-gray-600'
+                          }`}
+                          title="Glass High"
+                        >
+                          <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <rect x="7" y="7" width="10" height="10" rx="1" strokeWidth="2" />
+                            <rect x="9" y="9" width="6" height="6" rx="0.5" strokeWidth="1.5" />
+                            <rect x="11" y="11" width="2" height="2" rx="0.5" strokeWidth="1" />
+                          </svg>
+                        </button>
+                      </div>
+                    </div>
+
+                    {/* Theme Toggle */}
                     <button
                       onClick={() => {
-                        setShowSettingsPanel(!showSettingsPanel);
-                        setShowMoreMenu(false);
+                        const newTheme = theme === 'light' ? 'dark' : 'light';
+                        setTheme(newTheme);
+                        if (typeof window !== 'undefined') {
+                          document.documentElement.setAttribute('data-theme', newTheme);
+                        }
                       }}
                       className="w-full flex items-center space-x-2 px-3 py-2 text-sm text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg transition-colors"
                     >
                       <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M20.354 15.354A9 9 0 018.646 3.646 9.003 9.003 0 0012 21a9.003 9.003 0 008.354-5.646z" />
                       </svg>
-                      <span>{showSettingsPanel ? 'Hide Settings' : 'Settings'}</span>
+                      <span>{theme === 'light' ? '🌙 Dark' : '☀️ Light'} Mode</span>
                     </button>
 
                     {/* Home button */}
@@ -1421,10 +1494,27 @@ export const ChatBubble = ({
                       <span>Reset position</span>
                     </button>
 
-                    {/* Info button */}
+                    {/* Info button - injects help messages into chat */}
                     <button
                       onClick={() => {
-                        setShowInfo(!showInfo);
+                        // Inject help messages into chat
+                        const helpMessages = [
+                          '💡 **How to Use This Chat**',
+                          '• **Theme**: Toggle between light and dark modes',
+                          '• **Glass Effect**: Adjust transparency (Off/Low/Medium/High)',
+                          '• **Reset Position**: Return chat to default corner',
+                          '• **Minimize**: Compact view showing last message',
+                          '• **Clear**: Delete all messages and start fresh',
+                          '• **Drag**: Click and drag header to reposition chat',
+                          '• **Keyboard**: Press "/" to focus input, Esc to reset position'
+                        ];
+
+                        helpMessages.forEach((text, index) => {
+                          setTimeout(() => {
+                            onSendMessage(text);
+                          }, index * 100);
+                        });
+
                         setShowMoreMenu(false);
                       }}
                       className="w-full flex items-center space-x-2 px-3 py-2 text-sm text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg transition-colors"
@@ -1477,163 +1567,7 @@ export const ChatBubble = ({
               </div>
             </div>
 
-            {/* Embedded Settings Panel */}
-            {showSettingsPanel && (
-              <div className="px-4 py-3 bg-gradient-to-r from-blue-50/50 to-purple-50/50 dark:from-gray-800/50 dark:to-gray-700/50 backdrop-blur-sm border-b border-gray-200/30 dark:border-gray-600/30">
-                <div className="space-y-4">
-                  {/* Theme Toggle */}
-                  <div>
-                    <label className="text-xs font-medium text-gray-700 dark:text-gray-200 mb-2 block">Theme</label>
-                    <div className="flex space-x-2">
-                      <button
-                        onClick={() => {
-                          setTheme('light');
-                          if (typeof window !== 'undefined') {
-                            document.documentElement.setAttribute('data-theme', 'light');
-                          }
-                        }}
-                        className={`flex-1 px-3 py-2 rounded-lg text-sm transition-all ${
-                          theme === 'light'
-                            ? 'bg-blue-600 text-white shadow-md'
-                            : 'bg-white/50 dark:bg-gray-700/50 text-gray-700 dark:text-gray-200 hover:bg-white/80 dark:hover:bg-gray-700/80'
-                        }`}
-                      >
-                        ☀️ Light
-                      </button>
-                      <button
-                        onClick={() => {
-                          setTheme('dark');
-                          if (typeof window !== 'undefined') {
-                            document.documentElement.setAttribute('data-theme', 'dark');
-                          }
-                        }}
-                        className={`flex-1 px-3 py-2 rounded-lg text-sm transition-all ${
-                          theme === 'dark'
-                            ? 'bg-blue-600 text-white shadow-md'
-                            : 'bg-white/50 dark:bg-gray-700/50 text-gray-700 dark:text-gray-200 hover:bg-white/80 dark:hover:bg-gray-700/80'
-                        }`}
-                      >
-                        🌙 Dark
-                      </button>
-                    </div>
-                  </div>
 
-                  {/* Glass Mode Toggle */}
-                  <div>
-                    <label className="text-xs font-medium text-gray-700 dark:text-gray-200 mb-2 block">Glass Effect</label>
-                    <div className="flex space-x-2">
-                      <button
-                        onClick={() => setLocalGlassMode(false)}
-                        className={`flex-1 px-3 py-2 rounded-lg text-sm transition-all ${
-                          !localGlassMode
-                            ? 'bg-blue-600 text-white shadow-md'
-                            : 'bg-white/50 dark:bg-gray-700/50 text-gray-700 dark:text-gray-200 hover:bg-white/80 dark:hover:bg-gray-700/80'
-                        }`}
-                      >
-                        Off
-                      </button>
-                      <button
-                        onClick={() => setLocalGlassMode(true)}
-                        className={`flex-1 px-3 py-2 rounded-lg text-sm transition-all ${
-                          localGlassMode
-                            ? 'bg-blue-600 text-white shadow-md'
-                            : 'bg-white/50 dark:bg-gray-700/50 text-gray-700 dark:text-gray-200 hover:bg-white/80 dark:hover:bg-gray-700/80'
-                        }`}
-                      >
-                        On
-                      </button>
-                    </div>
-                  </div>
-
-                  {/* Glass Opacity - 3 Radio Buttons */}
-                  {localGlassMode && (
-                    <div>
-                      <label className="text-xs font-medium text-gray-700 dark:text-gray-200 mb-2 block">Glass Opacity</label>
-                      <div className="flex space-x-2">
-                        <button
-                          onClick={() => setGlassOpacity('low')}
-                          className={`flex-1 px-3 py-2 rounded-lg text-sm transition-all ${
-                            glassOpacity === 'low'
-                              ? 'bg-blue-600 text-white shadow-md'
-                              : 'bg-white/50 dark:bg-gray-700/50 text-gray-700 dark:text-gray-200 hover:bg-white/80 dark:hover:bg-gray-700/80'
-                          }`}
-                        >
-                          Low
-                        </button>
-                        <button
-                          onClick={() => setGlassOpacity('medium')}
-                          className={`flex-1 px-3 py-2 rounded-lg text-sm transition-all ${
-                            glassOpacity === 'medium'
-                              ? 'bg-blue-600 text-white shadow-md'
-                              : 'bg-white/50 dark:bg-gray-700/50 text-gray-700 dark:text-gray-200 hover:bg-white/80 dark:hover:bg-gray-700/80'
-                          }`}
-                        >
-                          Medium
-                        </button>
-                        <button
-                          onClick={() => setGlassOpacity('high')}
-                          className={`flex-1 px-3 py-2 rounded-lg text-sm transition-all ${
-                            glassOpacity === 'high'
-                              ? 'bg-blue-600 text-white shadow-md'
-                              : 'bg-white/50 dark:bg-gray-700/50 text-gray-700 dark:text-gray-200 hover:bg-white/80 dark:hover:bg-gray-700/80'
-                          }`}
-                        >
-                          High
-                        </button>
-                      </div>
-                    </div>
-                  )}
-
-                  {/* Notifications Toggle */}
-                  <div>
-                    <label className="text-xs font-medium text-gray-700 dark:text-gray-200 mb-2 block">Notifications</label>
-                    <div className="flex space-x-2">
-                      <button
-                        onClick={() => setNotifications(false)}
-                        className={`flex-1 px-3 py-2 rounded-lg text-sm transition-all ${
-                          !notifications
-                            ? 'bg-blue-600 text-white shadow-md'
-                            : 'bg-white/50 dark:bg-gray-700/50 text-gray-700 dark:text-gray-200 hover:bg-white/80 dark:hover:bg-gray-700/80'
-                        }`}
-                      >
-                        Off
-                      </button>
-                      <button
-                        onClick={() => setNotifications(true)}
-                        className={`flex-1 px-3 py-2 rounded-lg text-sm transition-all ${
-                          notifications
-                            ? 'bg-blue-600 text-white shadow-md'
-                            : 'bg-white/50 dark:bg-gray-700/50 text-gray-700 dark:text-gray-200 hover:bg-white/80 dark:hover:bg-gray-700/80'
-                        }`}
-                      >
-                        On
-                      </button>
-                    </div>
-                  </div>
-                </div>
-              </div>
-            )}
-
-            {/* Info popup */}
-            {showInfo && (
-              <div className={THEME_CLASSES.text.infoPopup} style={INLINE_STYLES.infoText(theme === 'dark')}>
-                <div className="font-bold mb-2">How to Use</div>
-                <div className="space-y-2 text-xs" style={INLINE_STYLES.infoText(theme === 'dark')}>
-                  <div>• <strong>Theme:</strong> Toggle between light and dark modes</div>
-                  <div>• <strong>Glass Mode:</strong> Toggle glassmorphism effect for transparency</div>
-                  <div>• <strong>Home:</strong> Reset chat position to default</div>
-                  <div>• <strong>Minimize:</strong> Compact view with last message</div>
-                  <div>• <strong>Clear:</strong> Delete all messages and start fresh</div>
-                  <div>• <strong>Drag:</strong> Click and drag header to reposition</div>
-                  <div>• <strong>Keyboard:</strong> Press "/" to open, Esc to close</div>
-                </div>
-                {config.description && (
-                  <div className="mt-3 pt-3 border-t border-gray-300/30 dark:border-gray-600/30">
-                    {config.description}
-                  </div>
-                )}
-              </div>
-            )}
 
             {/* Messages */}
             <div className="flex-1 overflow-y-auto p-4 space-y-2">

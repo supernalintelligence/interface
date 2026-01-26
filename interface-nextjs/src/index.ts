@@ -16,6 +16,7 @@ export { useChatContext, ChatProvider } from './contexts/ChatProvider';
 
 // Optional exports for customization
 export { ChatBubble } from './components/ChatBubble';
+export { ChatBubbleSettingsModal, type ChatBubbleSettings } from './components/ChatBubbleSettingsModal';
 export { ChatInputProvider, useChatInput } from './contexts/ChatInputContext';
 export { AutoNavigationContext } from './components/AutoNavigationContext';
 export {

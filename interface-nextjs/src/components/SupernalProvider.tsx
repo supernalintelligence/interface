@@ -45,6 +45,12 @@ function ChatBubbleConnector({
 }) {
   const { messages, sendMessage, clearMessages } = useChatContext();
 
+  // Only include logo in config if it's defined (don't override default with undefined)
+  const config = {
+    glassMode,
+    ...(logo ? { logo } : {})
+  };
+
   return (
     <ChatBubble
       messages={messages}
@@ -53,7 +59,7 @@ function ChatBubbleConnector({
       position={position}
       variant="full"
       defaultExpanded={true}
-      config={{ glassMode, logo }}
+      config={config}
     />
   );
 }
