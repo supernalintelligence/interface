@@ -8,4 +8,9 @@ export default defineConfig({
   banner: {
     js: '"use client";',
   },
+  external: [
+    // Capacitor dependencies (mobile-only, optional)
+    '@capacitor/text-to-speech',
+    '@capacitor-community/speech-recognition',
+  ],
 });
