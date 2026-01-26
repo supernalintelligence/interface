@@ -47,11 +47,11 @@ export class PerformanceMode extends TestFunction {
 
   async execute(page: Page, context: TestContext): Promise<TestResult> {
     const startTime = Date.now();
-    const errors: string[] = [];
+    const errors: import('../core/types').TestError[] = [];
 
     try {
       // Collect Core Web Vitals and performance metrics
-      const metrics = await page.evaluate(() => {
+      const metrics = await page.evaluate((): Promise<any> => {
         return new Promise((resolve) => {
           const observer = new PerformanceObserver((list) => {
             const entries = list.getEntries();
@@ -98,19 +98,31 @@ export class PerformanceMode extends TestFunction {
       });
 
       // Check thresholds
-      const thresholdViolations: string[] = [];
+      const thresholdViolations: import('../core/types').TestError[] = [];
       if (this.config.thresholds) {
         if (this.config.thresholds.fcp && metrics.fcp > this.config.thresholds.fcp) {
-          thresholdViolations.push(`FCP ${metrics.fcp.toFixed(2)}ms exceeds threshold ${this.config.thresholds.fcp}ms`);
+          thresholdViolations.push({
+            severity: 'warning',
+            message: `FCP ${metrics.fcp.toFixed(2)}ms exceeds threshold ${this.config.thresholds.fcp}ms`,
+          });
         }
         if (this.config.thresholds.lcp && metrics.lcp > this.config.thresholds.lcp) {
-          thresholdViolations.push(`LCP ${metrics.lcp.toFixed(2)}ms exceeds threshold ${this.config.thresholds.lcp}ms`);
+          thresholdViolations.push({
+            severity: 'warning',
+            message: `LCP ${metrics.lcp.toFixed(2)}ms exceeds threshold ${this.config.thresholds.lcp}ms`,
+          });
         }
         if (this.config.thresholds.cls && metrics.cls > this.config.thresholds.cls) {
-          thresholdViolations.push(`CLS ${metrics.cls.toFixed(3)} exceeds threshold ${this.config.thresholds.cls}`);
+          thresholdViolations.push({
+            severity: 'warning',
+            message: `CLS ${metrics.cls.toFixed(3)} exceeds threshold ${this.config.thresholds.cls}`,
+          });
         }
         if (this.config.thresholds.tti && metrics.tti > this.config.thresholds.tti) {
-          thresholdViolations.push(`TTI ${metrics.tti.toFixed(2)}ms exceeds threshold ${this.config.thresholds.tti}ms`);
+          thresholdViolations.push({
+            severity: 'warning',
+            message: `TTI ${metrics.tti.toFixed(2)}ms exceeds threshold ${this.config.thresholds.tti}ms`,
+          });
         }
       }
 
@@ -131,11 +143,16 @@ export class PerformanceMode extends TestFunction {
         },
       };
     } catch (error) {
-      errors.push(`Performance collection failed: ${error instanceof Error ? error.message : String(error)}`);
+      errors.push({
+        severity: 'critical',
+        message: `Performance collection failed: ${error instanceof Error ? error.message : String(error)}`,
+        stack: error instanceof Error ? error.stack : undefined,
+      });
       return {
         passed: false,
         duration: Date.now() - startTime,
         errors,
+        metadata: {},
       };
     }
   }

@@ -44,7 +44,7 @@ export class AccessibilityMode extends TestFunction {
 
   async execute(page: Page, context: TestContext): Promise<TestResult> {
     const startTime = Date.now();
-    const errors: string[] = [];
+    const errors: import('../core/types').TestError[] = [];
 
     try {
       // Inject axe-core
@@ -52,7 +52,7 @@ export class AccessibilityMode extends TestFunction {
 
       // Run axe analysis with WCAG tags
       const wcagTags = this.getWCAGTags();
-      const results = await page.evaluate((tags) => {
+      const results = await page.evaluate((tags): Promise<any> => {
         return new Promise((resolve) => {
           // @ts-ignore - axe is injected globally
           if (typeof window.axe === 'undefined') {
@@ -112,13 +112,21 @@ export class AccessibilityMode extends TestFunction {
       // Collect error messages
       if (hasViolations) {
         violations.forEach((v: any) => {
-          errors.push(`[${v.impact}] ${v.help} (${v.nodes.length} instances)`);
+          errors.push({
+            severity: v.impact === 'critical' ? 'critical' : 'warning',
+            message: `[${v.impact}] ${v.help} (${v.nodes.length} instances)`,
+            location: v.helpUrl,
+          });
         });
       }
 
       if (this.config.strict && hasWarnings) {
         warnings.forEach((w: any) => {
-          errors.push(`[warning] ${w.help} (${w.nodes.length} instances)`);
+          errors.push({
+            severity: 'info',
+            message: `[warning] ${w.help} (${w.nodes.length} instances)`,
+            location: w.helpUrl,
+          });
         });
       }
 
@@ -162,11 +170,16 @@ export class AccessibilityMode extends TestFunction {
         },
       };
     } catch (error) {
-      errors.push(`Accessibility testing failed: ${error instanceof Error ? error.message : String(error)}`);
+      errors.push({
+        severity: 'critical',
+        message: `Accessibility testing failed: ${error instanceof Error ? error.message : String(error)}`,
+        stack: error instanceof Error ? error.stack : undefined,
+      });
       return {
         passed: false,
         duration: Date.now() - startTime,
         errors,
+        metadata: {},
       };
     }
   }
@@ -178,16 +191,7 @@ export class AccessibilityMode extends TestFunction {
         url: 'https://cdnjs.cloudflare.com/ajax/libs/axe-core/4.8.3/axe.min.js',
       });
     } catch (error) {
-      // Fallback: try to load from node_modules
-      try {
-        const axeSource = await import('axe-core');
-        await page.evaluate((source) => {
-          // @ts-ignore
-          window.axe = source;
-        }, axeSource);
-      } catch {
-        throw new Error('Failed to inject axe-core. Install axe-core: npm install axe-core');
-      }
+      throw new Error('Failed to inject axe-core from CDN. Please check your network connection or use a local axe-core installation.');
     }
   }
 
