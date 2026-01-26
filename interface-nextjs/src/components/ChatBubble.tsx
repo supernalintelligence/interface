@@ -380,10 +380,12 @@ export const ChatBubble = ({
   const [isDragging, setIsDragging] = useState(false);
   const [dragInitiated, setDragInitiated] = useState(false); // Track mouse down before threshold
   const [isDocked, setIsDocked] = useState(true);
+  const [dockPosition, setDockPosition] = useState<Position>(position); // Track which edge is docked
   const [panelPosition, setPanelPosition] = useState({ x: 0, y: 0 });
   const [theme, setTheme] = useState<'light' | 'dark'>('light');
   const [showMoreMenu, setShowMoreMenu] = useState(false);
   const [, setTimestampTick] = useState(0); // Forces re-render for timestamp updates
+  const [localGlassMode, setLocalGlassMode] = useState(config.glassMode ?? true);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
   const panelRef = useRef<HTMLDivElement>(null);
@@ -418,8 +420,12 @@ export const ChatBubble = ({
           setIsExpanded(state.isExpanded ?? defaultExpanded);
           setIsMinimized(state.isMinimized ?? false);
           setIsDocked(state.isDocked ?? true);
+          setDockPosition(state.dockPosition || position);
           setPanelPosition(state.panelPosition || { x: 0, y: 0 });
           setTheme(state.theme || 'light');
+          if (state.localGlassMode !== undefined) {
+            setLocalGlassMode(state.localGlassMode);
+          }
         }
       } catch {
         // Keep default value
@@ -449,13 +455,13 @@ export const ChatBubble = ({
       try {
         localStorage.setItem(
           storageKey,
-          JSON.stringify({ isExpanded, isMinimized, isDocked, panelPosition, theme })
+          JSON.stringify({ isExpanded, isMinimized, isDocked, dockPosition, panelPosition, theme, localGlassMode })
         );
       } catch (error) {
         console.error('Failed to save chat state:', error);
       }
     }
-  }, [isExpanded, isMinimized, isDocked, panelPosition, theme, storageKey, variant]);
+  }, [isExpanded, isMinimized, isDocked, dockPosition, panelPosition, theme, localGlassMode, storageKey, variant]);
 
   // Register with chat input context
   const { registerInput } = useChatInput();
@@ -658,10 +664,30 @@ export const ChatBubble = ({
         const windowWidth = window.innerWidth;
         const windowHeight = window.innerHeight;
 
-        if (rect.right > windowWidth - threshold ||
-            rect.left < threshold ||
-            rect.top < threshold ||
-            rect.bottom > windowHeight - threshold) {
+        // Determine which edge is closest for smart docking
+        const distanceToRight = windowWidth - rect.right;
+        const distanceToLeft = rect.left;
+        const distanceToTop = rect.top;
+        const distanceToBottom = windowHeight - rect.bottom;
+
+        const minDistance = Math.min(distanceToRight, distanceToLeft, distanceToTop, distanceToBottom);
+
+        // Only dock if within threshold of closest edge
+        if (minDistance < threshold) {
+          let newDockPosition: Position;
+
+          // Determine which edge to dock to based on proximity
+          if (minDistance === distanceToRight) {
+            newDockPosition = rect.top < windowHeight / 3 ? 'top-right' : rect.bottom > (windowHeight * 2) / 3 ? 'bottom-right' : 'right-center';
+          } else if (minDistance === distanceToLeft) {
+            newDockPosition = rect.top < windowHeight / 3 ? 'top-left' : rect.bottom > (windowHeight * 2) / 3 ? 'bottom-left' : 'left-center';
+          } else if (minDistance === distanceToTop) {
+            newDockPosition = rect.left < windowWidth / 3 ? 'top-left' : rect.right > (windowWidth * 2) / 3 ? 'top-right' : 'top-right'; // Default to top-right for top-center
+          } else {
+            newDockPosition = rect.left < windowWidth / 3 ? 'bottom-left' : rect.right > (windowWidth * 2) / 3 ? 'bottom-right' : 'bottom-center';
+          }
+
+          setDockPosition(newDockPosition);
           setIsDocked(true);
           setPanelPosition({ x: 0, y: 0 });
         }
@@ -700,11 +726,13 @@ export const ChatBubble = ({
   };
 
   const handleDock = () => {
+    setDockPosition(position); // Reset to original position
     setIsDocked(true);
     setPanelPosition({ x: 0, y: 0 });
   };
 
   const handleHome = () => {
+    setDockPosition(position); // Reset to original position
     setIsDocked(true);
     setPanelPosition({ x: 0, y: 0 });
     setIsMinimized(false);
@@ -725,9 +753,13 @@ export const ChatBubble = ({
     }
   };
 
-  const dockClasses = DOCK_POSITIONS[position];
+  const handleToggleGlassMode = () => {
+    setLocalGlassMode(!localGlassMode);
+  };
+
+  const dockClasses = DOCK_POSITIONS[dockPosition];
   const primaryColor = config.theme?.primary || 'blue';
-  const glassMode = config.glassMode ?? true;
+  const glassMode = localGlassMode;
 
   // Calculate dynamic size - max 80vh
   const maxHeightVh = 80;
@@ -914,7 +946,11 @@ export const ChatBubble = ({
             style={{
               width: panelWidth,
               height: dynamicHeight,
-              ...(isDocked ? dockClasses.panel : {
+              ...(isDocked ? {
+                ...dockClasses.panel,
+                // Only clear transform if dock position doesn't use transform
+                ...(dockClasses.panel.transform ? {} : { transform: 'none' }),
+              } : {
                 left: '50%',
                 top: '50%',
                 transform: `translate(calc(-50% + ${panelPosition.x}px), calc(-50% + ${panelPosition.y}px))`,
@@ -948,6 +984,19 @@ export const ChatBubble = ({
 
               {/* Header actions */}
               <div className="flex items-center space-x-1 flex-shrink-0 relative" data-more-menu>
+                {/* External link to Interface documentation */}
+                <a
+                  href="https://www.interface.supernal.ai"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="p-2 text-blue-600 dark:text-blue-400 hover:text-blue-700 dark:hover:text-blue-300 transition-colors rounded-lg hover:bg-white/30"
+                  title="Visit Supernal Interface Documentation"
+                >
+                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
+                  </svg>
+                </a>
+
                 {/* More menu button */}
                 <button
                   onClick={() => setShowMoreMenu(!showMoreMenu)}
@@ -980,6 +1029,26 @@ export const ChatBubble = ({
                         </svg>
                       )}
                       <span>{theme === 'light' ? 'Dark mode' : 'Light mode'}</span>
+                    </button>
+
+                    {/* Glass mode toggle */}
+                    <button
+                      onClick={() => {
+                        handleToggleGlassMode();
+                        setShowMoreMenu(false);
+                      }}
+                      className="w-full flex items-center space-x-2 px-3 py-2 text-sm text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg transition-colors"
+                    >
+                      {localGlassMode ? (
+                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                        </svg>
+                      ) : (
+                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2m7-2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                        </svg>
+                      )}
+                      <span>{localGlassMode ? 'Glass mode: ON' : 'Glass mode: OFF'}</span>
                     </button>
 
                     {/* Home button */}
@@ -1058,6 +1127,7 @@ export const ChatBubble = ({
                 <div className="font-bold mb-2">How to Use</div>
                 <div className="space-y-2 text-xs" style={INLINE_STYLES.infoText(theme === 'dark')}>
                   <div>• <strong>Theme:</strong> Toggle between light and dark modes</div>
+                  <div>• <strong>Glass Mode:</strong> Toggle glassmorphism effect for transparency</div>
                   <div>• <strong>Home:</strong> Reset chat position to default</div>
                   <div>• <strong>Minimize:</strong> Compact view with last message</div>
                   <div>• <strong>Clear:</strong> Delete all messages and start fresh</div>
