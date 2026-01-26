@@ -43,7 +43,9 @@ type Position =
   | 'right-center'
   | 'bottom-center';
 
-type Variant = 'full' | 'floating';
+type Variant = 'full' | 'floating' | 'drawer';
+
+type DisplayMode = 'auto' | 'floating' | 'full' | 'drawer';
 
 interface ChatBubbleConfig {
   /** Optional title for the chat header */
@@ -81,7 +83,7 @@ interface ChatBubbleProps {
   onClearChat?: () => void;
   /** Positioning mode */
   position?: Position;
-  /** Variant: 'full' for expanded panel, 'floating' for mini draggable bubble */
+  /** Variant: 'full' for expanded panel, 'floating' for mini draggable bubble, 'drawer' for mobile swipeable drawer */
   variant?: Variant;
   /** Configuration for branding, text, and theme */
   config?: ChatBubbleConfig;
@@ -89,6 +91,10 @@ interface ChatBubbleProps {
   defaultExpanded?: boolean;
   /** Storage key for persisting state */
   storageKey?: string;
+  /** Display mode: 'auto' switches based on viewport, or manually set 'full'/'floating'/'drawer' */
+  displayMode?: DisplayMode;
+  /** Which side the drawer opens from (for drawer variant) */
+  drawerSide?: 'left' | 'right';
 }
 
 // Positioning styles (inline CSS - no Tailwind dependency, works everywhere)
@@ -361,6 +367,8 @@ export const ChatBubble = ({
   config: userConfig,
   defaultExpanded = true,
   storageKey = 'chat-bubble-state',
+  displayMode: propDisplayMode = 'auto',
+  drawerSide: propDrawerSide = 'right',
 }: ChatBubbleProps) => {
   const mergedConfig = { ...DEFAULT_CONFIG, ...userConfig };
 
@@ -389,6 +397,16 @@ export const ChatBubble = ({
   const [, setTimestampTick] = useState(0); // Forces re-render for timestamp updates
   const [localGlassMode, setLocalGlassMode] = useState(config.glassMode ?? true);
   const [notifications, setNotifications] = useState(true);
+
+  // Drawer state variables
+  const [displayMode, setDisplayMode] = useState<DisplayMode>(propDisplayMode);
+  const [drawerSide, setDrawerSide] = useState<'left' | 'right'>(propDrawerSide);
+  const [drawerOpen, setDrawerOpen] = useState(false);
+  const [touchStart, setTouchStart] = useState<{x: number; y: number; time: number} | null>(null);
+  const [swipeProgress, setSwipeProgress] = useState(0); // 0-100%
+  const [showEdgeHint, setShowEdgeHint] = useState(false);
+  const [isMobile, setIsMobile] = useState(false);
+
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
   const panelRef = useRef<HTMLDivElement>(null);
@@ -432,6 +450,15 @@ export const ChatBubble = ({
           if (state.notifications !== undefined) {
             setNotifications(state.notifications);
           }
+          if (state.displayMode !== undefined) {
+            setDisplayMode(state.displayMode);
+          }
+          if (state.drawerSide !== undefined) {
+            setDrawerSide(state.drawerSide);
+          }
+          if (state.drawerOpen !== undefined) {
+            setDrawerOpen(state.drawerOpen);
+          }
         }
       } catch {
         // Keep default value
@@ -447,6 +474,36 @@ export const ChatBubble = ({
     }
   }, []);
 
+  // Viewport detection for auto-switching between drawer and panel
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+
+    const mediaQuery = window.matchMedia('(max-width: 767px)');
+
+    const handleChange = (e: MediaQueryListEvent | MediaQueryList) => {
+      setIsMobile(e.matches);
+    };
+
+    // Initial check
+    handleChange(mediaQuery);
+
+    // Listen for changes
+    mediaQuery.addEventListener('change', handleChange);
+
+    return () => mediaQuery.removeEventListener('change', handleChange);
+  }, []);
+
+  // Resolve actual variant based on display mode and viewport
+  const currentVariant: Variant = React.useMemo(() => {
+    // Manual override takes precedence
+    if (displayMode !== 'auto') {
+      return displayMode as Variant;
+    }
+
+    // Auto mode: drawer on mobile, full on desktop
+    return isMobile ? 'drawer' : variant;
+  }, [displayMode, isMobile, variant]);
+
   // Auto-update timestamps every 60 seconds
   useEffect(() => {
     const interval = setInterval(() => {
@@ -457,17 +514,29 @@ export const ChatBubble = ({
 
   // Save state to localStorage
   useEffect(() => {
-    if (variant === 'full') {
+    if (variant === 'full' || variant === 'drawer') {
       try {
         localStorage.setItem(
           storageKey,
-          JSON.stringify({ isExpanded, isMinimized, isDocked, dockPosition, panelPosition, theme, localGlassMode, notifications })
+          JSON.stringify({
+            isExpanded,
+            isMinimized,
+            isDocked,
+            dockPosition,
+            panelPosition,
+            theme,
+            localGlassMode,
+            notifications,
+            displayMode,
+            drawerSide,
+            drawerOpen,
+          })
         );
       } catch (error) {
         console.error('Failed to save chat state:', error);
       }
     }
-  }, [isExpanded, isMinimized, isDocked, dockPosition, panelPosition, theme, localGlassMode, notifications, storageKey, variant]);
+  }, [isExpanded, isMinimized, isDocked, dockPosition, panelPosition, theme, localGlassMode, notifications, displayMode, drawerSide, drawerOpen, storageKey, variant]);
 
   // Register with chat input context
   const { registerInput } = useChatInput();
@@ -764,13 +833,191 @@ export const ChatBubble = ({
   const primaryColor = config.theme?.primary || 'blue';
   const glassMode = localGlassMode;
 
+  // Helper to get floating position styles based on dock position
+  // This ensures proper alignment when switching between minimized/expanded
+  const getFloatingPositionStyle = (): React.CSSProperties => {
+    // Determine anchor point based on dock position to prevent off-screen issues
+    if (dockPosition.includes('top') && dockPosition.includes('left')) {
+      // Top-left: anchor from top-left corner
+      return {
+        top: 0,
+        left: 0,
+        transform: `translate(${panelPosition.x}px, ${panelPosition.y}px)`,
+      };
+    } else if (dockPosition.includes('top') && dockPosition.includes('right')) {
+      // Top-right: anchor from top-right corner
+      return {
+        top: 0,
+        right: 0,
+        transform: `translate(${-panelPosition.x}px, ${panelPosition.y}px)`,
+      };
+    } else if (dockPosition.includes('bottom') && dockPosition.includes('left')) {
+      // Bottom-left: anchor from bottom-left corner
+      return {
+        bottom: 0,
+        left: 0,
+        transform: `translate(${panelPosition.x}px, ${-panelPosition.y}px)`,
+      };
+    } else if (dockPosition.includes('bottom') && dockPosition.includes('right')) {
+      // Bottom-right: anchor from bottom-right corner
+      return {
+        bottom: 0,
+        right: 0,
+        transform: `translate(${-panelPosition.x}px, ${-panelPosition.y}px)`,
+      };
+    } else if (dockPosition.includes('left-center')) {
+      // Left-center: anchor from left, center vertically
+      return {
+        left: 0,
+        top: '50%',
+        transform: `translate(${panelPosition.x}px, calc(-50% + ${panelPosition.y}px))`,
+      };
+    } else if (dockPosition.includes('right-center')) {
+      // Right-center: anchor from right, center vertically
+      return {
+        right: 0,
+        top: '50%',
+        transform: `translate(${-panelPosition.x}px, calc(-50% + ${panelPosition.y}px))`,
+      };
+    } else if (dockPosition.includes('bottom-center')) {
+      // Bottom-center: anchor from bottom, center horizontally
+      return {
+        bottom: 0,
+        left: '50%',
+        transform: `translate(calc(-50% + ${panelPosition.x}px), ${-panelPosition.y}px)`,
+      };
+    } else {
+      // Fallback: center-based positioning
+      return {
+        left: '50%',
+        top: '50%',
+        transform: `translate(calc(-50% + ${panelPosition.x}px), calc(-50% + ${panelPosition.y}px))`,
+      };
+    }
+  };
+
   // Calculate dynamic size - max 80vh
   const maxHeightVh = 80;
   const dynamicHeight = `min(${maxHeightVh}vh, 700px)`;
   const panelWidth = 'min(650px, calc(100vw - 2rem))'; // Wider panel
 
+  // Helper function to calculate drawer transform
+  const getDrawerTransform = () => {
+    if (touchStart && swipeProgress > 0) {
+      return drawerSide === 'right'
+        ? `translateX(${100 - swipeProgress}%)`
+        : `translateX(${-100 + swipeProgress}%)`;
+    }
+    return drawerOpen
+      ? 'translateX(0%)'
+      : drawerSide === 'right'
+      ? 'translateX(100%)'
+      : 'translateX(-100%)';
+  };
+
   // Note: Keep class strings inline in JSX for Tailwind JIT detection
   // Storing in variables causes Tailwind to miss them during scanning
+
+  // Drawer variant - mobile swipeable drawer
+  if (currentVariant === 'drawer') {
+    const drawerWidth = 'min(400px, 90vw)';
+    return (
+      <>
+        {(drawerOpen || swipeProgress > 0) && (
+          <div
+            className="fixed inset-0 bg-black z-40 transition-opacity duration-300"
+            style={{ opacity: touchStart && swipeProgress > 0 ? (swipeProgress / 100) * 0.5 : 0.5 }}
+            onClick={() => setDrawerOpen(false)}
+          />
+        )}
+        <div
+          className={`fixed ${drawerSide === 'right' ? 'right-0' : 'left-0'} top-0 h-full z-50 flex flex-col ${
+            glassMode ? 'backdrop-blur-xl bg-white/90 dark:bg-gray-900/90' : 'bg-white dark:bg-gray-900'
+          } shadow-2xl`}
+          style={{
+            width: drawerWidth,
+            transform: getDrawerTransform(),
+            transition: touchStart ? 'none' : 'transform 300ms cubic-bezier(0.4, 0, 0.2, 1)',
+            willChange: 'transform',
+          }}
+          role="dialog"
+          aria-modal="true"
+          aria-label="Chat drawer"
+        >
+          <div className={`${THEME_CLASSES.bg.header} ${glassMode ? THEME_CLASSES.bg.headerGradient : THEME_CLASSES.bg.headerLight}`}>
+            <div className="flex items-center space-x-3">
+              {config.avatar && (
+                <div className="relative flex-shrink-0">
+                  <Avatar avatar={config.avatar} />
+                  <div className="absolute -bottom-1 -right-1 w-3 h-3 bg-green-500 rounded-full border-2 border-white"></div>
+                </div>
+              )}
+              {config.title && (
+                <div className="min-w-0 flex-1">
+                  <h3 className={THEME_CLASSES.text.title}>{config.title}</h3>
+                </div>
+              )}
+            </div>
+            <button onClick={() => setDrawerOpen(false)} className={THEME_CLASSES.button.close} title="Close drawer">
+              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+              </svg>
+            </button>
+          </div>
+          <div className="flex-1 overflow-y-auto p-4 space-y-2">
+            {showWelcome && messages.length === 0 && config.welcome?.enabled && (
+              <div className={THEME_CLASSES.welcome.container}>
+                {config.welcome.title && (
+                  <h4 className={THEME_CLASSES.welcome.title} style={INLINE_STYLES.welcomeTitle(theme === 'dark')}>
+                    {config.welcome.title}
+                  </h4>
+                )}
+                {config.welcome.content && (
+                  <p className={THEME_CLASSES.welcome.content} style={INLINE_STYLES.welcomeContent(theme === 'dark')}>
+                    {config.welcome.content}
+                  </p>
+                )}
+              </div>
+            )}
+            {messages.map((message) => (
+              <div key={message.id} className={`group flex items-center gap-2 mb-2 ${message.type === 'user' ? 'flex-row-reverse' : 'flex-row'}`}>
+                <div
+                  className={`inline-block px-4 py-2.5 rounded-2xl max-w-[80%] text-sm shadow-sm transition-all ${
+                    message.type === 'user' ? THEME_CLASSES.message.user : message.type === 'ai' ? THEME_CLASSES.message.ai : THEME_CLASSES.message.system
+                  }`}
+                  style={
+                    message.type === 'user' ? INLINE_STYLES.messageUser() : message.type === 'ai' ? INLINE_STYLES.messageAI(theme === 'dark') : INLINE_STYLES.messageSystem(theme === 'dark')
+                  }
+                >
+                  <div className="break-words leading-relaxed">{message.text}</div>
+                </div>
+                <div
+                  className={`text-xs opacity-0 group-hover:opacity-70 transition-opacity whitespace-nowrap flex-shrink-0 ${
+                    message.type === 'user' ? 'text-gray-400 dark:text-gray-500 text-left' : 'text-gray-600 dark:text-gray-400 text-right'
+                  }`}
+                  title={typeof window !== 'undefined' ? new Date(message.timestamp).toLocaleString() : ''}
+                >
+                  {typeof window !== 'undefined' ? formatRelativeTime(message.timestamp) : ''}
+                </div>
+              </div>
+            ))}
+            <div ref={messagesEndRef} />
+          </div>
+          <InputField inputValue={inputValue} onInputChange={setInputValue} onSubmit={handleSend} placeholder={config.placeholder} glassClasses="" theme={theme} inputRef={inputRef} sendButtonLabel={config.sendButtonLabel} />
+        </div>
+        {!drawerOpen && (
+          <div className={`fixed ${drawerSide === 'right' ? 'right-0' : 'left-0'} top-1/2 -translate-y-1/2 ${showEdgeHint ? 'opacity-60' : 'opacity-0'} transition-opacity duration-500 z-40 pointer-events-none`}>
+            <div className="bg-blue-600/80 backdrop-blur-sm text-white px-2 py-4 rounded-l-lg shadow-lg">
+              <span className="text-xl">{drawerSide === 'right' ? '‹' : '›'}</span>
+            </div>
+          </div>
+        )}
+        <button onClick={() => setDrawerOpen(!drawerOpen)} className="fixed bottom-4 left-4 z-50 bg-blue-600 text-white px-4 py-2 rounded-lg shadow-lg hover:bg-blue-700">
+          {drawerOpen ? 'Close' : 'Open'} Drawer
+        </button>
+      </>
+    );
+  }
 
   // Floating variant - compact draggable bubble
   if (variant === 'floating') {
@@ -887,11 +1134,7 @@ export const ChatBubble = ({
                 ...dockClasses.panel,
                 // Only clear transform if dock position doesn't use transform
                 ...(dockClasses.panel.transform ? {} : { transform: 'none' }),
-              } : {
-                left: '50%',
-                top: '50%',
-                transform: `translate(calc(-50% + ${panelPosition.x}px), calc(-50% + ${panelPosition.y}px))`,
-              }),
+              } : getFloatingPositionStyle()),
               ...(isDragging && { cursor: 'grabbing' }),
             }}
           >
@@ -967,11 +1210,7 @@ export const ChatBubble = ({
                 ...dockClasses.panel,
                 // Only clear transform if dock position doesn't use transform
                 ...(dockClasses.panel.transform ? {} : { transform: 'none' }),
-              } : {
-                left: '50%',
-                top: '50%',
-                transform: `translate(calc(-50% + ${panelPosition.x}px), calc(-50% + ${panelPosition.y}px))`,
-              }),
+              } : getFloatingPositionStyle()),
               ...(isDragging && { cursor: 'grabbing' }),
             }}
           >
