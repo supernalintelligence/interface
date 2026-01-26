@@ -13,6 +13,7 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { Components } from '../../../names/Components';
 import { useChatInput } from '../contexts/ChatInputContext';
+import { ChatBubbleSettingsModal, type ChatBubbleSettings } from './ChatBubbleSettingsModal';
 
 // Default logo as base64 data URI (Supernal Interface logo with "@/" symbol)
 // This ensures the logo works out of the box without requiring consumers to add files
@@ -279,7 +280,7 @@ interface InputFieldProps {
   placeholder?: string;
   glassClasses: string;
   theme: 'light' | 'dark';
-  inputRef?: React.RefObject<HTMLInputElement | null>;
+  inputRef?: React.RefObject<HTMLInputElement>;
   sendButtonLabel?: string;
 }
 
@@ -384,8 +385,10 @@ export const ChatBubble = ({
   const [panelPosition, setPanelPosition] = useState({ x: 0, y: 0 });
   const [theme, setTheme] = useState<'light' | 'dark'>('light');
   const [showMoreMenu, setShowMoreMenu] = useState(false);
+  const [showSettingsModal, setShowSettingsModal] = useState(false);
   const [, setTimestampTick] = useState(0); // Forces re-render for timestamp updates
   const [localGlassMode, setLocalGlassMode] = useState(config.glassMode ?? true);
+  const [notifications, setNotifications] = useState(true);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
   const panelRef = useRef<HTMLDivElement>(null);
@@ -426,6 +429,9 @@ export const ChatBubble = ({
           if (state.localGlassMode !== undefined) {
             setLocalGlassMode(state.localGlassMode);
           }
+          if (state.notifications !== undefined) {
+            setNotifications(state.notifications);
+          }
         }
       } catch {
         // Keep default value
@@ -455,13 +461,13 @@ export const ChatBubble = ({
       try {
         localStorage.setItem(
           storageKey,
-          JSON.stringify({ isExpanded, isMinimized, isDocked, dockPosition, panelPosition, theme, localGlassMode })
+          JSON.stringify({ isExpanded, isMinimized, isDocked, dockPosition, panelPosition, theme, localGlassMode, notifications })
         );
       } catch (error) {
         console.error('Failed to save chat state:', error);
       }
     }
-  }, [isExpanded, isMinimized, isDocked, dockPosition, panelPosition, theme, localGlassMode, storageKey, variant]);
+  }, [isExpanded, isMinimized, isDocked, dockPosition, panelPosition, theme, localGlassMode, notifications, storageKey, variant]);
 
   // Register with chat input context
   const { registerInput } = useChatInput();
@@ -745,16 +751,13 @@ export const ChatBubble = ({
     }
   };
 
-  const handleToggleTheme = () => {
-    const newTheme = theme === 'light' ? 'dark' : 'light';
-    setTheme(newTheme);
+  const handleSettingsChange = (settings: ChatBubbleSettings) => {
+    setTheme(settings.theme);
+    setLocalGlassMode(settings.glassMode);
+    setNotifications(settings.notifications);
     if (typeof window !== 'undefined') {
-      document.documentElement.setAttribute('data-theme', newTheme);
+      document.documentElement.setAttribute('data-theme', settings.theme);
     }
-  };
-
-  const handleToggleGlassMode = () => {
-    setLocalGlassMode(!localGlassMode);
   };
 
   const dockClasses = DOCK_POSITIONS[dockPosition];
@@ -872,18 +875,32 @@ export const ChatBubble = ({
         {/* Minimized Compact View */}
         {isExpanded && isMinimized && (
           <div
-            className={glassMode
-              ? 'absolute backdrop-blur-xl bg-white/70 dark:bg-gray-900/70 border border-white/20 dark:border-white/10 rounded-3xl shadow-2xl p-4 transition-all duration-300'
-              : 'absolute bg-white dark:bg-gray-900 border-gray-200 rounded-3xl shadow-2xl border p-4 transition-all duration-300'
-            }
+            ref={panelRef}
+            className={`${isDocked ? 'absolute' : 'fixed'} ${glassMode
+              ? 'backdrop-blur-xl bg-white/70 dark:bg-gray-900/70 border border-white/20 dark:border-white/10'
+              : 'bg-white dark:bg-gray-900 border-gray-200 border'
+            } rounded-3xl shadow-2xl p-4 ${!isDragging && 'transition-all duration-300'}`}
             style={{
-              ...dockClasses.panel,
               width: panelWidth,
               maxWidth: '400px',
+              ...(isDocked ? {
+                ...dockClasses.panel,
+                // Only clear transform if dock position doesn't use transform
+                ...(dockClasses.panel.transform ? {} : { transform: 'none' }),
+              } : {
+                left: '50%',
+                top: '50%',
+                transform: `translate(calc(-50% + ${panelPosition.x}px), calc(-50% + ${panelPosition.y}px))`,
+              }),
+              ...(isDragging && { cursor: 'grabbing' }),
             }}
           >
-            {/* Header with expand button */}
-            <div className="flex items-center justify-between mb-3">
+            {/* Header with expand button - Draggable */}
+            <div
+              data-drag-handle
+              className="flex items-center justify-between mb-3 cursor-move"
+              onMouseDown={handlePanelMouseDown}
+            >
               <div className="flex items-center space-x-2">
                 <Avatar avatar={config.avatar} size="small" />
                 {config.title && (
@@ -1011,44 +1028,19 @@ export const ChatBubble = ({
                 {/* More menu dropdown */}
                 {showMoreMenu && (
                   <div className="absolute right-0 top-10 bg-white dark:bg-gray-800 rounded-lg shadow-xl border border-gray-200 dark:border-gray-600 p-2 z-[100] min-w-[160px]" data-more-menu>
-                    {/* Theme toggle */}
+                    {/* Settings button */}
                     <button
                       onClick={() => {
-                        handleToggleTheme();
+                        setShowSettingsModal(true);
                         setShowMoreMenu(false);
                       }}
                       className="w-full flex items-center space-x-2 px-3 py-2 text-sm text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg transition-colors"
                     >
-                      {theme === 'light' ? (
-                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M20.354 15.354A9 9 0 018.646 3.646 9.003 9.003 0 0012 21a9.003 9.003 0 008.354-5.646z" />
-                        </svg>
-                      ) : (
-                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364 6.364l-.707-.707M6.343 6.343l-.707-.707m12.728 0l-.707.707M6.343 17.657l-.707.707M16 12a4 4 0 11-8 0 4 4 0 018 0z" />
-                        </svg>
-                      )}
-                      <span>{theme === 'light' ? 'Dark mode' : 'Light mode'}</span>
-                    </button>
-
-                    {/* Glass mode toggle */}
-                    <button
-                      onClick={() => {
-                        handleToggleGlassMode();
-                        setShowMoreMenu(false);
-                      }}
-                      className="w-full flex items-center space-x-2 px-3 py-2 text-sm text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg transition-colors"
-                    >
-                      {localGlassMode ? (
-                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
-                        </svg>
-                      ) : (
-                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2m7-2a9 9 0 11-18 0 9 9 0 0118 0z" />
-                        </svg>
-                      )}
-                      <span>{localGlassMode ? 'Glass mode: ON' : 'Glass mode: OFF'}</span>
+                      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                      </svg>
+                      <span>Settings</span>
                     </button>
 
                     {/* Home button */}
@@ -1252,7 +1244,7 @@ export const ChatBubble = ({
             <img src={config.logo} alt="Supernal" className="w-8 h-8" />
 
             {/* Unread indicator */}
-            {hasUnread && (
+            {hasUnread && notifications && (
               <div className="absolute -top-1 -right-1 w-5 h-5 bg-red-500 rounded-full flex items-center justify-center animate-pulse shadow-lg" data-testid="unread-indicator">
                 <span className="text-xs text-white font-bold">{unreadCount > 9 ? '9+' : unreadCount}</span>
               </div>
@@ -1260,6 +1252,18 @@ export const ChatBubble = ({
           </button>
         )}
       </div>
+
+      {/* Settings Modal */}
+      <ChatBubbleSettingsModal
+        isOpen={showSettingsModal}
+        onClose={() => setShowSettingsModal(false)}
+        settings={{
+          theme,
+          glassMode: localGlassMode,
+          notifications,
+        }}
+        onSettingsChange={handleSettingsChange}
+      />
     </>
   );
 };
