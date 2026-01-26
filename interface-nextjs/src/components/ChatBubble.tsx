@@ -1354,11 +1354,16 @@ export const ChatBubble = ({
             className={`fixed ${drawerSide === 'right' ? 'right-0' : 'left-0'} bottom-20 opacity-90 hover:opacity-100 transition-opacity duration-300 z-40 cursor-pointer`}
             onClick={() => setDrawerOpen(true)}
           >
-            <div className="bg-blue-600 text-white px-3 py-6 rounded-l-xl shadow-2xl flex flex-col items-center gap-2 animate-pulse hover:animate-none">
-              <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
-              </svg>
-              <span className="text-xs font-medium writing-mode-vertical-rl transform rotate-180">CHAT</span>
+            <div className={`${glassMode ? 'backdrop-blur-md bg-white/70 dark:bg-gray-800/70' : 'bg-white dark:bg-gray-800'} text-gray-700 dark:text-gray-200 px-4 py-4 ${drawerSide === 'right' ? 'rounded-l-xl' : 'rounded-r-xl'} shadow-lg hover:shadow-xl flex items-center justify-center transition-all`}>
+              {voiceEnabled ? (
+                <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 11a7 7 0 01-7 7m0 0a7 7 0 01-7-7m7 7v4m0 0H8m4 0h4m-4-8a3 3 0 01-3-3V5a3 3 0 116 0v6a3 3 0 01-3 3z" />
+                </svg>
+              ) : (
+                <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
+                </svg>
+              )}
             </div>
           </div>
         )}

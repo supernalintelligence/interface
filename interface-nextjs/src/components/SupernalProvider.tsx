@@ -24,6 +24,10 @@ export interface SupernalProviderProps {
   glassMode?: boolean;
   logo?: string; // Custom logo URL or data URI
 
+  // Mobile drawer options
+  displayMode?: 'auto' | 'floating' | 'full' | 'drawer';
+  drawerSide?: 'left' | 'right';
+
   // Advanced callbacks
   onNavigate?: (context: string) => void;
   onToolExecute?: (tool: string, result: any) => void;
@@ -36,12 +40,16 @@ function ChatBubbleConnector({
   welcomeMessage,
   glassMode,
   logo,
+  displayMode,
+  drawerSide,
 }: {
   theme?: 'light' | 'dark' | 'auto';
   position?: 'bottom-right' | 'bottom-left' | 'top-right' | 'top-left';
   welcomeMessage?: string;
   glassMode?: boolean;
   logo?: string;
+  displayMode?: 'auto' | 'floating' | 'full' | 'drawer';
+  drawerSide?: 'left' | 'right';
 }) {
   const { messages, sendMessage, clearMessages } = useChatContext();
 
@@ -60,6 +68,8 @@ function ChatBubbleConnector({
       variant="full"
       defaultExpanded={true}
       config={config}
+      displayMode={displayMode}
+      drawerSide={drawerSide}
     />
   );
 }
@@ -75,6 +85,8 @@ export function SupernalProvider({
   disabled = false,
   glassMode = true,
   logo,
+  displayMode = 'auto',
+  drawerSide = 'right',
   onNavigate,
   onToolExecute,
 }: SupernalProviderProps) {
@@ -143,6 +155,8 @@ export function SupernalProvider({
             welcomeMessage={welcomeMessage}
             glassMode={glassMode}
             logo={logo}
+            displayMode={displayMode}
+            drawerSide={drawerSide}
           />
         ) : null}
       </ChatProvider>

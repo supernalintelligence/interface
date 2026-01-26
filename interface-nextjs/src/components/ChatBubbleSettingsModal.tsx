@@ -13,6 +13,14 @@ export interface ChatBubbleSettings {
   theme: 'light' | 'dark';
   glassMode: boolean;
   notifications: boolean;
+  // Drawer settings
+  displayMode?: 'auto' | 'floating' | 'full' | 'drawer';
+  drawerSide?: 'left' | 'right';
+  // Voice settings
+  voiceEnabled: boolean;
+  usePremiumVoices: boolean;
+  autoReadResponses: boolean;
+  ttsSpeed: number;
 }
 
 interface ChatBubbleSettingsModalProps {
@@ -216,6 +224,218 @@ export function ChatBubbleSettingsModal({
                 />
               </button>
             </div>
+
+            {/* Divider */}
+            <div className={`border-t ${isDark ? 'border-gray-700' : 'border-gray-200'} my-2`} />
+
+            {/* Display Mode Selector */}
+            <div className="flex items-center justify-between">
+              <div>
+                <label className="block text-base font-medium mb-1">
+                  Display Mode
+                </label>
+                <p className={`text-sm ${isDark ? 'text-gray-400' : 'text-gray-500'}`}>
+                  Auto switches drawer on mobile, panel on desktop
+                </p>
+              </div>
+              <select
+                value={localSettings.displayMode || 'auto'}
+                onChange={(e) => setLocalSettings({
+                  ...localSettings,
+                  displayMode: e.target.value as 'auto' | 'floating' | 'full' | 'drawer'
+                })}
+                className={`px-3 py-2 rounded-lg border ${
+                  isDark
+                    ? 'bg-gray-700 border-gray-600 text-white'
+                    : 'bg-white border-gray-300 text-gray-900'
+                } focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all`}
+              >
+                <option value="auto">Auto (Recommended)</option>
+                <option value="drawer">Always Drawer</option>
+                <option value="full">Always Panel</option>
+                <option value="floating">Always Floating</option>
+              </select>
+            </div>
+
+            {/* Drawer Side Toggle (conditional) */}
+            {(localSettings.displayMode === 'auto' || localSettings.displayMode === 'drawer') && (
+              <div className="flex items-center justify-between">
+                <div>
+                  <label className="block text-base font-medium mb-1">
+                    Drawer Side
+                  </label>
+                  <p className={`text-sm ${isDark ? 'text-gray-400' : 'text-gray-500'}`}>
+                    Which edge drawer slides from
+                  </p>
+                </div>
+                <div className="flex items-center space-x-2">
+                  <button
+                    onClick={() => setLocalSettings({ ...localSettings, drawerSide: 'left' })}
+                    className={`px-4 py-2 rounded-lg transition-all ${
+                      localSettings.drawerSide === 'left'
+                        ? 'bg-blue-600 text-white shadow-lg'
+                        : isDark
+                        ? 'bg-gray-700 text-gray-300 hover:bg-gray-600'
+                        : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+                    }`}
+                  >
+                    Left
+                  </button>
+                  <button
+                    onClick={() => setLocalSettings({ ...localSettings, drawerSide: 'right' })}
+                    className={`px-4 py-2 rounded-lg transition-all ${
+                      localSettings.drawerSide === 'right'
+                        ? 'bg-blue-600 text-white shadow-lg'
+                        : isDark
+                        ? 'bg-gray-700 text-gray-300 hover:bg-gray-600'
+                        : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+                    }`}
+                  >
+                    Right
+                  </button>
+                </div>
+              </div>
+            )}
+
+            {/* Divider */}
+            <div className={`border-t ${isDark ? 'border-gray-700' : 'border-gray-200'} my-2`} />
+
+            {/* Voice Settings Header */}
+            <div className="mb-3">
+              <h3 className="text-lg font-semibold mb-1">Voice Control</h3>
+              <p className={`text-xs ${isDark ? 'text-gray-400' : 'text-gray-500'}`}>
+                Enable voice input and audio feedback
+              </p>
+            </div>
+
+            {/* Voice Enabled Toggle */}
+            <div className="flex items-center justify-between">
+              <div>
+                <label className="block text-base font-medium mb-1">
+                  Voice Control
+                </label>
+                <p className={`text-sm ${isDark ? 'text-gray-400' : 'text-gray-500'}`}>
+                  Enable voice input and TTS responses
+                </p>
+              </div>
+              <button
+                onClick={() =>
+                  setLocalSettings({ ...localSettings, voiceEnabled: !localSettings.voiceEnabled })
+                }
+                className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${
+                  localSettings.voiceEnabled ? 'bg-blue-600' : isDark ? 'bg-gray-700' : 'bg-gray-300'
+                }`}
+                role="switch"
+                aria-checked={localSettings.voiceEnabled}
+              >
+                <span
+                  className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${
+                    localSettings.voiceEnabled ? 'translate-x-6' : 'translate-x-1'
+                  }`}
+                />
+              </button>
+            </div>
+
+            {/* Voice settings (only shown when voice is enabled) */}
+            {localSettings.voiceEnabled && (
+              <>
+                {/* Auto-read AI Responses */}
+                <div className="flex items-center justify-between pl-4 border-l-2 border-blue-500/30">
+                  <div>
+                    <label className="block text-sm font-medium mb-1">
+                      Auto-read AI Responses
+                    </label>
+                    <p className={`text-xs ${isDark ? 'text-gray-400' : 'text-gray-500'}`}>
+                      Automatically read AI messages aloud
+                    </p>
+                  </div>
+                  <button
+                    onClick={() =>
+                      setLocalSettings({ ...localSettings, autoReadResponses: !localSettings.autoReadResponses })
+                    }
+                    className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${
+                      localSettings.autoReadResponses ? 'bg-blue-600' : isDark ? 'bg-gray-700' : 'bg-gray-300'
+                    }`}
+                    role="switch"
+                    aria-checked={localSettings.autoReadResponses}
+                  >
+                    <span
+                      className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${
+                        localSettings.autoReadResponses ? 'translate-x-6' : 'translate-x-1'
+                      }`}
+                    />
+                  </button>
+                </div>
+
+                {/* Premium Voices Toggle */}
+                <div className="flex items-center justify-between pl-4 border-l-2 border-blue-500/30">
+                  <div>
+                    <label className="block text-sm font-medium mb-1">
+                      Premium Voices 💎
+                    </label>
+                    <p className={`text-xs ${isDark ? 'text-gray-400' : 'text-gray-500'}`}>
+                      Use high-quality OpenAI voices (requires network)
+                    </p>
+                  </div>
+                  <button
+                    onClick={() =>
+                      setLocalSettings({ ...localSettings, usePremiumVoices: !localSettings.usePremiumVoices })
+                    }
+                    className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${
+                      localSettings.usePremiumVoices ? 'bg-blue-600' : isDark ? 'bg-gray-700' : 'bg-gray-300'
+                    }`}
+                    role="switch"
+                    aria-checked={localSettings.usePremiumVoices}
+                  >
+                    <span
+                      className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${
+                        localSettings.usePremiumVoices ? 'translate-x-6' : 'translate-x-1'
+                      }`}
+                    />
+                  </button>
+                </div>
+
+                {/* TTS Speed Slider */}
+                <div className="pl-4 border-l-2 border-blue-500/30">
+                  <label className="block text-sm font-medium mb-2">
+                    Voice Speed: {localSettings.ttsSpeed.toFixed(1)}x
+                  </label>
+                  <input
+                    type="range"
+                    min="0.5"
+                    max="2.0"
+                    step="0.1"
+                    value={localSettings.ttsSpeed}
+                    onChange={(e) =>
+                      setLocalSettings({ ...localSettings, ttsSpeed: parseFloat(e.target.value) })
+                    }
+                    className="w-full h-2 bg-gray-200 dark:bg-gray-700 rounded-lg appearance-none cursor-pointer accent-blue-600"
+                  />
+                  <div className="flex justify-between text-xs text-gray-400 mt-1">
+                    <span>0.5x (Slow)</span>
+                    <span>1.0x (Normal)</span>
+                    <span>2.0x (Fast)</span>
+                  </div>
+                </div>
+
+                {/* Info banner for free vs premium */}
+                {!localSettings.usePremiumVoices && (
+                  <div className={`p-3 rounded-lg ${isDark ? 'bg-green-900/20 border border-green-500/30' : 'bg-green-50 border border-green-200'}`}>
+                    <p className={`text-xs ${isDark ? 'text-green-300' : 'text-green-800'}`}>
+                      💚 Using free device voices (works offline, zero cost)
+                    </p>
+                  </div>
+                )}
+
+                {localSettings.usePremiumVoices && (
+                  <div className={`p-3 rounded-lg ${isDark ? 'bg-purple-900/20 border border-purple-500/30' : 'bg-purple-50 border border-purple-200'}`}>
+                    <p className={`text-xs ${isDark ? 'text-purple-300' : 'text-purple-800'}`}>
+                      💎 Using premium OpenAI voices (requires internet connection)
+                    </p>
+                  </div>
+                )}
+              </>
+            )}
           </div>
 
           {/* Actions */}
