@@ -50,7 +50,7 @@ const opacityStates = {
     speaking: 1.0
   },
   desktop: {
-    idle: 0.1,      // Adaptive fading
+    idle: 0.4,      // Increased from 0.1 for better visibility
     listening: 0.7,
     typing: 0.9,
     speaking: 0.5
@@ -120,6 +120,7 @@ export const SubtitleOverlay: React.FC<SubtitleOverlayProps> = ({
   const lastInputTimeRef = useRef<number>(Date.now());
   const autoFadeTimerRef = useRef<NodeJS.Timeout | null>(null);
   const messageFadeTimerRef = useRef<NodeJS.Timeout | null>(null);
+  const inputRef = useRef<HTMLInputElement | null>(null);
 
   // New feature states
   const [suggestions, setSuggestions] = useState<Suggestion[]>([]);
@@ -131,15 +132,22 @@ export const SubtitleOverlay: React.FC<SubtitleOverlayProps> = ({
   const [ttsWidgets, setTTSWidgets] = useState<TTSWidgetInstance[]>([]);
   const [touchStartYInput, setTouchStartYInput] = useState<number | null>(null);
 
-  // Detect mobile viewport (< 768px)
+  // Detect mobile viewport (< 768px) and set initial expansion state
   useEffect(() => {
-    const checkMobile = () => setIsMobile(window.innerWidth < 768);
+    const checkMobile = () => {
+      const mobile = window.innerWidth < 768;
+      setIsMobile(mobile);
+      // Start expanded on desktop for better keyboard access
+      if (!mobile && expansionState === 'collapsed') {
+        setExpansionState('expanded');
+      }
+    };
     checkMobile();
     window.addEventListener('resize', checkMobile);
     return () => window.removeEventListener('resize', checkMobile);
   }, []);
 
-  // Auto-fade timer: Fade to 10% after 5 seconds of inactivity (DESKTOP ONLY)
+  // Auto-fade timer: Fade to 40% after 5 seconds of inactivity (DESKTOP ONLY)
   useEffect(() => {
     // Clear existing timer
     if (autoFadeTimerRef.current) {
@@ -150,7 +158,7 @@ export const SubtitleOverlay: React.FC<SubtitleOverlayProps> = ({
     // Only auto-fade on desktop when idle
     if (!isMobile && overlayState === 'idle') {
       autoFadeTimerRef.current = setTimeout(() => {
-        setOpacity(0.1);
+        setOpacity(0.4);
       }, 5000);
     }
 
@@ -263,6 +271,42 @@ export const SubtitleOverlay: React.FC<SubtitleOverlayProps> = ({
     return () => window.removeEventListener('scroll', handleScroll);
   }, [glassTheme]);
 
+  // Global keyboard shortcut: `/` or `Ctrl+K` to expand and focus
+  useEffect(() => {
+    const handleGlobalKeyDown = (e: KeyboardEvent) => {
+      // `/` key to expand (when not already focused in an input)
+      if (e.key === '/' && expansionState === 'collapsed' &&
+          !(e.target instanceof HTMLInputElement || e.target instanceof HTMLTextAreaElement)) {
+        e.preventDefault();
+        setExpansionState('expanded');
+        // Focus will be handled by the auto-focus effect below
+      }
+
+      // `Ctrl+K` or `Cmd+K` to expand and focus
+      if ((e.ctrlKey || e.metaKey) && e.key === 'k') {
+        e.preventDefault();
+        if (expansionState === 'collapsed') {
+          setExpansionState('expanded');
+        } else {
+          inputRef.current?.focus();
+        }
+      }
+    };
+
+    window.addEventListener('keydown', handleGlobalKeyDown);
+    return () => window.removeEventListener('keydown', handleGlobalKeyDown);
+  }, [expansionState]);
+
+  // Auto-focus input when expanding
+  useEffect(() => {
+    if (expansionState === 'expanded' && inputRef.current) {
+      // Small delay to ensure DOM is ready
+      setTimeout(() => {
+        inputRef.current?.focus();
+      }, 100);
+    }
+  }, [expansionState]);
+
   // Determine overlay state and opacity based on activity
   useEffect(() => {
     const timeSinceLastInput = Date.now() - lastInputTimeRef.current;
@@ -347,15 +391,19 @@ export const SubtitleOverlay: React.FC<SubtitleOverlayProps> = ({
     }
   };
 
-  // Handle Enter key
+  // Handle Enter and Escape keys
   const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
     if (e.key === 'Enter' && inputValue.trim()) {
       e.preventDefault();
       handleSend();
     }
-    // ESC key exits listening mode
-    if (e.key === 'Escape' && isListening) {
-      onMicClick(); // Stop listening
+    // ESC key: stop listening if active, otherwise collapse overlay
+    if (e.key === 'Escape') {
+      if (isListening) {
+        onMicClick(); // Stop listening
+      } else if (expansionState === 'expanded') {
+        setExpansionState('collapsed'); // Collapse overlay
+      }
     }
   };
 
@@ -634,6 +682,7 @@ export const SubtitleOverlay: React.FC<SubtitleOverlayProps> = ({
         >
           {/* Text input field with swipeable placeholder suggestions */}
         <input
+          ref={inputRef}
           type="text"
           value={inputValue}
           onChange={(e) => handleInputChange(e.target.value)}
