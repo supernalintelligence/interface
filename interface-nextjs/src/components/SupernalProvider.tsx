@@ -6,6 +6,7 @@ import { ChatProvider, useChatContext } from '../contexts/ChatProvider';
 import { ChatBubble } from './ChatBubble';
 import { AutoNavigationContext } from './AutoNavigationContext';
 import { ExposureCollector, ToolRegistry } from '@supernal/interface/browser';
+import { useLocationTracking } from '../hooks/useLocationTracking';
 
 // Note: Provider auto-initialization will be added in a future version
 // when AllProviders is available from @supernal/interface/browser
@@ -106,6 +107,11 @@ export function SupernalProvider({
   console.log('[SupernalProvider] disabled:', disabled, 'type:', typeof disabled);
   console.log('[SupernalProvider] shouldRenderChatBubble:', shouldRenderChatBubble);
   console.log('[SupernalProvider] variant:', variant, 'effectiveDisplayMode:', effectiveDisplayMode);
+
+  // 🎯 AUTO-INITIALIZE LocationContext (Zero-Config Tool Scoping)
+  // Automatically tracks current page and visible DOM elements
+  // This enables element-based tool filtering without manual setup
+  useLocationTracking();
 
   // 🎯 AUTO-INITIALIZE ExposureCollector (Zero-Config Element-Based Inference)
   useEffect(() => {
