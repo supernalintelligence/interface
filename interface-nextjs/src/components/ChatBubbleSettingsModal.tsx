@@ -14,8 +14,10 @@ export interface ChatBubbleSettings {
   glassMode: boolean;
   notifications: boolean;
   // Drawer settings
-  displayMode?: 'auto' | 'floating' | 'full' | 'drawer';
+  displayMode?: 'auto' | 'floating' | 'full' | 'drawer' | 'subtitle';
   drawerSide?: 'left' | 'right';
+  // Subtitle Overlay (Beta) - opt-in minimalist voice-first overlay
+  subtitleOverlayEnabled?: boolean;
   // Voice settings
   voiceEnabled: boolean;
   usePremiumVoices: boolean;
@@ -231,6 +233,42 @@ export function ChatBubbleSettingsModal({
             {/* Divider */}
             <div className={`border-t ${isDark ? 'border-gray-700' : 'border-gray-200'} my-2`} />
 
+            {/* Subtitle Overlay Toggle (Beta) */}
+            <div className="flex items-center justify-between">
+              <div>
+                <label className="block text-base font-medium mb-1 flex items-center space-x-2">
+                  <span>Subtitle Overlay</span>
+                  <span className="inline-block px-2 py-0.5 text-xs font-semibold rounded-full bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200">
+                    BETA
+                  </span>
+                </label>
+                <p className={`text-sm ${isDark ? 'text-gray-400' : 'text-gray-500'}`}>
+                  Minimalist voice-first overlay with @/ icon
+                </p>
+              </div>
+              <button
+                onClick={() =>
+                  setLocalSettings({
+                    ...localSettings,
+                    subtitleOverlayEnabled: !localSettings.subtitleOverlayEnabled,
+                    // When enabling subtitle overlay, switch displayMode to subtitle
+                    ...(!(localSettings.subtitleOverlayEnabled) && { displayMode: 'subtitle' })
+                  })
+                }
+                className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${
+                  localSettings.subtitleOverlayEnabled ? 'bg-blue-600' : isDark ? 'bg-gray-700' : 'bg-gray-300'
+                }`}
+                role="switch"
+                aria-checked={localSettings.subtitleOverlayEnabled}
+              >
+                <span
+                  className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${
+                    localSettings.subtitleOverlayEnabled ? 'translate-x-6' : 'translate-x-1'
+                  }`}
+                />
+              </button>
+            </div>
+
             {/* Display Mode Selector */}
             <div className="flex items-center justify-between">
               <div>
@@ -245,7 +283,7 @@ export function ChatBubbleSettingsModal({
                 value={localSettings.displayMode || 'auto'}
                 onChange={(e) => setLocalSettings({
                   ...localSettings,
-                  displayMode: e.target.value as 'auto' | 'floating' | 'full' | 'drawer'
+                  displayMode: e.target.value as 'auto' | 'floating' | 'full' | 'drawer' | 'subtitle'
                 })}
                 className={`px-3 py-2 rounded-lg border ${
                   isDark
@@ -257,6 +295,7 @@ export function ChatBubbleSettingsModal({
                 <option value="drawer">Always Drawer</option>
                 <option value="full">Always Panel</option>
                 <option value="floating">Always Floating</option>
+                <option value="subtitle">Subtitle Overlay (Beta)</option>
               </select>
             </div>
 

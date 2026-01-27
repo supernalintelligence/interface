@@ -16,9 +16,21 @@ export { useChatContext, ChatProvider } from './contexts/ChatProvider';
 
 // Optional exports for customization
 export { ChatBubble } from './components/ChatBubble';
+export { SubtitleOverlay } from './components/SubtitleOverlay';
 export { ChatBubbleSettingsModal, type ChatBubbleSettings } from './components/ChatBubbleSettingsModal';
 export { ChatInputProvider, useChatInput } from './contexts/ChatInputContext';
 export { AutoNavigationContext } from './components/AutoNavigationContext';
+
+// Named contracts (ComponentNames pattern)
+export {
+  Components,
+  ChatBubbleVariant,
+  PageLayout,
+  type ChatBubbleVariantType,
+  type ChatBubbleVariantValue,
+  type PageLayoutType,
+  type PageLayoutValue,
+} from './names/Components';
 
 // Markdown rendering components
 export { MessageRenderer } from './components/MessageRenderer';

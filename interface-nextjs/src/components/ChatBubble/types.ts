@@ -18,9 +18,9 @@ export type Position =
   | 'right-center'
   | 'bottom-center';
 
-export type Variant = 'full' | 'floating' | 'drawer';
+export type Variant = 'full' | 'floating' | 'drawer' | 'subtitle';
 
-export type DisplayMode = 'auto' | 'floating' | 'full' | 'drawer';
+export type DisplayMode = 'auto' | 'floating' | 'full' | 'drawer' | 'subtitle';
 
 export interface ChatBubbleConfig {
   /** Optional title for the chat header */

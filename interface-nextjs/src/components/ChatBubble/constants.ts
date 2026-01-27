@@ -173,6 +173,45 @@ export const THEME_CLASSES = {
   },
 };
 
+// Glassmorphism constants for enhanced styling
+export const GLASS_RESPONSE_BUBBLE = {
+  light: {
+    background: 'rgba(255, 255, 255, 0.7)',
+    border: '1px solid rgba(0, 0, 0, 0.08)',
+    backdropFilter: 'blur(12px) saturate(180%)',
+    WebkitBackdropFilter: 'blur(12px) saturate(180%)',
+    boxShadow: '0 2px 12px rgba(0, 0, 0, 0.08), inset 0 1px 0 rgba(255, 255, 255, 0.9)'
+  },
+  dark: {
+    background: 'rgba(55, 65, 81, 0.6)',
+    border: '1px solid rgba(255, 255, 255, 0.1)',
+    backdropFilter: 'blur(12px) saturate(180%)',
+    WebkitBackdropFilter: 'blur(12px) saturate(180%)',
+    boxShadow: '0 2px 12px rgba(0, 0, 0, 0.3), inset 0 1px 0 rgba(255, 255, 255, 0.05)'
+  }
+};
+
+// Inverted glassmorphism for adaptive contrast
+// Use dark glass on light pages, light glass on dark pages
+export const GLASS_INVERTED = {
+  darkOnLight: {
+    background: 'rgba(0, 0, 0, 0.6)',
+    border: '1px solid rgba(255, 255, 255, 0.15)',
+    backdropFilter: 'blur(16px) saturate(150%)',
+    WebkitBackdropFilter: 'blur(16px) saturate(150%)',
+    color: 'rgba(255, 255, 255, 0.95)',
+    boxShadow: '0 4px 24px rgba(0, 0, 0, 0.3), inset 0 1px 0 rgba(255, 255, 255, 0.1)'
+  },
+  lightOnDark: {
+    background: 'rgba(255, 255, 255, 0.7)',
+    border: '1px solid rgba(0, 0, 0, 0.1)',
+    backdropFilter: 'blur(16px) saturate(180%)',
+    WebkitBackdropFilter: 'blur(16px) saturate(180%)',
+    color: 'rgba(0, 0, 0, 0.9)',
+    boxShadow: '0 4px 24px rgba(0, 0, 0, 0.12), inset 0 1px 0 rgba(255, 255, 255, 0.9)'
+  }
+};
+
 export const DEFAULT_CONFIG: ChatBubbleConfig = {
   title: 'Supernal Interface',
   logo: DEFAULT_LOGO,

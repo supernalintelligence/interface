@@ -24,8 +24,11 @@ export interface SupernalProviderProps {
   glassMode?: boolean;
   logo?: string; // Custom logo URL or data URI
 
+  // Chat variant (NEW: supports subtitle overlay)
+  variant?: 'full' | 'floating' | 'drawer' | 'subtitle';
+
   // Mobile drawer options
-  displayMode?: 'auto' | 'floating' | 'full' | 'drawer';
+  displayMode?: 'auto' | 'floating' | 'full' | 'drawer' | 'subtitle';
   drawerSide?: 'left' | 'right';
 
   // Advanced callbacks
@@ -40,6 +43,7 @@ function ChatBubbleConnector({
   welcomeMessage,
   glassMode,
   logo,
+  variant,
   displayMode,
   drawerSide,
 }: {
@@ -48,10 +52,13 @@ function ChatBubbleConnector({
   welcomeMessage?: string;
   glassMode?: boolean;
   logo?: string;
-  displayMode?: 'auto' | 'floating' | 'full' | 'drawer';
+  variant?: 'full' | 'floating' | 'drawer' | 'subtitle';
+  displayMode?: 'auto' | 'floating' | 'full' | 'drawer' | 'subtitle';
   drawerSide?: 'left' | 'right';
 }) {
   const { messages, sendMessage, clearMessages } = useChatContext();
+
+  console.log('[ChatBubbleConnector] Props received:', { variant, displayMode, position });
 
   // Only include logo in config if it's defined (don't override default with undefined)
   const config = {
@@ -65,7 +72,7 @@ function ChatBubbleConnector({
       onSendMessage={sendMessage}
       onClearChat={clearMessages}
       position={position}
-      variant="full"
+      variant={variant || "full"}
       defaultExpanded={true}
       config={config}
       displayMode={displayMode}
@@ -85,14 +92,20 @@ export function SupernalProvider({
   disabled = false,
   glassMode = true,
   logo,
+  variant = 'full',
   displayMode = 'auto',
   drawerSide = 'right',
   onNavigate,
   onToolExecute,
 }: SupernalProviderProps) {
   const shouldRenderChatBubble = !disabled;
+
+  // If variant is explicitly set (not 'full'), use it as displayMode to prevent auto-override
+  const effectiveDisplayMode = variant !== 'full' ? variant : displayMode;
+
   console.log('[SupernalProvider] disabled:', disabled, 'type:', typeof disabled);
   console.log('[SupernalProvider] shouldRenderChatBubble:', shouldRenderChatBubble);
+  console.log('[SupernalProvider] variant:', variant, 'effectiveDisplayMode:', effectiveDisplayMode);
 
   // 🎯 AUTO-INITIALIZE ExposureCollector (Zero-Config Element-Based Inference)
   useEffect(() => {
@@ -155,7 +168,8 @@ export function SupernalProvider({
             welcomeMessage={welcomeMessage}
             glassMode={glassMode}
             logo={logo}
-            displayMode={displayMode}
+            variant={variant}
+            displayMode={effectiveDisplayMode}
             drawerSide={drawerSide}
           />
         ) : null}
