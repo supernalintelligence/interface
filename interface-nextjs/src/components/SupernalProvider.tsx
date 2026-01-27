@@ -7,6 +7,7 @@ import { ChatBubble } from './ChatBubble';
 import { AutoNavigationContext } from './AutoNavigationContext';
 import { ExposureCollector, ToolRegistry } from '@supernal/interface/browser';
 import { useLocationTracking } from '../hooks/useLocationTracking';
+import { useNavigationGraphSetup } from '../hooks/useNavigationGraphSetup';
 
 // Note: Provider auto-initialization will be added in a future version
 // when AllProviders is available from @supernal/interface/browser
@@ -112,6 +113,11 @@ export function SupernalProvider({
   // Automatically tracks current page and visible DOM elements
   // This enables element-based tool filtering without manual setup
   useLocationTracking();
+
+  // 🎯 AUTO-INITIALIZE NavigationGraph (Zero-Config Navigation)
+  // Automatically sets up Next.js router integration
+  // Updates context on route changes without manual setup
+  useNavigationGraphSetup();
 
   // 🎯 AUTO-INITIALIZE ExposureCollector (Zero-Config Element-Based Inference)
   useEffect(() => {

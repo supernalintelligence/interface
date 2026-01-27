@@ -30,6 +30,16 @@ type OverlayState = 'idle' | 'listening' | 'typing' | 'speaking';
 type ExpansionState = 'collapsed' | 'expanded';
 
 /**
+ * Completed action interface
+ */
+interface CompletedAction {
+  id: string;
+  tool: string;
+  timestamp: number;
+  description: string;
+}
+
+/**
  * Context for mode detection algorithm
  */
 interface ModeContext {
@@ -50,9 +60,9 @@ const opacityStates = {
     speaking: 1.0
   },
   desktop: {
-    idle: 0.4,      // Increased from 0.1 for better visibility
-    listening: 0.7,
-    typing: 0.9,
+    idle: 0.2,      // Much less visible when inactive
+    listening: 0.95, // Very visible when listening
+    typing: 1.0,    // Fully visible when typing
     speaking: 0.5
   }
 };
@@ -133,6 +143,18 @@ export const SubtitleOverlay: React.FC<SubtitleOverlayProps> = ({
   const [showPlaylist, setShowPlaylist] = useState(false);
   const [ttsWidgets, setTTSWidgets] = useState<TTSWidgetInstance[]>([]);
   const [touchStartYInput, setTouchStartYInput] = useState<number | null>(null);
+
+  // Completed actions tracking
+  const [completedActions, setCompletedActions] = useState<CompletedAction[]>([]);
+  const [showCompletedActions, setShowCompletedActions] = useState(false);
+  const [shouldShowAiResponse, setShouldShowAiResponse] = useState(true);
+  const lastUserMessageRef = useRef<string>('');
+
+  // Drag state (desktop only)
+  const [isDragging, setIsDragging] = useState(false);
+  const [position, setPosition] = useState({ x: 0, y: 0 });
+  const [dragStart, setDragStart] = useState({ x: 0, y: 0 });
+  const dragRef = useRef<HTMLDivElement>(null);
 
   // Double-escape detection for variant cycling (to switch back to full mode)
   const lastEscapeTimeRef = useRef<number>(0);
