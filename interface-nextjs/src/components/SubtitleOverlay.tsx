@@ -235,6 +235,18 @@ export const SubtitleOverlay: React.FC<SubtitleOverlayProps> = ({
       // Track as voice input
       setLastInputMethod('voice');
       lastInputTimeRef.current = Date.now();
+
+      // Enable AI response for the next message
+      setShouldShowAiResponse(true);
+
+      // Add a demo completed action for voice command
+      const newAction: CompletedAction = {
+        id: `action-${Date.now()}`,
+        tool: 'Voice Command',
+        timestamp: Date.now(),
+        description: sttTranscript.substring(0, 50) + (sttTranscript.length > 50 ? '...' : '')
+      };
+      setCompletedActions(prev => [...prev, newAction]);
     }
   }, [sttTranscript, voiceEnabled, resetTranscript, onSendMessage]);
 
@@ -492,8 +504,17 @@ export const SubtitleOverlay: React.FC<SubtitleOverlayProps> = ({
       // Enable AI response for the next message
       setShouldShowAiResponse(true);
 
-      // Track user message for completed actions
+      // Track user message for completed actions (demo - will be replaced with actual tool tracking)
       lastUserMessageRef.current = inputValue;
+
+      // Add a demo completed action
+      const newAction: CompletedAction = {
+        id: `action-${Date.now()}`,
+        tool: 'Message Sent',
+        timestamp: Date.now(),
+        description: inputValue.substring(0, 50) + (inputValue.length > 50 ? '...' : '')
+      };
+      setCompletedActions(prev => [...prev, newAction]);
     }
   };
 
@@ -800,6 +821,33 @@ export const SubtitleOverlay: React.FC<SubtitleOverlayProps> = ({
 
       {/* Input container with adaptive glassmorphism */}
       <div className="flex items-center space-x-2">
+        {/* Completed Actions Toggle (chevron) */}
+        {completedActions.length > 0 && (
+          <button
+            type="button"
+            onClick={() => setShowCompletedActions(!showCompletedActions)}
+            className={`p-2 rounded-full transition-all flex-shrink-0 ${
+              theme === 'dark' ? 'text-gray-400 hover:text-green-400' : 'text-gray-600 hover:text-green-600'
+            }`}
+            style={{
+              background: theme === 'dark'
+                ? 'rgba(55, 65, 81, 0.5)'
+                : 'rgba(243, 244, 246, 0.5)',
+              backdropFilter: 'blur(8px)',
+              WebkitBackdropFilter: 'blur(8px)',
+              border: theme === 'dark'
+                ? '1px solid rgba(255, 255, 255, 0.1)'
+                : '1px solid rgba(0, 0, 0, 0.08)',
+              transform: showCompletedActions ? 'rotate(180deg)' : 'rotate(0deg)'
+            }}
+            title={showCompletedActions ? 'Hide completed actions' : `Show ${completedActions.length} completed actions`}
+            data-testid="completed-actions-toggle"
+            aria-label={showCompletedActions ? 'Hide completed actions' : `Show ${completedActions.length} completed actions`}
+          >
+            <span className="text-lg font-bold select-none" aria-hidden="true">^</span>
+          </button>
+        )}
+
         {/* TTS Playlist button (left side, visible in expanded mode) */}
         {hasTTSWidgets && (
           <button
