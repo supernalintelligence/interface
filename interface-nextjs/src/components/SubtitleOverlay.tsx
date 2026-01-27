@@ -171,7 +171,7 @@ export const SubtitleOverlay: React.FC<SubtitleOverlayProps> = ({
     return () => window.removeEventListener('resize', checkMobile);
   }, []);
 
-  // Auto-fade timer: Fade to 40% after 5 seconds of inactivity (DESKTOP ONLY)
+  // Auto-fade timer: Fade to 20% after 5 seconds of inactivity (DESKTOP ONLY)
   useEffect(() => {
     // Clear existing timer
     if (autoFadeTimerRef.current) {
@@ -182,7 +182,7 @@ export const SubtitleOverlay: React.FC<SubtitleOverlayProps> = ({
     // Only auto-fade on desktop when idle
     if (!isMobile && overlayState === 'idle') {
       autoFadeTimerRef.current = setTimeout(() => {
-        setOpacity(0.4);
+        setOpacity(0.2); // Match the idle opacity from opacityStates
       }, 5000);
     }
 
@@ -826,7 +826,7 @@ export const SubtitleOverlay: React.FC<SubtitleOverlayProps> = ({
           <button
             type="button"
             onClick={() => setShowCompletedActions(!showCompletedActions)}
-            className={`p-2 rounded-full transition-all flex-shrink-0 ${
+            className={`relative p-2 rounded-full transition-all flex-shrink-0 ${
               theme === 'dark' ? 'text-gray-400 hover:text-green-400' : 'text-gray-600 hover:text-green-600'
             }`}
             style={{
@@ -845,6 +845,16 @@ export const SubtitleOverlay: React.FC<SubtitleOverlayProps> = ({
             aria-label={showCompletedActions ? 'Hide completed actions' : `Show ${completedActions.length} completed actions`}
           >
             <span className="text-lg font-bold select-none" aria-hidden="true">^</span>
+            {/* Badge showing count */}
+            <span
+              className="absolute -top-1 -right-1 bg-green-500 text-white text-xs rounded-full w-5 h-5 flex items-center justify-center font-bold"
+              style={{
+                fontSize: '10px',
+                transform: showCompletedActions ? 'rotate(-180deg)' : 'rotate(0deg)'
+              }}
+            >
+              {completedActions.length}
+            </span>
           </button>
         )}
 
