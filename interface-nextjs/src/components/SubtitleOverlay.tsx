@@ -193,12 +193,20 @@ export const SubtitleOverlay: React.FC<SubtitleOverlayProps> = ({
     };
   }, [overlayState, isMobile]);
 
-  // Auto-fade AI message: Fade out after 8 seconds of display
+  // Auto-fade AI message: Fade out after 8 seconds of display (only show first time after user message)
   useEffect(() => {
     // Clear existing timer
     if (messageFadeTimerRef.current) {
       clearTimeout(messageFadeTimerRef.current);
       messageFadeTimerRef.current = null;
+    }
+
+    const lastAiMsg = messages.filter(m => m.type === 'ai').slice(-1)[0];
+
+    // Only show AI response if shouldShowAiResponse flag is true
+    if (!shouldShowAiResponse || !lastAiMsg) {
+      setMessageOpacity(0);
+      return;
     }
 
     // Reset message opacity when new message arrives
@@ -207,6 +215,7 @@ export const SubtitleOverlay: React.FC<SubtitleOverlayProps> = ({
     // Start fade-out timer (8 seconds)
     messageFadeTimerRef.current = setTimeout(() => {
       setMessageOpacity(0);
+      setShouldShowAiResponse(false); // Don't show next AI response until user sends another message
     }, 8000);
 
     return () => {
@@ -214,7 +223,7 @@ export const SubtitleOverlay: React.FC<SubtitleOverlayProps> = ({
         clearTimeout(messageFadeTimerRef.current);
       }
     };
-  }, [messages.filter(m => m.type === 'ai').slice(-1)[0]?.text]); // Re-trigger when last AI message changes
+  }, [messages.filter(m => m.type === 'ai').slice(-1)[0]?.text, shouldShowAiResponse]);
 
   // Auto-execute voice commands (subtitle variant is always auto-execute)
   useEffect(() => {

@@ -37,11 +37,17 @@ export function useNavigationGraphSetup() {
       // Create navigation handler from Next.js router
       // NavigationGraph expects a simple function: (path: string) => void
       const handler = (path: string) => {
-        router.push(path);
+        // Normalize path: ensure it starts with / to make it absolute
+        // This prevents "demo" from becoming "/blog/demo" when on /blog
+        const normalizedPath = path.startsWith('/') ? path : `/${path}`;
+        router.push(normalizedPath);
       };
 
       // Set the handler
       graph.setNavigationHandler(handler);
+
+      // Set router for browser tools (back/forward/refresh/etc)
+      graph.setRouter(router);
 
       // Set initial context
       graph.setCurrentContext(router.asPath);

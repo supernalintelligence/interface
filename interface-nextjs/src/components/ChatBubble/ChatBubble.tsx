@@ -94,9 +94,15 @@ export const ChatBubble = ({
   const [displayMode, setDisplayMode] = useState<DisplayMode>(propDisplayMode);
   const [drawerSide, setDrawerSide] = useState<'left' | 'right'>(propDrawerSide);
 
+  // Track whether displayMode was loaded from localStorage (user preference takes precedence)
+  const displayModeLoadedFromStorage = useRef<boolean>(false);
+
   // Sync displayMode state when prop changes (e.g., from URL parameter)
+  // BUT only if we haven't loaded a user preference from localStorage
   useEffect(() => {
-    setDisplayMode(propDisplayMode);
+    if (!displayModeLoadedFromStorage.current) {
+      setDisplayMode(propDisplayMode);
+    }
   }, [propDisplayMode]);
   const [drawerOpen, setDrawerOpen] = useState(false);
   const [touchStart, setTouchStart] = useState<{x: number; y: number; time: number} | null>(null);
@@ -191,7 +197,8 @@ export const ChatBubble = ({
 
   // Load expanded state from localStorage after hydration
   useEffect(() => {
-    if (variant === 'full') {
+    // Load for all variants to restore user's display mode preference
+    if (variant === 'full' || variant === 'drawer' || variant === 'subtitle') {
       try {
         const stored = localStorage.getItem(storageKey);
         if (stored !== null) {
@@ -242,6 +249,7 @@ export const ChatBubble = ({
             }
             if (state.displayMode !== undefined) {
               setDisplayMode(state.displayMode);
+              displayModeLoadedFromStorage.current = true;
             }
             if (state.drawerSide !== undefined) {
               setDrawerSide(state.drawerSide);
@@ -282,9 +290,9 @@ export const ChatBubble = ({
     setIsHydrated(true);
   }, [storageKey, variant, defaultExpanded, position]);
 
-  // For non-'full' variants, mark as hydrated immediately
+  // For variants that don't load from localStorage, mark as hydrated immediately
   useEffect(() => {
-    if (variant !== 'full') {
+    if (variant !== 'full' && variant !== 'drawer' && variant !== 'subtitle') {
       setIsHydrated(true);
     }
   }, [variant]);
@@ -344,9 +352,11 @@ export const ChatBubble = ({
         // Cycle between 'full' and 'subtitle' (skip 'floating' and 'drawer')
         if (effectiveVariant === 'full' || effectiveVariant === 'floating' || effectiveVariant === 'drawer') {
           setDisplayMode('subtitle');
+          displayModeLoadedFromStorage.current = true; // User preference
           console.log('[ChatBubble] Switched to subtitle mode');
         } else if (effectiveVariant === 'subtitle') {
           setDisplayMode('full');
+          displayModeLoadedFromStorage.current = true; // User preference
           console.log('[ChatBubble] Switched to full mode');
         }
 
@@ -429,7 +439,8 @@ export const ChatBubble = ({
 
   // Save state to localStorage
   useEffect(() => {
-    if (variant === 'full' || variant === 'drawer') {
+    // Save for all variants to persist user's display mode preference
+    if (variant === 'full' || variant === 'drawer' || variant === 'subtitle') {
       try {
         localStorage.setItem(
           storageKey,
@@ -1044,6 +1055,7 @@ export const ChatBubble = ({
         onSwitchToFullMode={() => {
           console.log('[ChatBubble] Switching from subtitle to full mode');
           setDisplayMode('full');
+          displayModeLoadedFromStorage.current = true; // User preference
         }}
       />
     );
