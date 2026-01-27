@@ -379,6 +379,34 @@ export const SubtitleOverlay: React.FC<SubtitleOverlayProps> = ({
     }
   }, [expansionState]);
 
+  // Drag functionality (desktop only)
+  useEffect(() => {
+    if (isMobile) return; // Only enable dragging on desktop
+
+    const handleMouseMove = (e: MouseEvent) => {
+      if (!isDragging) return;
+
+      const deltaX = e.clientX - dragStart.x;
+      const deltaY = e.clientY - dragStart.y;
+
+      setPosition({ x: deltaX, y: deltaY });
+    };
+
+    const handleMouseUp = () => {
+      setIsDragging(false);
+    };
+
+    if (isDragging) {
+      window.addEventListener('mousemove', handleMouseMove);
+      window.addEventListener('mouseup', handleMouseUp);
+    }
+
+    return () => {
+      window.removeEventListener('mousemove', handleMouseMove);
+      window.removeEventListener('mouseup', handleMouseUp);
+    };
+  }, [isDragging, dragStart, isMobile]);
+
   // Determine overlay state and opacity based on activity
   useEffect(() => {
     const timeSinceLastInput = Date.now() - lastInputTimeRef.current;
@@ -460,6 +488,23 @@ export const SubtitleOverlay: React.FC<SubtitleOverlayProps> = ({
     if (inputValue.trim()) {
       onSendMessage(inputValue);
       lastInputTimeRef.current = Date.now();
+
+      // Enable AI response for the next message
+      setShouldShowAiResponse(true);
+
+      // Track user message for completed actions
+      lastUserMessageRef.current = inputValue;
+    }
+  };
+
+  // Handle mouse down for drag (desktop only)
+  const handleMouseDown = (e: React.MouseEvent) => {
+    if (isMobile) return; // Only on desktop
+
+    // Only start drag if clicking on the container background (not input or buttons)
+    if (e.target === dragRef.current || (e.target as HTMLElement).classList.contains('drag-handle')) {
+      setIsDragging(true);
+      setDragStart({ x: e.clientX - position.x, y: e.clientY - position.y });
     }
   };
 
@@ -678,23 +723,62 @@ export const SubtitleOverlay: React.FC<SubtitleOverlayProps> = ({
   // Expanded: Show input with icon on right
   return (
     <div
-      className={`fixed bottom-0 left-0 right-0 transition-all duration-300 ease-in-out`}
+      ref={dragRef}
+      className={`fixed transition-all duration-300 ease-in-out ${isDragging ? 'cursor-grabbing' : 'cursor-grab'}`}
       style={{
         opacity,
-        bottom: isMobile ? 'env(safe-area-inset-bottom, 0px)' : '0px',
+        bottom: isMobile ? 'env(safe-area-inset-bottom, 0px)' : `${position.y}px`,
+        left: isMobile ? '0' : `calc(50% - 325px + ${position.x}px)`,
+        right: isMobile ? '0' : 'auto',
         zIndex: 55,
         maxWidth: isMobile ? '100vw' : '650px',
-        marginLeft: isMobile ? '0' : 'auto',
-        marginRight: isMobile ? '0' : 'auto',
-        padding: isMobile ? '12px' : '16px'
+        padding: isMobile ? '12px' : '16px',
+        transform: isMobile ? 'none' : `translate(${position.x}px, ${position.y}px)`,
+        pointerEvents: 'auto'
       }}
       onTouchStart={handleTouchStart}
       onTouchMove={handleTouchMove}
       onTouchEnd={handleTouchEnd}
+      onMouseDown={handleMouseDown}
       data-testid="subtitle-overlay"
       role="complementary"
       aria-label="Chat overlay"
     >
+      {/* Completed Actions List (collapsible) */}
+      {showCompletedActions && completedActions.length > 0 && (
+        <div
+          className={`mb-2 px-4 py-3 text-xs rounded-2xl ${
+            theme === 'dark' ? 'text-white' : 'text-gray-900'
+          }`}
+          style={{
+            ...(theme === 'dark' ? GLASS_RESPONSE_BUBBLE.dark : GLASS_RESPONSE_BUBBLE.light),
+            maxHeight: '200px',
+            overflowY: 'auto'
+          }}
+          role="log"
+          aria-label="Completed actions"
+        >
+          <div className="font-medium opacity-70 mb-2 flex items-center justify-between">
+            <span>Completed Actions</span>
+            <button
+              onClick={() => setShowCompletedActions(false)}
+              className="opacity-50 hover:opacity-100"
+              aria-label="Close completed actions"
+            >
+              ×
+            </button>
+          </div>
+          <div className="space-y-1">
+            {completedActions.map((action) => (
+              <div key={action.id} className="text-xs opacity-80 border-l-2 border-green-500 pl-2">
+                <div className="font-medium">{action.tool}</div>
+                <div className="opacity-70">{action.description}</div>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
       {/* AI message in separate glass bubble with enhanced styling */}
       {lastAiMessage && messageOpacity > 0 && (
         <div
