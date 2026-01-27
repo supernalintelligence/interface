@@ -95,6 +95,7 @@ export interface SubtitleOverlayProps {
   config: ChatBubbleConfig;
   sttTranscript?: string;
   resetTranscript?: () => void;
+  onSwitchToFullMode?: () => void; // Callback to switch back to full mode
 }
 
 export const SubtitleOverlay: React.FC<SubtitleOverlayProps> = ({
@@ -108,7 +109,8 @@ export const SubtitleOverlay: React.FC<SubtitleOverlayProps> = ({
   theme,
   config,
   sttTranscript,
-  resetTranscript
+  resetTranscript,
+  onSwitchToFullMode
 }) => {
   const [overlayState, setOverlayState] = useState<OverlayState>('idle');
   const [opacity, setOpacity] = useState(1.0); // Start at full opacity
@@ -131,6 +133,10 @@ export const SubtitleOverlay: React.FC<SubtitleOverlayProps> = ({
   const [showPlaylist, setShowPlaylist] = useState(false);
   const [ttsWidgets, setTTSWidgets] = useState<TTSWidgetInstance[]>([]);
   const [touchStartYInput, setTouchStartYInput] = useState<number | null>(null);
+
+  // Double-escape detection for variant cycling (to switch back to full mode)
+  const lastEscapeTimeRef = useRef<number>(0);
+  const DOUBLE_ESCAPE_THRESHOLD_MS = 500; // 500ms window for double-tap
 
   // Detect mobile viewport (< 768px) and set initial expansion state
   useEffect(() => {
@@ -216,8 +222,8 @@ export const SubtitleOverlay: React.FC<SubtitleOverlayProps> = ({
 
   // Detect TTS widgets on the page (with re-detection on DOM changes)
   useEffect(() => {
-    const detectWidgets = () => {
-      const detected = detectTTSWidgets();
+    const detectWidgets = async () => {
+      const detected = await detectTTSWidgets(); // Now async!
       setHasTTSWidgets(detected);
 
       if (detected) {
@@ -240,12 +246,22 @@ export const SubtitleOverlay: React.FC<SubtitleOverlayProps> = ({
 
     observer.observe(document.body, {
       childList: true,
-      subtree: true
+      subtree: true,
+      attributes: true,
+      attributeFilter: ['data-tts-status'] // Watch for status changes
     });
+
+    // Listen for TTS ready event (for hot reload, dynamic content, etc.)
+    const handleReady = () => {
+      console.log('[SubtitleOverlay] TTS ready event received');
+      detectWidgets();
+    };
+    window.addEventListener('supernal-tts-ready', handleReady);
 
     return () => {
       observer.disconnect();
       clearTimeout(timeoutId);
+      window.removeEventListener('supernal-tts-ready', handleReady);
     };
   }, []);
 
@@ -271,9 +287,28 @@ export const SubtitleOverlay: React.FC<SubtitleOverlayProps> = ({
     return () => window.removeEventListener('scroll', handleScroll);
   }, [glassTheme]);
 
-  // Global keyboard shortcut: `/` or `Ctrl+K` to expand and focus
+  // Global keyboard shortcut: `/` or `Ctrl+K` to expand and focus, double-ESC to switch modes
   useEffect(() => {
     const handleGlobalKeyDown = (e: KeyboardEvent) => {
+      // Double-escape detection for switching back to full mode
+      if (e.key === 'Escape') {
+        const now = Date.now();
+        const timeSinceLastEscape = now - lastEscapeTimeRef.current;
+
+        // Double-escape detected when overlay is COLLAPSED
+        if (expansionState === 'collapsed' && timeSinceLastEscape < DOUBLE_ESCAPE_THRESHOLD_MS) {
+          console.log('[SubtitleOverlay] Double-escape detected - switching to full mode');
+          if (onSwitchToFullMode) {
+            onSwitchToFullMode();
+          }
+          lastEscapeTimeRef.current = 0; // Reset timer
+          return;
+        }
+
+        // Update last escape time
+        lastEscapeTimeRef.current = now;
+      }
+
       // `/` key to expand (when not already focused in an input)
       if (e.key === '/' && expansionState === 'collapsed' &&
           !(e.target instanceof HTMLInputElement || e.target instanceof HTMLTextAreaElement)) {
@@ -291,11 +326,24 @@ export const SubtitleOverlay: React.FC<SubtitleOverlayProps> = ({
           inputRef.current?.focus();
         }
       }
+
+      // `Ctrl+/` or `Cmd+/` to start voice recording
+      if ((e.ctrlKey || e.metaKey) && e.key === '/' && voiceEnabled) {
+        e.preventDefault();
+
+        // Expand overlay if collapsed
+        if (expansionState === 'collapsed') {
+          setExpansionState('expanded');
+        }
+
+        // Trigger voice recording
+        onMicClick();
+      }
     };
 
     window.addEventListener('keydown', handleGlobalKeyDown);
     return () => window.removeEventListener('keydown', handleGlobalKeyDown);
-  }, [expansionState]);
+  }, [expansionState, onSwitchToFullMode, voiceEnabled, onMicClick]);
 
   // Auto-focus input when expanding
   useEffect(() => {
@@ -574,7 +622,7 @@ export const SubtitleOverlay: React.FC<SubtitleOverlayProps> = ({
           <button
           type="button"
           onClick={handleIconClick}
-          className={`p-3 rounded-full transition-all ${
+          className={`relative p-3 rounded-full transition-all ${
             theme === 'dark' ? 'text-gray-400 hover:text-blue-400' : 'text-gray-600 hover:text-blue-600'
           }`}
           style={{
@@ -590,13 +638,25 @@ export const SubtitleOverlay: React.FC<SubtitleOverlayProps> = ({
               ? '0 4px 16px rgba(0, 0, 0, 0.4), inset 0 1px 0 rgba(255, 255, 255, 0.1)'
               : '0 4px 16px rgba(0, 0, 0, 0.15), inset 0 1px 0 rgba(255, 255, 255, 0.9)'
           }}
-          title={getIconTitle()}
+          title={`${getIconTitle()} (double-ESC to switch to full mode)`}
           data-testid="voice-input-button"
           aria-label={getIconTitle()}
         >
           <span className="text-xl font-bold select-none" aria-hidden="true">
             {getIcon()}
           </span>
+
+          {/* Mode indicator badge - Purple 'S' for Subtitle mode */}
+          <div
+            className="absolute -bottom-1 -left-1 w-4 h-4 rounded-full flex items-center justify-center shadow-md"
+            style={{
+              background: 'linear-gradient(135deg, #8b5cf6, #7c3aed)', // Purple for subtitle
+              border: '2px solid white'
+            }}
+            title="Subtitle mode (double-ESC to switch to full)"
+          >
+            <span className="text-[8px] text-white font-bold">S</span>
+          </div>
         </button>
         </div>
       </>

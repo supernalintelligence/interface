@@ -103,6 +103,10 @@ export const ChatBubble = ({
   const [swipeProgress, setSwipeProgress] = useState(0); // 0-100%
   const [isMobile, setIsMobile] = useState(false);
 
+  // Double-escape detection for variant cycling
+  const lastEscapeTimeRef = useRef<number>(0);
+  const DOUBLE_ESCAPE_THRESHOLD_MS = 500; // 500ms window for double-tap
+
   // Platform detection for keyboard shortcuts
   const [isMac, setIsMac] = useState(false);
   const [currentHintIndex, setCurrentHintIndex] = useState(0);
@@ -315,21 +319,57 @@ export const ChatBubble = ({
     return () => clearTimeout(timeoutId);
   }, [isExpanded, isDocked]);
 
-  // Escape key handler: reset panel to default docked position
+  // Escape key handler: reset panel to default docked position OR cycle variants (double-escape)
+  // Skip when in subtitle mode - SubtitleOverlay handles its own ESC behavior
   useEffect(() => {
+    // Don't attach handler when in subtitle mode - let SubtitleOverlay handle it
+    const isSubtitleMode = displayMode === 'subtitle' || (displayMode === 'auto' && variant === 'subtitle');
+    if (isSubtitleMode) return;
+
     const handleKeyDown = (e: KeyboardEvent) => {
-      // Press Escape to reset ChatBubble to docked position
-      if (e.key === 'Escape' && isExpanded && !isDocked) {
+      if (e.key !== 'Escape') return;
+
+      const now = Date.now();
+      const timeSinceLastEscape = now - lastEscapeTimeRef.current;
+
+      // Determine effective variant (considering displayMode and mobile state)
+      const effectiveVariant = displayMode !== 'auto'
+        ? displayMode
+        : (isMobile ? 'drawer' : variant);
+
+      // Double-escape detected when chat is NOT expanded (bubble icon is showing)
+      if (!isExpanded && timeSinceLastEscape < DOUBLE_ESCAPE_THRESHOLD_MS) {
+        console.log('[ChatBubble] Double-escape detected - cycling variant from:', effectiveVariant);
+
+        // Cycle between 'full' and 'subtitle' (skip 'floating' and 'drawer')
+        if (effectiveVariant === 'full' || effectiveVariant === 'floating' || effectiveVariant === 'drawer') {
+          setDisplayMode('subtitle');
+          console.log('[ChatBubble] Switched to subtitle mode');
+        } else if (effectiveVariant === 'subtitle') {
+          setDisplayMode('full');
+          console.log('[ChatBubble] Switched to full mode');
+        }
+
+        // Reset the timer so triple-escape doesn't trigger again
+        lastEscapeTimeRef.current = 0;
+        return;
+      }
+
+      // Single escape: reset panel to docked position if expanded
+      if (isExpanded && !isDocked) {
         console.log('ChatBubble reset via Escape key');
         setIsDocked(true);
         setDockPosition(position);
         setPanelPosition({ x: 0, y: 0 });
       }
+
+      // Update last escape time
+      lastEscapeTimeRef.current = now;
     };
 
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [isExpanded, isDocked, position]);
+  }, [isExpanded, isDocked, position, variant, displayMode, isMobile]);
 
   // Detect system theme on mount
   useEffect(() => {
@@ -481,12 +521,15 @@ export const ChatBubble = ({
   }, [messages, voiceEnabled, autoReadResponses, ttsSpeed, usePremiumVoices, speakTTS]);
 
   // Wire up STT transcript to input field with auto-execution support
+  // Skip for subtitle variant (SubtitleOverlay handles its own STT)
   useEffect(() => {
+    if (currentVariant === 'subtitle') return; // SubtitleOverlay handles STT
+
     if (sttTranscript && voiceEnabled) {
       setInputValue(sttTranscript);
       resetTranscript();
 
-      // Auto-execute command if enabled and triggered by Shift+/
+      // Auto-execute command if enabled and triggered by Cmd+/
       if (sttAutoExecute && sttAutoRecordTimeoutRef.current) {
         // Command was from auto-record, execute it immediately
         onSendMessage(sttTranscript);
@@ -499,13 +542,13 @@ export const ChatBubble = ({
         sttAutoRecordTimeoutRef.current = null;
       }
     }
-  }, [sttTranscript, voiceEnabled, resetTranscript, sttAutoExecute, onSendMessage]);
+  }, [sttTranscript, voiceEnabled, resetTranscript, sttAutoExecute, onSendMessage, currentVariant]);
 
-  // Keyboard shortcuts for full variant
+  // Keyboard shortcuts (skip for subtitle variant - it has its own handler in SubtitleOverlay)
   useEffect(() => {
-    const handleKeyDown = (e: KeyboardEvent) => {
-      if (variant !== 'full') return;
+    if (currentVariant === 'subtitle') return; // SubtitleOverlay handles its own keyboard shortcuts
 
+    const handleKeyDown = (e: KeyboardEvent) => {
       // Ctrl+/ or Cmd+/ to trigger auto-record STT with auto-execution (works everywhere, including input fields)
       if ((e.metaKey || e.ctrlKey) && e.key === '/' && voiceEnabled) {
         e.preventDefault();
@@ -578,7 +621,7 @@ export const ChatBubble = ({
         clearTimeout(sttAutoRecordTimeoutRef.current);
       }
     };
-  }, [isExpanded, showMoreMenu, variant, voiceEnabled, isListening, startListening, stopListening, sttAutoRecordTimeout]);
+  }, [currentVariant, isExpanded, showMoreMenu, voiceEnabled, isListening, startListening, stopListening, sttAutoRecordTimeout]);
 
   // Keyboard shortcuts for drawer variant
   useEffect(() => {
@@ -998,6 +1041,10 @@ export const ChatBubble = ({
         config={config}
         sttTranscript={sttTranscript}
         resetTranscript={resetTranscript}
+        onSwitchToFullMode={() => {
+          console.log('[ChatBubble] Switching from subtitle to full mode');
+          setDisplayMode('full');
+        }}
       />
     );
   }
@@ -1742,9 +1789,28 @@ export const ChatBubble = ({
             onClick={handleToggle}
             className={THEME_CLASSES.bg.bubble}
             data-testid={ChatNames.bubble}
-            title={`Open chat (press ${isMac ? 'Cmd' : 'Ctrl'}+/ for voice recording)`}
+            title={`Open chat (press ${isMac ? 'Cmd' : 'Ctrl'}+/ for voice recording, double-ESC to switch modes)`}
           >
             <img src={config.logo} alt="Supernal" className="w-8 h-8" />
+
+            {/* Mode indicator badge - shows next variant (double-ESC will switch to this) */}
+            <div className="absolute -bottom-1 -left-1 w-4 h-4 rounded-full flex items-center justify-center shadow-md"
+              style={{
+                background: displayMode === 'subtitle' || (displayMode === 'auto' && variant === 'subtitle')
+                  ? 'linear-gradient(135deg, #8b5cf6, #7c3aed)' // Purple badge = currently in subtitle mode
+                  : 'linear-gradient(135deg, #3b82f6, #2563eb)', // Blue badge = currently in full mode
+                border: '2px solid white'
+              }}
+              title={
+                displayMode === 'subtitle' || (displayMode === 'auto' && variant === 'subtitle')
+                  ? 'Subtitle mode (double-ESC to switch to full)'
+                  : 'Full mode (double-ESC to switch to subtitle)'
+              }
+            >
+              <span className="text-[8px] text-white font-bold">
+                {displayMode === 'subtitle' || (displayMode === 'auto' && variant === 'subtitle') ? 'S' : 'F'}
+              </span>
+            </div>
 
             {/* Unread indicator */}
             {hasUnread && notifications && (
