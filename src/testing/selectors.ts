@@ -10,9 +10,9 @@
  * 
  * @example
  * ```typescript
- * import { Chat } from '../architecture/DemoComponentNames';
+ * import { Chat } from '../architecture/ComponentNames';
  * import { testId } from '@supernal-interface/core/testing';
- * 
+ *
  * const input = page.locator(testId(Chat.input));
  * // Equivalent to: page.locator('[data-testid="chat-input"]')
  * ```

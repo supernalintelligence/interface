@@ -138,15 +138,11 @@ export const SubtitleOverlay: React.FC<SubtitleOverlayProps> = ({
   const lastEscapeTimeRef = useRef<number>(0);
   const DOUBLE_ESCAPE_THRESHOLD_MS = 500; // 500ms window for double-tap
 
-  // Detect mobile viewport (< 768px) and set initial expansion state
+  // Detect mobile viewport (< 768px)
   useEffect(() => {
     const checkMobile = () => {
       const mobile = window.innerWidth < 768;
       setIsMobile(mobile);
-      // Start expanded on desktop for better keyboard access
-      if (!mobile && expansionState === 'collapsed') {
-        setExpansionState('expanded');
-      }
     };
     checkMobile();
     window.addEventListener('resize', checkMobile);
@@ -204,9 +200,6 @@ export const SubtitleOverlay: React.FC<SubtitleOverlayProps> = ({
       // Automatically send the voice command
       onSendMessage(sttTranscript);
       resetTranscript();
-
-      // Auto-expand when voice command is sent
-      setExpansionState('expanded');
 
       // Track as voice input
       setLastInputMethod('voice');
@@ -622,7 +615,7 @@ export const SubtitleOverlay: React.FC<SubtitleOverlayProps> = ({
           <button
           type="button"
           onClick={handleIconClick}
-          className={`relative p-3 rounded-full transition-all ${
+          className={`p-3 rounded-full transition-all ${
             theme === 'dark' ? 'text-gray-400 hover:text-blue-400' : 'text-gray-600 hover:text-blue-600'
           }`}
           style={{
@@ -638,25 +631,13 @@ export const SubtitleOverlay: React.FC<SubtitleOverlayProps> = ({
               ? '0 4px 16px rgba(0, 0, 0, 0.4), inset 0 1px 0 rgba(255, 255, 255, 0.1)'
               : '0 4px 16px rgba(0, 0, 0, 0.15), inset 0 1px 0 rgba(255, 255, 255, 0.9)'
           }}
-          title={`${getIconTitle()} (double-ESC to switch to full mode)`}
+          title={getIconTitle()}
           data-testid="voice-input-button"
           aria-label={getIconTitle()}
         >
           <span className="text-xl font-bold select-none" aria-hidden="true">
             {getIcon()}
           </span>
-
-          {/* Mode indicator badge - Purple 'S' for Subtitle mode */}
-          <div
-            className="absolute -bottom-1 -left-1 w-4 h-4 rounded-full flex items-center justify-center shadow-md"
-            style={{
-              background: 'linear-gradient(135deg, #8b5cf6, #7c3aed)', // Purple for subtitle
-              border: '2px solid white'
-            }}
-            title="Subtitle mode (double-ESC to switch to full)"
-          >
-            <span className="text-[8px] text-white font-bold">S</span>
-          </div>
         </button>
         </div>
       </>

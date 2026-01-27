@@ -1789,28 +1789,9 @@ export const ChatBubble = ({
             onClick={handleToggle}
             className={THEME_CLASSES.bg.bubble}
             data-testid={ChatNames.bubble}
-            title={`Open chat (press ${isMac ? 'Cmd' : 'Ctrl'}+/ for voice recording, double-ESC to switch modes)`}
+            title={`Open chat (press ${isMac ? 'Cmd' : 'Ctrl'}+/ for voice recording)`}
           >
             <img src={config.logo} alt="Supernal" className="w-8 h-8" />
-
-            {/* Mode indicator badge - shows next variant (double-ESC will switch to this) */}
-            <div className="absolute -bottom-1 -left-1 w-4 h-4 rounded-full flex items-center justify-center shadow-md"
-              style={{
-                background: displayMode === 'subtitle' || (displayMode === 'auto' && variant === 'subtitle')
-                  ? 'linear-gradient(135deg, #8b5cf6, #7c3aed)' // Purple badge = currently in subtitle mode
-                  : 'linear-gradient(135deg, #3b82f6, #2563eb)', // Blue badge = currently in full mode
-                border: '2px solid white'
-              }}
-              title={
-                displayMode === 'subtitle' || (displayMode === 'auto' && variant === 'subtitle')
-                  ? 'Subtitle mode (double-ESC to switch to full)'
-                  : 'Full mode (double-ESC to switch to subtitle)'
-              }
-            >
-              <span className="text-[8px] text-white font-bold">
-                {displayMode === 'subtitle' || (displayMode === 'auto' && variant === 'subtitle') ? 'S' : 'F'}
-              </span>
-            </div>
 
             {/* Unread indicator */}
             {hasUnread && notifications && (
