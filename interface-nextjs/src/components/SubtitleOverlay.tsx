@@ -400,10 +400,18 @@ export const SubtitleOverlay: React.FC<SubtitleOverlayProps> = ({
     // Find the widget wrapper (in case element is the play button)
     const wrapper = widget.element.closest('.supernal-tts-widget') || widget.element;
 
-    // Scroll to widget wrapper
-    wrapper.scrollIntoView({
+    // Find the play button for scrolling target
+    const playButton = wrapper.querySelector('.supernal-tts-play') as HTMLElement;
+    const scrollTarget = playButton || wrapper;
+
+    console.log('[SubtitleOverlay] Scrolling to:', scrollTarget);
+
+    // Scroll to play button if available, otherwise wrapper
+    // Use 'start' to position at top, accounting for overlay at bottom
+    scrollTarget.scrollIntoView({
       behavior: 'smooth',
-      block: 'center'
+      block: 'start',
+      inline: 'nearest'
     });
 
     // Close playlist
@@ -411,9 +419,6 @@ export const SubtitleOverlay: React.FC<SubtitleOverlayProps> = ({
 
     // Trigger TTS playback after scroll completes (800ms for smooth scroll)
     setTimeout(() => {
-      // Look for Supernal TTS widget play button (correct selector)
-      const playButton = wrapper.querySelector('.supernal-tts-play') as HTMLElement;
-
       if (playButton) {
         console.log('[SubtitleOverlay] Clicking Supernal TTS play button:', playButton);
         playButton.click();
@@ -494,7 +499,7 @@ export const SubtitleOverlay: React.FC<SubtitleOverlayProps> = ({
             aria-label={ttsWidgets.length === 1 ? 'Go to readable section' : 'View readable sections'}
           >
             <span className="text-xl font-bold select-none" aria-hidden="true">
-              ~/
+              ~+
             </span>
           </button>
         )}
@@ -613,7 +618,7 @@ export const SubtitleOverlay: React.FC<SubtitleOverlayProps> = ({
             data-testid="tts-playlist-button-expanded"
             aria-label={ttsWidgets.length === 1 ? 'Go to readable section' : 'View readable sections'}
           >
-            <span className="text-lg font-bold select-none" aria-hidden="true">~/</span>
+            <span className="text-lg font-bold select-none" aria-hidden="true">~+</span>
           </button>
         )}
 

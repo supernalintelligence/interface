@@ -114,18 +114,30 @@ export function extractTTSWidgets(): TTSWidgetInstance[] {
     const label = extractWidgetLabel(wrapper, widgets.length + 1);
 
     // Look for the actual play button injected by the widget library
-    const playButton = element.querySelector('.supernal-tts-play');
+    const playButton = element.querySelector('.supernal-tts-play') as HTMLElement;
+
+    // Add data-testid to wrapper for named element support
+    const widgetId = `tts-widget-${idx}`;
+    if (!element.hasAttribute('data-testid')) {
+      element.setAttribute('data-testid', widgetId);
+    }
+
+    // Add data-testid to play button for direct control
+    if (playButton && !playButton.hasAttribute('data-testid')) {
+      playButton.setAttribute('data-testid', `${widgetId}-play`);
+    }
 
     console.log('[TTS Extract] Widget:', {
-      id: `tts-widget-${idx}`,
+      id: widgetId,
       label,
       hasButton: !!playButton,
       wrapper: element,
-      playButton
+      playButton,
+      testId: element.getAttribute('data-testid')
     });
 
     widgets.push({
-      id: `tts-widget-${idx}`,
+      id: widgetId,
       element: wrapper as HTMLElement, // Always use wrapper as the element to scroll to
       label
     });
