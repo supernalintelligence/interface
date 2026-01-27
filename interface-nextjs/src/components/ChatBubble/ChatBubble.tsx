@@ -159,6 +159,32 @@ export const ChatBubble = ({
     return messageTime.toLocaleDateString();
   };
 
+  // Initialize floating variant position (centered by default)
+  useEffect(() => {
+    if (variant === 'floating' && panelPosition.x === 0 && panelPosition.y === 0) {
+      try {
+        const stored = localStorage.getItem(storageKey);
+        if (stored !== null) {
+          const state = JSON.parse(stored);
+          const pos = state.panelPosition;
+          if (pos && typeof pos.x === 'number' && typeof pos.y === 'number') {
+            setPanelPosition(pos);
+            return;
+          }
+        }
+      } catch (error) {
+        console.error('ChatBubble: Error loading floating position from localStorage', error);
+      }
+
+      // No saved position - set centered default
+      if (typeof window !== 'undefined') {
+        const centerX = (window.innerWidth - 300) / 2;  // 300px = approx bubble width
+        const centerY = (window.innerHeight - 150) / 2; // 150px = approx bubble height
+        setPanelPosition({ x: centerX, y: centerY });
+      }
+    }
+  }, [variant, storageKey, panelPosition.x, panelPosition.y]);
+
   // Load expanded state from localStorage after hydration
   useEffect(() => {
     if (variant === 'full') {
@@ -342,6 +368,16 @@ export const ChatBubble = ({
     // Auto mode: drawer on mobile, full on desktop
     return isMobile ? 'drawer' : variant;
   }, [displayMode, isMobile, variant]);
+
+  // Reset displayMode to 'auto' when variant prop changes externally
+  // This allows DevVariantSwitcher to control the variant
+  const prevVariantRef = React.useRef(variant);
+  useEffect(() => {
+    if (prevVariantRef.current !== variant && displayMode !== 'auto') {
+      setDisplayMode('auto');
+      prevVariantRef.current = variant;
+    }
+  }, [variant, displayMode]);
 
   // Auto-update timestamps every 60 seconds
   useEffect(() => {
@@ -670,15 +706,9 @@ export const ChatBubble = ({
 
     // Pre-calculate position to prevent jump when undocking
     if (isDocked) {
-      // Calculate current center of panel in viewport
-      const currentCenterX = rect.left + rect.width / 2;
-      const currentCenterY = rect.top + rect.height / 2;
-
-      // Calculate what panelPosition should be to place panel at current location
-      const viewportCenterX = window.innerWidth / 2;
-      const viewportCenterY = window.innerHeight / 2;
-      const targetX = currentCenterX - viewportCenterX;
-      const targetY = currentCenterY - viewportCenterY;
+      // For top-left anchored positioning, use the current screen position directly
+      const targetX = rect.left;
+      const targetY = rect.top;
 
       // Set position immediately to prevent visual jump
       setPanelPosition({ x: targetX, y: targetY });
@@ -910,64 +940,13 @@ export const ChatBubble = ({
   // Helper to get floating position styles based on dock position
   // This ensures proper alignment when switching between minimized/expanded
   const getFloatingPositionStyle = (): React.CSSProperties => {
-    // Determine anchor point based on dock position to prevent off-screen issues
-    if (dockPosition.includes('top') && dockPosition.includes('left')) {
-      // Top-left: anchor from top-left corner
-      return {
-        top: 0,
-        left: 0,
-        transform: `translate(${panelPosition.x}px, ${panelPosition.y}px)`,
-      };
-    } else if (dockPosition.includes('top') && dockPosition.includes('right')) {
-      // Top-right: anchor from top-right corner
-      return {
-        top: 0,
-        right: 0,
-        transform: `translate(${-panelPosition.x}px, ${panelPosition.y}px)`,
-      };
-    } else if (dockPosition.includes('bottom') && dockPosition.includes('left')) {
-      // Bottom-left: anchor from bottom-left corner
-      return {
-        bottom: 0,
-        left: 0,
-        transform: `translate(${panelPosition.x}px, ${-panelPosition.y}px)`,
-      };
-    } else if (dockPosition.includes('bottom') && dockPosition.includes('right')) {
-      // Bottom-right: anchor from bottom-right corner
-      return {
-        bottom: 0,
-        right: 0,
-        transform: `translate(${-panelPosition.x}px, ${-panelPosition.y}px)`,
-      };
-    } else if (dockPosition.includes('left-center')) {
-      // Left-center: anchor from left, center vertically
-      return {
-        left: 0,
-        top: '50%',
-        transform: `translate(${panelPosition.x}px, calc(-50% + ${panelPosition.y}px))`,
-      };
-    } else if (dockPosition.includes('right-center')) {
-      // Right-center: anchor from right, center vertically
-      return {
-        right: 0,
-        top: '50%',
-        transform: `translate(${-panelPosition.x}px, calc(-50% + ${panelPosition.y}px))`,
-      };
-    } else if (dockPosition.includes('bottom-center')) {
-      // Bottom-center: anchor from bottom, center horizontally
-      return {
-        bottom: 0,
-        left: '50%',
-        transform: `translate(calc(-50% + ${panelPosition.x}px), ${-panelPosition.y}px)`,
-      };
-    } else {
-      // Fallback: center-based positioning
-      return {
-        left: '50%',
-        top: '50%',
-        transform: `translate(calc(-50% + ${panelPosition.x}px), calc(-50% + ${panelPosition.y}px))`,
-      };
-    }
+    // When floating, ALWAYS use top-left anchored positioning for consistent dragging behavior
+    // The dockPosition state should NOT affect floating position transforms
+    return {
+      top: 0,
+      left: 0,
+      transform: `translate(${panelPosition.x}px, ${panelPosition.y}px)`,
+    };
   };
 
   // Calculate dynamic size - max 80vh
@@ -1030,16 +1009,16 @@ export const ChatBubble = ({
       <>
         {(drawerOpen || swipeProgress > 0) && (
           <div
-            className="fixed inset-0 bg-black z-[99998] transition-opacity duration-300"
+            className="fixed inset-0 bg-black z-[49998] transition-opacity duration-300"
             style={{
               opacity: touchStart && swipeProgress > 0 ? (swipeProgress / 100) * 0.5 : 0.5,
-              zIndex: 999998  // Force high z-index for overlay
+              zIndex: 999998  // Super high z-index for overlay backdrop
             }}
             onClick={() => setDrawerOpen(false)}
           />
         )}
         <div
-          className={`fixed ${drawerSide === 'right' ? 'right-0' : 'left-0'} top-0 h-full z-[99999] flex flex-col ${
+          className={`fixed ${drawerSide === 'right' ? 'right-0' : 'left-0'} top-0 h-full z-[49999] flex flex-col ${
             glassClasses
           } shadow-2xl`}
           style={{
@@ -1047,7 +1026,7 @@ export const ChatBubble = ({
             transform: getDrawerTransform(),
             transition: touchStart ? 'none' : 'transform 300ms cubic-bezier(0.4, 0, 0.2, 1)',
             willChange: 'transform',
-            zIndex: 999999  // Force extremely high z-index
+            zIndex: 999999  // Super high z-index for drawer
           }}
           role="dialog"
           aria-modal="true"
@@ -1142,8 +1121,8 @@ export const ChatBubble = ({
         </div>
         {!drawerOpen && (
           <div
-            className={`fixed ${drawerSide === 'right' ? 'right-0' : 'left-0'} bottom-20 opacity-30 hover:opacity-90 transition-opacity duration-300 z-[99999] cursor-pointer`}
-            style={{ zIndex: 999999 }}  // Force extremely high z-index
+            className={`fixed ${drawerSide === 'right' ? 'right-0' : 'left-0'} bottom-20 opacity-30 hover:opacity-90 transition-opacity duration-300 z-[999999] cursor-pointer`}
+            style={{ zIndex: 999999 }}  // Super high z-index for drawer trigger
             onClick={() => setDrawerOpen(true)}
           >
             <div className={`${glassMode ? 'backdrop-blur-md bg-white/50 dark:bg-gray-800/50' : 'bg-white dark:bg-gray-800'} text-gray-700 dark:text-gray-200 px-3 py-3 ${drawerSide === 'right' ? 'rounded-l-xl' : 'rounded-r-xl'} shadow-md hover:shadow-lg flex items-center justify-center transition-all`}>
@@ -1164,15 +1143,17 @@ export const ChatBubble = ({
   }
 
   // Floating variant - compact draggable bubble
-  if (variant === 'floating') {
+  if (currentVariant === 'floating') {
     const recentMessage = messages[messages.length - 1];
 
     return (
       <div
-        className={`fixed z-[99999] ${isDragging ? 'cursor-grabbing' : 'cursor-grab'}`}
+        className={`fixed z-[999999] ${isDragging ? 'cursor-grabbing' : 'cursor-grab'}`}
         style={{
+          top: 0,
+          left: 0,
           transform: `translate(${panelPosition.x}px, ${panelPosition.y}px)`,
-          zIndex: 999999,  // Force extremely high z-index
+          zIndex: 999999,  // Super high z-index for floating variant
           ...(!isDragging && { transition: 'transform 0.3s cubic-bezier(0.4, 0, 0.2, 1)' }),
         }}
         onMouseDown={handlePanelMouseDown}
@@ -1253,7 +1234,7 @@ export const ChatBubble = ({
         className="fixed"
         style={{
           ...dockClasses.container,
-          zIndex: 2147483647,  // Maximum z-index value
+          zIndex: 999999,  // Super high z-index for chat widget
           position: 'fixed',
           ...(isExpanded ? {
             width: panelWidth,
@@ -1268,11 +1249,11 @@ export const ChatBubble = ({
         {isExpanded && isMinimized && (
           <div
             ref={panelRef}
-            className={`${isDocked ? 'absolute' : 'fixed z-[99999]'} ${glassGradient} rounded-3xl shadow-2xl border border-white/20 dark:border-white/10 ${!isDragging && 'backdrop-blur-xl'} flex flex-col overflow-hidden ${!isDragging && 'transition-all duration-300'}`}
+            className={`${isDocked ? 'absolute' : 'fixed z-[999999]'} ${glassGradient} rounded-3xl shadow-2xl border border-white/20 dark:border-white/10 ${!isDragging && 'backdrop-blur-xl'} flex flex-col overflow-hidden ${!isDragging && 'transition-all duration-300'}`}
             style={{
               width: panelWidth,
               maxWidth: '400px',
-              zIndex: 999999,  // Force extremely high z-index
+              zIndex: 999999,  // Super high z-index for minimized panel
               ...(isDocked ? {
                 ...dockClasses.panel,
                 // Only clear transform if dock position doesn't use transform
@@ -1390,11 +1371,11 @@ export const ChatBubble = ({
         {isExpanded && !isMinimized && (
           <div
             ref={panelRef}
-            className={`${isDocked ? 'absolute' : 'fixed z-[99999]'} ${glassGradient} rounded-3xl shadow-2xl border border-white/20 dark:border-white/10 ${!isDragging && 'backdrop-blur-xl'} flex flex-col overflow-hidden ${!isDragging && 'transition-all duration-300'}`}
+            className={`${isDocked ? 'absolute' : 'fixed z-[999999]'} ${glassGradient} rounded-3xl shadow-2xl border border-white/20 dark:border-white/10 ${!isDragging && 'backdrop-blur-xl'} flex flex-col overflow-hidden ${!isDragging && 'transition-all duration-300'}`}
             style={{
               width: panelWidth,
               height: dynamicHeight,
-              zIndex: 999999,  // Force extremely high z-index
+              zIndex: 999999,  // Super high z-index for expanded panel
               ...(isDocked ? {
                 ...dockClasses.panel,
                 // Only clear transform if dock position doesn't use transform
