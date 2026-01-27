@@ -35,19 +35,9 @@ export function useNavigationGraphSetup() {
       const graph = NavigationGraph.getInstance();
 
       // Create navigation handler from Next.js router
-      const handler = {
-        navigate: (path: string) => {
-          router.push(path);
-        },
-        back: () => {
-          router.back();
-        },
-        forward: () => {
-          router.forward();
-        },
-        refresh: () => {
-          router.reload();
-        },
+      // NavigationGraph expects a simple function: (path: string) => void
+      const handler = (path: string) => {
+        router.push(path);
       };
 
       // Set the handler
