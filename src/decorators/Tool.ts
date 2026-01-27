@@ -375,11 +375,10 @@ function decorateStandaloneFunction(func: Function, config: ToolConfig) {
   try {
     ToolRegistry.registerTool(providerName, uniqueFunctionId, toolMetadata);
   } catch (error) {
-    console.error('Failed to register tool:', toolMetadata.name, error);
+    DEBUG && console.error('Failed to register tool:', toolMetadata.name, error);
   }
 
-  DEBUG &&
-    console.log(`[Tool] Registered function: ${toolMetadata.name} (${toolMetadata.category})`);
+      DEBUG &&console.log(`[Tool] Registered function: ${toolMetadata.name} (${toolMetadata.category})`);
 
   // Return a wrapped function that preserves the original's return value
   // This ensures the function's return value is properly propagated to callers

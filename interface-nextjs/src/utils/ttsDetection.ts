@@ -31,7 +31,6 @@ export function detectTTSWidgets(): boolean {
   console.log('[TTS Detection] Found widget wrappers:', widgetWrappers.length);
 
   if (widgetWrappers.length > 0) {
-    console.log('[TTS Detection] First wrapper:', widgetWrappers[0]);
     console.log('[TTS Detection] Wrapper visible?', (widgetWrappers[0] as HTMLElement).offsetParent !== null);
     console.log('[TTS Detection] Has play button?', !!widgetWrappers[0].querySelector('.supernal-tts-play'));
   }
