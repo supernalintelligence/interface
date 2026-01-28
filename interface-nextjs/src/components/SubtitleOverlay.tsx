@@ -154,8 +154,10 @@ export const SubtitleOverlay: React.FC<SubtitleOverlayProps> = ({
   // Completed actions tracking
   const [completedActions, setCompletedActions] = useState<CompletedAction[]>([]);
   const [showCompletedActions, setShowCompletedActions] = useState(false);
-  const [shouldShowAiResponse, setShouldShowAiResponse] = useState(true);
+  const [shouldShowAiResponse, setShouldShowAiResponse] = useState(false); // Start false; only show after user sends a message
   const lastUserMessageRef = useRef<string>('');
+  const lastShownAiMessageRef = useRef<string>(''); // Track which AI message we last showed
+  const justExpandedViaSlashRef = useRef(false); // Guard against '/' insertion on expand
 
   // Drag state (desktop only)
   const [isDragging, setIsDragging] = useState(false);
@@ -217,13 +219,33 @@ export const SubtitleOverlay: React.FC<SubtitleOverlayProps> = ({
       return;
     }
 
+    // Check if this message was already shown (persisted in localStorage)
+    const messageKey = lastAiMsg.text?.substring(0, 100) || '';
+    const shownMessages = JSON.parse(localStorage.getItem('subtitle-shown-messages') || '[]') as string[];
+    if (shownMessages.includes(messageKey)) {
+      setMessageOpacity(0);
+      setShouldShowAiResponse(false);
+      return;
+    }
+
+    // Track this message as the one being shown
+    lastShownAiMessageRef.current = messageKey;
+
     // Reset message opacity when new message arrives
     setMessageOpacity(1.0);
 
     // Start fade-out timer (8 seconds)
     messageFadeTimerRef.current = setTimeout(() => {
       setMessageOpacity(0);
-      setShouldShowAiResponse(false); // Don't show next AI response until user sends another message
+      setShouldShowAiResponse(false);
+      // Persist shown message to localStorage so it doesn't re-show on refresh
+      try {
+        const shown = JSON.parse(localStorage.getItem('subtitle-shown-messages') || '[]') as string[];
+        shown.push(messageKey);
+        // Keep only last 50 messages to prevent unbounded growth
+        const trimmed = shown.slice(-50);
+        localStorage.setItem('subtitle-shown-messages', JSON.stringify(trimmed));
+      } catch { /* ignore storage errors */ }
     }, 8000);
 
     return () => {
@@ -367,6 +389,8 @@ export const SubtitleOverlay: React.FC<SubtitleOverlayProps> = ({
       if (e.key === '/' && expansionState === 'collapsed' &&
           !(e.target instanceof HTMLInputElement || e.target instanceof HTMLTextAreaElement)) {
         e.preventDefault();
+        e.stopImmediatePropagation();
+        justExpandedViaSlashRef.current = true;
         setExpansionState('expanded');
         // Focus will be handled by the auto-focus effect below
       }
@@ -412,6 +436,14 @@ export const SubtitleOverlay: React.FC<SubtitleOverlayProps> = ({
       // Small delay to ensure DOM is ready
       setTimeout(() => {
         inputRef.current?.focus();
+        // If expanded via '/' key, clear any stray '/' that may have been inserted
+        if (justExpandedViaSlashRef.current) {
+          justExpandedViaSlashRef.current = false;
+          if (inputRef.current && inputRef.current.value.startsWith('/')) {
+            const cleaned = inputRef.current.value.replace(/^\/+/, '');
+            onInputChange(cleaned);
+          }
+        }
       }, 100);
     }
   }, [expansionState]);
@@ -574,13 +606,6 @@ export const SubtitleOverlay: React.FC<SubtitleOverlayProps> = ({
       } else if (expansionState === 'expanded') {
         setExpansionState('collapsed'); // Collapse overlay
       }
-    }
-  };
-
-  // Handle tapping on placeholder suggestion
-  const handleSuggestionTap = () => {
-    if (suggestions.length > 0 && !inputValue.trim()) {
-      onInputChange(suggestions[currentSuggestionIndex].text);
     }
   };
 
@@ -935,7 +960,7 @@ export const SubtitleOverlay: React.FC<SubtitleOverlayProps> = ({
               : '1px solid rgba(0, 0, 0, 0.1)'
           }}
         >
-          {/* Text input field with swipeable placeholder suggestions */}
+          {/* Text input field */}
         <input
           ref={inputRef}
           type="text"
@@ -945,7 +970,6 @@ export const SubtitleOverlay: React.FC<SubtitleOverlayProps> = ({
           onTouchStart={handleInputTouchStart}
           onTouchMove={handleInputTouchMove}
           onTouchEnd={handleInputTouchEnd}
-          onClick={handleSuggestionTap}
           placeholder={config.placeholder || 'Type or speak...'}
           className="flex-1 px-3 py-2 text-sm bg-transparent focus:outline-none placeholder:opacity-60"
           style={{

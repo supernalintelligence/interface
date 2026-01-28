@@ -21,6 +21,7 @@ export const InputField: React.FC<InputFieldProps> = ({
   isListening = false,
   onMicClick,
   modKey = 'Ctrl',
+  onKeyDown,
 }) => (
   <form onSubmit={onSubmit} className={compact ? 'flex space-x-2' : THEME_CLASSES.bg.inputForm + ' ' + 'bg-transparent'}>
     <div className={compact ? 'flex space-x-2 flex-1' : 'relative'}>
@@ -29,6 +30,7 @@ export const InputField: React.FC<InputFieldProps> = ({
         type="text"
         value={inputValue}
         onChange={(e) => onInputChange(e.target.value)}
+        onKeyDown={onKeyDown}
         placeholder={placeholder}
         className={compact
           ? `flex-1 px-3 py-2 text-xs border rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all ${glassClasses}`

@@ -87,6 +87,7 @@ export interface InputFieldProps {
   isListening?: boolean;
   onMicClick?: () => void;
   modKey?: string; // 'Cmd' or 'Ctrl' for tooltip
+  onKeyDown?: (e: React.KeyboardEvent<HTMLInputElement>) => void;
 }
 
 export interface AvatarProps {

@@ -29,6 +29,7 @@ import {
 } from './constants';
 import { InputField } from './InputField';
 import { Avatar } from './Avatar';
+import { useSlashCommand, SlashCommandPopup } from '../SlashCommand';
 import type {
   Position,
   Variant,
@@ -89,6 +90,12 @@ export const ChatBubble = ({
   // Initialize voice hooks
   const { speak: speakTTS, stop: stopTTS, isPlaying: isTTSPlaying } = useTTS();
   const { startListening, stopListening, transcript: sttTranscript, isListening, resetTranscript } = useSTT();
+
+  // Slash command autocomplete (type "/" in input to trigger)
+  const slashCommand = useSlashCommand(inputValue, (command) => {
+    setInputValue(command);
+    setTimeout(() => inputRef.current?.focus(), 0);
+  });
 
   // Drawer state variables
   const [displayMode, setDisplayMode] = useState<DisplayMode>(propDisplayMode);
@@ -415,8 +422,9 @@ export const ChatBubble = ({
       return displayMode as Variant;
     }
 
-    // Auto mode: drawer on mobile, full on desktop
-    return isMobile ? 'drawer' : variant;
+    // Auto mode: convert 'full' to 'drawer' on mobile for better UX.
+    // Other explicit variants (subtitle, floating, drawer) are respected as-is.
+    return (isMobile && variant === 'full') ? 'drawer' : variant;
   }, [displayMode, isMobile, variant]);
 
   // Reset displayMode to 'auto' when variant prop changes externally
@@ -1163,20 +1171,31 @@ export const ChatBubble = ({
             ))}
             <div ref={messagesEndRef} />
           </div>
-          <InputField
-            inputValue={inputValue}
-            onInputChange={setInputValue}
-            onSubmit={handleSend}
-            placeholder={inputHints[currentHintIndex]}
-            glassClasses=""
-            theme={theme}
-            inputRef={inputRef}
-            sendButtonLabel={config.sendButtonLabel}
-            voiceEnabled={voiceEnabled}
-            isListening={isListening}
-            onMicClick={handleMicClick}
-            modKey={isMac ? 'Cmd' : 'Ctrl'}
-          />
+          <div style={{ position: 'relative' }}>
+            {slashCommand.isOpen && (
+              <SlashCommandPopup
+                tools={slashCommand.filteredTools}
+                selectedIndex={slashCommand.selectedIndex}
+                onSelect={slashCommand.selectTool}
+                onClose={() => setInputValue('')}
+              />
+            )}
+            <InputField
+              inputValue={inputValue}
+              onInputChange={setInputValue}
+              onSubmit={handleSend}
+              placeholder={inputHints[currentHintIndex]}
+              glassClasses=""
+              theme={theme}
+              inputRef={inputRef}
+              sendButtonLabel={config.sendButtonLabel}
+              voiceEnabled={voiceEnabled}
+              isListening={isListening}
+              onMicClick={handleMicClick}
+              modKey={isMac ? 'Cmd' : 'Ctrl'}
+              onKeyDown={slashCommand.onKeyDown}
+            />
+          </div>
         </div>
         {!drawerOpen && (
           <div
@@ -1269,17 +1288,28 @@ export const ChatBubble = ({
           )}
 
           {/* Compact input */}
-          <InputField
-            compact
-            inputValue={inputValue}
-            onInputChange={setInputValue}
-            onSubmit={handleSend}
-            placeholder={inputHints[currentHintIndex]}
-            glassClasses=""
-            theme={theme}
-            sendButtonLabel={config.sendButtonLabel}
-            modKey={isMac ? 'Cmd' : 'Ctrl'}
-          />
+          <div style={{ position: 'relative' }}>
+            {slashCommand.isOpen && (
+              <SlashCommandPopup
+                tools={slashCommand.filteredTools}
+                selectedIndex={slashCommand.selectedIndex}
+                onSelect={slashCommand.selectTool}
+                onClose={() => setInputValue('')}
+              />
+            )}
+            <InputField
+              compact
+              inputValue={inputValue}
+              onInputChange={setInputValue}
+              onSubmit={handleSend}
+              placeholder={inputHints[currentHintIndex]}
+              glassClasses=""
+              theme={theme}
+              sendButtonLabel={config.sendButtonLabel}
+              modKey={isMac ? 'Cmd' : 'Ctrl'}
+              onKeyDown={slashCommand.onKeyDown}
+            />
+          </div>
         </div>
       </div>
     );
@@ -1411,17 +1441,28 @@ export const ChatBubble = ({
               })()}
 
               {/* Shared input component */}
-              <InputField
-                compact
-                inputValue={inputValue}
-                onInputChange={setInputValue}
-                onSubmit={handleSend}
-                placeholder={inputHints[currentHintIndex]}
-                glassClasses=""
-                theme={theme}
-                sendButtonLabel={config.sendButtonLabel}
-                modKey={isMac ? 'Cmd' : 'Ctrl'}
-              />
+              <div style={{ position: 'relative' }}>
+                {slashCommand.isOpen && (
+                  <SlashCommandPopup
+                    tools={slashCommand.filteredTools}
+                    selectedIndex={slashCommand.selectedIndex}
+                    onSelect={slashCommand.selectTool}
+                    onClose={() => setInputValue('')}
+                  />
+                )}
+                <InputField
+                  compact
+                  inputValue={inputValue}
+                  onInputChange={setInputValue}
+                  onSubmit={handleSend}
+                  placeholder={inputHints[currentHintIndex]}
+                  glassClasses=""
+                  theme={theme}
+                  sendButtonLabel={config.sendButtonLabel}
+                  modKey={isMac ? 'Cmd' : 'Ctrl'}
+                  onKeyDown={slashCommand.onKeyDown}
+                />
+              </div>
             </div>
           </div>
         )}
@@ -1778,20 +1819,31 @@ export const ChatBubble = ({
             </div>
 
             {/* Input */}
-            <InputField
-              inputValue={inputValue}
-              onInputChange={setInputValue}
-              onSubmit={handleSend}
-              placeholder={inputHints[currentHintIndex]}
-              glassClasses=""
-              theme={theme}
-              inputRef={inputRef}
-              sendButtonLabel={config.sendButtonLabel}
-              voiceEnabled={voiceEnabled}
-              isListening={isListening}
-              onMicClick={handleMicClick}
-              modKey={isMac ? 'Cmd' : 'Ctrl'}
-            />
+            <div style={{ position: 'relative' }}>
+              {slashCommand.isOpen && (
+                <SlashCommandPopup
+                  tools={slashCommand.filteredTools}
+                  selectedIndex={slashCommand.selectedIndex}
+                  onSelect={slashCommand.selectTool}
+                  onClose={() => setInputValue('')}
+                />
+              )}
+              <InputField
+                inputValue={inputValue}
+                onInputChange={setInputValue}
+                onSubmit={handleSend}
+                placeholder={inputHints[currentHintIndex]}
+                glassClasses=""
+                theme={theme}
+                inputRef={inputRef}
+                sendButtonLabel={config.sendButtonLabel}
+                voiceEnabled={voiceEnabled}
+                isListening={isListening}
+                onMicClick={handleMicClick}
+                modKey={isMac ? 'Cmd' : 'Ctrl'}
+                onKeyDown={slashCommand.onKeyDown}
+              />
+            </div>
           </div>
         )}
 

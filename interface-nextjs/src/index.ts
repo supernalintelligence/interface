@@ -20,6 +20,7 @@ export { SubtitleOverlay } from './components/SubtitleOverlay';
 export { ChatBubbleSettingsModal, type ChatBubbleSettings } from './components/ChatBubbleSettingsModal';
 export { ChatInputProvider, useChatInput } from './contexts/ChatInputContext';
 export { AutoNavigationContext } from './components/AutoNavigationContext';
+export { ToolMenuPopup, ToolMenuPopupTrigger, useToolMenu, type ToolMenuCategory, type UseToolMenuReturn } from './components/ToolMenuPopup';
 
 // Named contracts (ComponentNames pattern)
 export {

@@ -8,6 +8,7 @@ import { AutoNavigationContext } from './AutoNavigationContext';
 import { ExposureCollector, ToolRegistry } from '@supernal/interface/browser';
 import { useLocationTracking } from '../hooks/useLocationTracking';
 import { useNavigationGraphSetup } from '../hooks/useNavigationGraphSetup';
+import { ToolMenuPopupTrigger } from './ToolMenuPopup';
 
 // Note: Provider auto-initialization will be added in a future version
 // when AllProviders is available from @supernal/interface/browser
@@ -185,6 +186,7 @@ export function SupernalProvider({
             drawerSide={drawerSide}
           />
         ) : null}
+        {!disabled && <ToolMenuPopupTrigger />}
       </ChatProvider>
     </ChatInputProvider>
   );
