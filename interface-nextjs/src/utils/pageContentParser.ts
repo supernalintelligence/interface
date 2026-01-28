@@ -16,10 +16,10 @@ export interface Suggestion {
  * Generic suggestions that work on any page
  */
 const GENERIC_SUGGESTIONS: Suggestion[] = [
-  { text: "Try: navigate to...", type: 'generic' },
-  { text: "Ask: what can I do here?", type: 'generic' },
-  { text: "Show me around", type: 'generic' },
-  { text: "What's on this page?", type: 'generic' },
+  { text: "navigate to...", type: 'generic' },
+  { text: "what can I do here?", type: 'generic' },
+  { text: "show me around", type: 'generic' },
+  { text: "what's on this page?", type: 'generic' },
 ];
 
 /**
@@ -40,7 +40,7 @@ function extractPageSpecificSuggestions(): Suggestion[] {
       const text = heading.textContent?.trim();
       if (text && text.length > 0 && text.length < 50) {
         suggestions.push({
-          text: `Ask about: ${text}`,
+          text: text.toLowerCase(),
           type: 'page-specific'
         });
       }

@@ -127,7 +127,14 @@ export const SubtitleOverlay: React.FC<SubtitleOverlayProps> = ({
   const [lastInputMethod, setLastInputMethod] = useState<'voice' | 'text' | null>(null);
   const [isMobile, setIsMobile] = useState(false);
   const [messageOpacity, setMessageOpacity] = useState(1.0); // AI message opacity
-  const [expansionState, setExpansionState] = useState<ExpansionState>('collapsed');
+  const [expansionState, setExpansionState] = useState<ExpansionState>(() => {
+    // Restore from localStorage on initial load
+    if (typeof window !== 'undefined') {
+      const saved = localStorage.getItem('subtitle-overlay-expanded');
+      return saved === 'true' ? 'expanded' : 'collapsed';
+    }
+    return 'collapsed';
+  });
   const [touchStartY, setTouchStartY] = useState<number | null>(null);
   const lastInputTimeRef = useRef<number>(Date.now());
   const autoFadeTimerRef = useRef<NodeJS.Timeout | null>(null);
@@ -155,6 +162,7 @@ export const SubtitleOverlay: React.FC<SubtitleOverlayProps> = ({
   const [position, setPosition] = useState({ x: 0, y: 0 });
   const [dragStart, setDragStart] = useState({ x: 0, y: 0 });
   const dragRef = useRef<HTMLDivElement>(null);
+  const dragDistanceRef = useRef(0); // Track total drag distance to distinguish from clicks
 
   // Double-escape detection for variant cycling (to switch back to full mode)
   const lastEscapeTimeRef = useRef<number>(0);
@@ -331,6 +339,16 @@ export const SubtitleOverlay: React.FC<SubtitleOverlayProps> = ({
         const now = Date.now();
         const timeSinceLastEscape = now - lastEscapeTimeRef.current;
 
+        // Single escape when EXPANDED: collapse the overlay
+        if (expansionState === 'expanded') {
+          setExpansionState('collapsed');
+          // Stop listening if active
+          if (isListening && onMicClick) {
+            onMicClick();
+          }
+          return;
+        }
+
         // Double-escape detected when overlay is COLLAPSED
         if (expansionState === 'collapsed' && timeSinceLastEscape < DOUBLE_ESCAPE_THRESHOLD_MS) {
           console.log('[SubtitleOverlay] Double-escape detected - switching to full mode');
@@ -381,6 +399,13 @@ export const SubtitleOverlay: React.FC<SubtitleOverlayProps> = ({
     return () => window.removeEventListener('keydown', handleGlobalKeyDown);
   }, [expansionState, onSwitchToFullMode, voiceEnabled, onMicClick]);
 
+  // Persist expansion state to localStorage
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      localStorage.setItem('subtitle-overlay-expanded', expansionState === 'expanded' ? 'true' : 'false');
+    }
+  }, [expansionState]);
+
   // Auto-focus input when expanding
   useEffect(() => {
     if (expansionState === 'expanded' && inputRef.current) {
@@ -401,11 +426,18 @@ export const SubtitleOverlay: React.FC<SubtitleOverlayProps> = ({
       const deltaX = e.clientX - dragStart.x;
       const deltaY = e.clientY - dragStart.y;
 
+      // Track total drag distance
+      dragDistanceRef.current = Math.sqrt(deltaX * deltaX + deltaY * deltaY);
+
       setPosition({ x: deltaX, y: deltaY });
     };
 
     const handleMouseUp = () => {
       setIsDragging(false);
+      // Reset drag distance after a short delay to allow click handlers to check it
+      setTimeout(() => {
+        dragDistanceRef.current = 0;
+      }, 100);
     };
 
     if (isDragging) {
@@ -457,14 +489,14 @@ export const SubtitleOverlay: React.FC<SubtitleOverlayProps> = ({
 
   // Handle icon click - different behavior based on expansion state
   const handleIconClick = () => {
+    // Ignore click if we just finished dragging (drag distance > 5px)
+    if (dragDistanceRef.current > 5) {
+      return;
+    }
+
     if (expansionState === 'collapsed') {
-      // Collapsed: expand the overlay AND start listening
+      // Collapsed: just expand the overlay (don't auto-start listening)
       setExpansionState('expanded');
-      if (!isListening && voiceEnabled) {
-        onMicClick(); // Start listening
-        setLastInputMethod('voice');
-        lastInputTimeRef.current = Date.now();
-      }
     } else {
       // Expanded: toggle voice listening
       onMicClick();
@@ -639,9 +671,10 @@ export const SubtitleOverlay: React.FC<SubtitleOverlayProps> = ({
   const lastAiMessage = messages.filter(m => m.type === 'ai').slice(-1)[0];
 
   // Determine icon based on state
+  // Note: When expanded, icon stays "</" regardless of listening state
+  // The red background styling indicates listening mode, not the icon
   const getIcon = (): string => {
     if (expansionState === 'collapsed') return '@/';
-    if (isListening) return '~/';
     return '</';
   };
 
@@ -745,26 +778,43 @@ export const SubtitleOverlay: React.FC<SubtitleOverlayProps> = ({
   return (
     <div
       ref={dragRef}
-      className={`fixed transition-all duration-300 ease-in-out ${isDragging ? 'cursor-grabbing' : 'cursor-grab'}`}
+      className={`fixed transition-all duration-300 ease-in-out ${!isMobile && (isDragging ? 'cursor-grabbing' : '')}`}
       style={{
         opacity,
-        bottom: isMobile ? 'env(safe-area-inset-bottom, 0px)' : `${position.y}px`,
-        left: isMobile ? '0' : `calc(50% - 325px + ${position.x}px)`,
+        bottom: isMobile ? 'env(safe-area-inset-bottom, 0px)' : '0px',
+        left: isMobile ? '0' : '50%',
         right: isMobile ? '0' : 'auto',
         zIndex: 55,
+        width: isMobile ? '100vw' : '650px',
         maxWidth: isMobile ? '100vw' : '650px',
         padding: isMobile ? '12px' : '16px',
-        transform: isMobile ? 'none' : `translate(${position.x}px, ${position.y}px)`,
-        pointerEvents: 'auto'
+        transform: isMobile ? 'none' : `translate(calc(-50% + ${position.x}px), ${position.y}px)`,
+        pointerEvents: 'auto',
+        userSelect: isDragging ? 'none' : 'auto'
       }}
       onTouchStart={handleTouchStart}
       onTouchMove={handleTouchMove}
       onTouchEnd={handleTouchEnd}
-      onMouseDown={handleMouseDown}
+      onMouseDown={!isMobile ? handleMouseDown : undefined}
       data-testid="subtitle-overlay"
       role="complementary"
       aria-label="Chat overlay"
     >
+      {/* Drag handle indicator (desktop only) */}
+      {!isMobile && (
+        <div
+          className="drag-handle absolute -top-3 left-1/2 transform -translate-x-1/2 cursor-grab active:cursor-grabbing opacity-40 hover:opacity-70 transition-opacity"
+          style={{
+            width: '40px',
+            height: '6px',
+            background: theme === 'dark' ? 'rgba(255, 255, 255, 0.3)' : 'rgba(0, 0, 0, 0.3)',
+            borderRadius: '3px'
+          }}
+          aria-label="Drag to reposition"
+          data-testid="subtitle-overlay-drag-handle"
+        />
+      )}
+
       {/* Completed Actions List (collapsible) */}
       {showCompletedActions && completedActions.length > 0 && (
         <div
@@ -778,6 +828,7 @@ export const SubtitleOverlay: React.FC<SubtitleOverlayProps> = ({
           }}
           role="log"
           aria-label="Completed actions"
+          data-testid="completed-actions-list"
         >
           <div className="font-medium opacity-70 mb-2 flex items-center justify-between">
             <span>Completed Actions</span>
@@ -814,50 +865,40 @@ export const SubtitleOverlay: React.FC<SubtitleOverlayProps> = ({
           }}
           role="status"
           aria-live="polite"
+          data-testid="subtitle-overlay-ai-message"
         >
           <span className="font-medium opacity-70">AI:</span> {lastAiMessage.text}
         </div>
       )}
 
-      {/* Input container with adaptive glassmorphism */}
-      <div className="flex items-center space-x-2">
-        {/* Completed Actions Toggle (chevron) */}
-        {completedActions.length > 0 && (
+      {/* Completed Actions Toggle (centered at top) */}
+      {completedActions.length > 0 && !showCompletedActions && (
+        <div className="flex justify-center mb-1">
           <button
             type="button"
-            onClick={() => setShowCompletedActions(!showCompletedActions)}
-            className={`relative p-2 rounded-full transition-all flex-shrink-0 ${
-              theme === 'dark' ? 'text-gray-400 hover:text-green-400' : 'text-gray-600 hover:text-green-600'
+            onClick={() => setShowCompletedActions(true)}
+            className={`px-3 py-1 rounded-full transition-all text-xs flex items-center gap-1 ${
+              theme === 'dark' ? 'text-gray-300 hover:text-green-400' : 'text-gray-600 hover:text-green-600'
             }`}
             style={{
               background: theme === 'dark'
-                ? 'rgba(55, 65, 81, 0.5)'
-                : 'rgba(243, 244, 246, 0.5)',
-              backdropFilter: 'blur(8px)',
-              WebkitBackdropFilter: 'blur(8px)',
-              border: theme === 'dark'
-                ? '1px solid rgba(255, 255, 255, 0.1)'
-                : '1px solid rgba(0, 0, 0, 0.08)',
-              transform: showCompletedActions ? 'rotate(180deg)' : 'rotate(0deg)'
+                ? 'rgba(55, 65, 81, 0.3)'
+                : 'rgba(243, 244, 246, 0.3)',
+              backdropFilter: 'blur(4px)',
+              WebkitBackdropFilter: 'blur(4px)'
             }}
-            title={showCompletedActions ? 'Hide completed actions' : `Show ${completedActions.length} completed actions`}
+            title={`Show ${completedActions.length} completed actions`}
             data-testid="completed-actions-toggle"
-            aria-label={showCompletedActions ? 'Hide completed actions' : `Show ${completedActions.length} completed actions`}
+            aria-label={`Show ${completedActions.length} completed actions`}
           >
-            <span className="text-lg font-bold select-none" aria-hidden="true">^</span>
-            {/* Badge showing count */}
-            <span
-              className="absolute -top-1 -right-1 bg-green-500 text-white text-xs rounded-full w-5 h-5 flex items-center justify-center font-bold"
-              style={{
-                fontSize: '10px',
-                transform: showCompletedActions ? 'rotate(-180deg)' : 'rotate(0deg)'
-              }}
-            >
-              {completedActions.length}
-            </span>
+            <span className="font-bold">^</span>
+            <span>{completedActions.length} actions</span>
           </button>
-        )}
+        </div>
+      )}
 
+      {/* Input container with adaptive glassmorphism */}
+      <div className="flex items-center space-x-2">
         {/* TTS Playlist button (left side, visible in expanded mode) */}
         {hasTTSWidgets && (
           <button
@@ -905,11 +946,7 @@ export const SubtitleOverlay: React.FC<SubtitleOverlayProps> = ({
           onTouchMove={handleInputTouchMove}
           onTouchEnd={handleInputTouchEnd}
           onClick={handleSuggestionTap}
-          placeholder={
-            suggestions.length > 0 && !inputValue.trim()
-              ? `${suggestions[currentSuggestionIndex].text} (tap to use, swipe ↕ to change)`
-              : config.placeholder || 'Type or speak...'
-          }
+          placeholder={config.placeholder || 'Type or speak...'}
           className="flex-1 px-3 py-2 text-sm bg-transparent focus:outline-none placeholder:opacity-60"
           style={{
             color: effectiveGlassTheme === 'dark'
@@ -922,7 +959,7 @@ export const SubtitleOverlay: React.FC<SubtitleOverlayProps> = ({
 
         {/* Waveform during listening - inline with input */}
         {isListening && (
-          <div className="flex space-x-1 items-center" aria-hidden="true">
+          <div className="flex space-x-1 items-center" aria-hidden="true" data-testid="subtitle-overlay-waveform">
             {[...Array(5)].map((_, i) => (
               <div
                 key={i}
@@ -936,8 +973,8 @@ export const SubtitleOverlay: React.FC<SubtitleOverlayProps> = ({
           </div>
         )}
 
-        {/* Send button - only when typing */}
-        {inputValue.trim() && !isListening && (
+        {/* Send button - show when there's text to send */}
+        {inputValue.trim() && (
           <button
             type="button"
             onClick={handleSend}
