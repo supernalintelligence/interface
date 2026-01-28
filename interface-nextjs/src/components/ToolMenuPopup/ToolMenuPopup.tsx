@@ -192,9 +192,9 @@ export const ToolMenuPopup: React.FC<ToolMenuPopupProps> = ({
               {/* Tool list */}
               {!isCollapsed && (
                 <div style={{ paddingLeft: 8, paddingRight: 8 }}>
-                  {category.tools.map((tool) => (
+                  {category.tools.map((tool, idx) => (
                     <button
-                      key={tool.toolId}
+                      key={tool.toolId || `${category.key}-${idx}`}
                       onClick={() => handleToolClick(tool)}
                       style={{
                         width: '100%',

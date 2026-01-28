@@ -155,6 +155,8 @@ export const SubtitleOverlay: React.FC<SubtitleOverlayProps> = ({
   const [completedActions, setCompletedActions] = useState<CompletedAction[]>([]);
   const [showCompletedActions, setShowCompletedActions] = useState(false);
   const [shouldShowAiResponse, setShouldShowAiResponse] = useState(false); // Start false; only show after user sends a message
+  const [latestActionOpacity, setLatestActionOpacity] = useState(0); // Opacity for the most recent action (auto-fades)
+  const latestActionFadeRef = useRef<NodeJS.Timeout | null>(null);
   const lastUserMessageRef = useRef<string>('');
   const lastShownAiMessageRef = useRef<string>(''); // Track which AI message we last showed
   const justExpandedViaSlashRef = useRef(false); // Guard against '/' insertion on expand
@@ -234,7 +236,7 @@ export const SubtitleOverlay: React.FC<SubtitleOverlayProps> = ({
     // Reset message opacity when new message arrives
     setMessageOpacity(1.0);
 
-    // Start fade-out timer (8 seconds)
+    // Start fade-out timer (3 seconds)
     messageFadeTimerRef.current = setTimeout(() => {
       setMessageOpacity(0);
       setShouldShowAiResponse(false);
@@ -246,7 +248,7 @@ export const SubtitleOverlay: React.FC<SubtitleOverlayProps> = ({
         const trimmed = shown.slice(-50);
         localStorage.setItem('subtitle-shown-messages', JSON.stringify(trimmed));
       } catch { /* ignore storage errors */ }
-    }, 8000);
+    }, 3000);
 
     return () => {
       if (messageFadeTimerRef.current) {
@@ -277,6 +279,7 @@ export const SubtitleOverlay: React.FC<SubtitleOverlayProps> = ({
         description: sttTranscript.substring(0, 50) + (sttTranscript.length > 50 ? '...' : '')
       };
       setCompletedActions(prev => [...prev, newAction]);
+      triggerActionFade();
     }
   }, [sttTranscript, voiceEnabled, resetTranscript, onSendMessage]);
 
@@ -559,6 +562,20 @@ export const SubtitleOverlay: React.FC<SubtitleOverlayProps> = ({
     setTouchStartY(null);
   };
 
+  // Trigger auto-fade for the latest completed action
+  const triggerActionFade = () => {
+    // Clear any existing fade timer
+    if (latestActionFadeRef.current) {
+      clearTimeout(latestActionFadeRef.current);
+    }
+    // Show the latest action
+    setLatestActionOpacity(1);
+    // Start fade after 2.5 seconds
+    latestActionFadeRef.current = setTimeout(() => {
+      setLatestActionOpacity(0);
+    }, 2500);
+  };
+
   // Handle send message
   const handleSend = () => {
     if (inputValue.trim()) {
@@ -579,6 +596,7 @@ export const SubtitleOverlay: React.FC<SubtitleOverlayProps> = ({
         description: inputValue.substring(0, 50) + (inputValue.length > 50 ? '...' : '')
       };
       setCompletedActions(prev => [...prev, newAction]);
+      triggerActionFade();
     }
   };
 
@@ -840,10 +858,10 @@ export const SubtitleOverlay: React.FC<SubtitleOverlayProps> = ({
         />
       )}
 
-      {/* Completed Actions List (collapsible) */}
+      {/* === Expanded history panel === */}
       {showCompletedActions && completedActions.length > 0 && (
         <div
-          className={`mb-2 px-4 py-3 text-xs rounded-2xl ${
+          className={`mb-2 px-4 py-3 text-xs rounded-2xl animate-popup-in ${
             theme === 'dark' ? 'text-white' : 'text-gray-900'
           }`}
           style={{
@@ -862,7 +880,7 @@ export const SubtitleOverlay: React.FC<SubtitleOverlayProps> = ({
               className="opacity-50 hover:opacity-100"
               aria-label="Close completed actions"
             >
-              ×
+              &times;
             </button>
           </div>
           <div className="space-y-1">
@@ -876,48 +894,70 @@ export const SubtitleOverlay: React.FC<SubtitleOverlayProps> = ({
         </div>
       )}
 
-      {/* AI message in separate glass bubble with enhanced styling */}
-      {lastAiMessage && messageOpacity > 0 && (
+      {/* === Fading action + AI response block (auto-fades) === */}
+      {!showCompletedActions && (latestActionOpacity > 0 || (lastAiMessage && messageOpacity > 0)) && (
         <div
-          className={`mb-2 px-4 py-2 text-sm rounded-2xl transition-opacity duration-1000 ease-out animate-popup-in ${
+          className={`mb-2 px-4 py-2 text-xs rounded-2xl ${
             theme === 'dark' ? 'text-white' : 'text-gray-900'
           }`}
           style={{
-            opacity: messageOpacity,
-            pointerEvents: messageOpacity === 0 ? 'none' : 'auto',
             ...(theme === 'dark' ? GLASS_RESPONSE_BUBBLE.dark : GLASS_RESPONSE_BUBBLE.light),
-            animation: messageOpacity === 0 ? 'popupFadeOut 0.5s forwards' : undefined
+            opacity: Math.max(latestActionOpacity, messageOpacity),
+            transition: 'opacity 0.6s ease-out',
+            pointerEvents: (latestActionOpacity === 0 && messageOpacity === 0) ? 'none' : 'auto',
           }}
           role="status"
           aria-live="polite"
           data-testid="subtitle-overlay-ai-message"
         >
-          <span className="font-medium opacity-70">AI:</span> {lastAiMessage.text}
+          {/* Latest action line */}
+          {latestActionOpacity > 0 && completedActions.length > 0 && (() => {
+            const latest = completedActions[completedActions.length - 1];
+            return (
+              <div
+                className="border-l-2 border-green-500 pl-2 mb-1"
+                style={{ opacity: latestActionOpacity, transition: 'opacity 0.6s ease-out' }}
+              >
+                <span className="font-medium">{latest.tool}</span>
+                <span className="opacity-70 ml-1">{latest.description}</span>
+              </div>
+            );
+          })()}
+          {/* AI response line */}
+          {lastAiMessage && messageOpacity > 0 && (
+            <div style={{ opacity: messageOpacity, transition: 'opacity 0.8s ease-out' }}>
+              <span className="font-medium opacity-70">AI:</span>{' '}
+              <span className="text-sm">{lastAiMessage.text}</span>
+            </div>
+          )}
         </div>
       )}
 
-      {/* Completed Actions Toggle (centered at top) */}
+      {/* === Subtle "look up" arrow to expand history === */}
       {completedActions.length > 0 && !showCompletedActions && (
         <div className="flex justify-center mb-1">
           <button
             type="button"
             onClick={() => setShowCompletedActions(true)}
-            className={`px-3 py-1 rounded-full transition-all text-xs flex items-center gap-1 ${
-              theme === 'dark' ? 'text-gray-300 hover:text-green-400' : 'text-gray-600 hover:text-green-600'
+            className={`transition-all flex items-center justify-center ${
+              theme === 'dark'
+                ? 'text-gray-500 hover:text-gray-300'
+                : 'text-gray-400 hover:text-gray-600'
             }`}
             style={{
-              background: theme === 'dark'
-                ? 'rgba(55, 65, 81, 0.3)'
-                : 'rgba(243, 244, 246, 0.3)',
-              backdropFilter: 'blur(4px)',
-              WebkitBackdropFilter: 'blur(4px)'
+              width: 28,
+              height: 14,
+              fontSize: 10,
+              lineHeight: 1,
+              opacity: 0.5,
             }}
-            title={`Show ${completedActions.length} completed actions`}
+            title={`${completedActions.length} previous actions`}
             data-testid="completed-actions-toggle"
             aria-label={`Show ${completedActions.length} completed actions`}
           >
-            <span className="font-bold">^</span>
-            <span>{completedActions.length} actions</span>
+            <svg width="16" height="8" viewBox="0 0 16 8" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+              <path d="M2 6L8 2L14 6" />
+            </svg>
           </button>
         </div>
       )}

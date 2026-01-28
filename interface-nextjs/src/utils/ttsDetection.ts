@@ -19,39 +19,61 @@ export interface TTSWidgetInstance {
  */
 export function waitForTTSReady(timeout = 5000): Promise<boolean> {
   return new Promise((resolve) => {
-    // Check if already initialized
-    if (typeof window !== 'undefined' && (window as any).SupernalTTSStatus?.initialized) {
+    if (typeof window === 'undefined') {
+      resolve(false);
+      return;
+    }
+
+    // Check if already initialized via any known signal
+    if (
+      (window as any).SupernalTTSStatus?.initialized ||
+      (window as any).SupernalTTSInstance ||
+      document.querySelector('.supernal-tts-play')
+    ) {
       console.log('[TTS Detection] Widget already initialized');
       resolve(true);
       return;
     }
 
-    // Listen for ready event
+    let resolved = false;
+    const done = (result: boolean) => {
+      if (resolved) return;
+      resolved = true;
+      cleanup();
+      resolve(result);
+    };
+
+    // Listen for ready event (if dispatched)
     const handler = () => {
       console.log('[TTS Detection] Widget ready event received');
-      resolve(true);
-      cleanup();
+      done(true);
     };
+
+    // Poll for widget presence (the library sets SupernalTTSInstance
+    // and injects .supernal-tts-play buttons, but may not dispatch events)
+    const pollId = setInterval(() => {
+      if (
+        (window as any).SupernalTTSStatus?.initialized ||
+        (window as any).SupernalTTSInstance ||
+        document.querySelector('.supernal-tts-play')
+      ) {
+        console.log('[TTS Detection] Widget detected via polling');
+        done(true);
+      }
+    }, 500);
 
     const timeoutId = setTimeout(() => {
       console.warn('[TTS Detection] Timeout waiting for widget initialization');
-      resolve(false);
-      cleanup();
+      done(false);
     }, timeout);
 
     const cleanup = () => {
-      if (typeof window !== 'undefined') {
-        window.removeEventListener('supernal-tts-ready', handler);
-      }
+      window.removeEventListener('supernal-tts-ready', handler);
+      clearInterval(pollId);
       clearTimeout(timeoutId);
     };
 
-    if (typeof window !== 'undefined') {
-      window.addEventListener('supernal-tts-ready', handler);
-    } else {
-      resolve(false);
-      cleanup();
-    }
+    window.addEventListener('supernal-tts-ready', handler);
   });
 }
 
