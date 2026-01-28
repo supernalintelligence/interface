@@ -55,6 +55,9 @@ export function waitForTTSReady(timeout = 5000): Promise<boolean> {
   });
 }
 
+// Track last detection state to avoid redundant logging
+let lastDetectionState = { count: 0, hasButtons: false };
+
 /**
  * Detect if page has TTS widgets
  *
@@ -74,11 +77,12 @@ export async function detectTTSWidgets(): Promise<boolean> {
   // Look for Supernal TTS widget wrappers with data-text attribute (enabled widgets)
   const widgetWrappers = document.querySelectorAll('.supernal-tts-widget[data-text]');
 
-  // Debug logging
-  console.log('[TTS Detection] Found widget wrappers:', widgetWrappers.length);
-
   if (widgetWrappers.length === 0) {
-    console.log('[TTS Detection] No widget wrappers found');
+    // Only log if state changed
+    if (lastDetectionState.count !== 0) {
+      console.log('[TTS Detection] No widget wrappers found');
+      lastDetectionState = { count: 0, hasButtons: false };
+    }
     return false;
   }
 
@@ -97,12 +101,10 @@ export async function detectTTSWidgets(): Promise<boolean> {
     return hasButton && isVisible;
   });
 
-  console.log('[TTS Detection] Widget ready:', ready);
-  console.log('[TTS Detection] Has play buttons:', hasPlayButtons);
-
-  if (widgetWrappers.length > 0) {
-    console.log('[TTS Detection] First wrapper visible?', (widgetWrappers[0] as HTMLElement).offsetParent !== null);
-    console.log('[TTS Detection] First wrapper has play button?', !!widgetWrappers[0].querySelector('.supernal-tts-play'));
+  // Only log if state changed
+  if (lastDetectionState.count !== widgetWrappers.length || lastDetectionState.hasButtons !== hasPlayButtons) {
+    console.log(`[TTS Detection] Found ${widgetWrappers.length} widgets, ${hasPlayButtons ? 'with' : 'without'} play buttons`);
+    lastDetectionState = { count: widgetWrappers.length, hasButtons: hasPlayButtons };
   }
 
   return hasPlayButtons;
@@ -157,6 +159,9 @@ function extractWidgetLabel(element: Element, fallbackIndex: number): string {
   return `Readable Section ${fallbackIndex}`;
 }
 
+// Track last extraction count to avoid redundant logging
+let lastExtractionCount = 0;
+
 /**
  * Extract TTS widget instances from the page
  *
@@ -174,9 +179,8 @@ export function extractTTSWidgets(): TTSWidgetInstance[] {
   ttsWidgets.forEach((wrapper, idx) => {
     const element = wrapper as HTMLElement;
 
-    // Only include visible widgets
+    // Only include visible widgets (skip logging hidden widgets)
     if (element.offsetParent === null) {
-      console.log('[TTS Extract] Skipping hidden widget:', wrapper);
       return;
     }
 
@@ -196,15 +200,6 @@ export function extractTTSWidgets(): TTSWidgetInstance[] {
       playButton.setAttribute('data-testid', `${widgetId}-play`);
     }
 
-    console.log('[TTS Extract] Widget:', {
-      id: widgetId,
-      label,
-      hasButton: !!playButton,
-      wrapper: element,
-      playButton,
-      testId: element.getAttribute('data-testid')
-    });
-
     widgets.push({
       id: widgetId,
       element: wrapper as HTMLElement, // Always use wrapper as the element to scroll to
@@ -212,6 +207,11 @@ export function extractTTSWidgets(): TTSWidgetInstance[] {
     });
   });
 
-  console.log('[TTS Extract] Total widgets found:', widgets.length);
+  // Only log if count changed
+  if (widgets.length !== lastExtractionCount) {
+    console.log(`[TTS Extract] Found ${widgets.length} visible widgets`);
+    lastExtractionCount = widgets.length;
+  }
+
   return widgets;
 }

@@ -11,7 +11,7 @@
  * CRITICAL: This must be called in SupernalProvider to enable tool scoping!
  */
 
-import { useEffect } from 'react';
+import { useEffect, useRef } from 'react';
 import { useRouter } from 'next/router';
 import { LocationContext } from '@supernal/interface/browser';
 
@@ -27,6 +27,16 @@ function getVisibleElements(): string[] {
 }
 
 /**
+ * Compare two arrays for equality
+ */
+function arraysEqual(a: string[], b: string[]): boolean {
+  if (a.length !== b.length) return false;
+  const sortedA = [...a].sort();
+  const sortedB = [...b].sort();
+  return sortedA.every((val, idx) => val === sortedB[idx]);
+}
+
+/**
  * Hook to track current location and visible elements
  *
  * This enables zero-config tool scoping - tools with elementId
@@ -36,24 +46,42 @@ function getVisibleElements(): string[] {
  */
 export function useLocationTracking() {
   const router = useRouter();
+  const lastLocationRef = useRef<string>('');
+  const lastElementsRef = useRef<string[]>([]);
 
   useEffect(() => {
     const updateLocation = () => {
       // Scan DOM for visible elements
       const visibleElements = getVisibleElements();
 
-      LocationContext.setCurrent({
-        page: router.pathname,
-        route: router.route,
-        elements: visibleElements,
-        metadata: {
-          query: router.query,
-          asPath: router.asPath,
-        },
-      });
+      // Check if anything has actually changed
+      const locationChanged = lastLocationRef.current !== router.pathname;
+      const elementsChanged = !arraysEqual(lastElementsRef.current, visibleElements);
 
-      console.log(`[LocationTracking] Updated location: ${router.pathname}`);
-      console.log(`[LocationTracking] Visible elements (${visibleElements.length}):`, visibleElements.slice(0, 10));
+      // Only update and log if something changed
+      if (locationChanged || elementsChanged) {
+        LocationContext.setCurrent({
+          page: router.pathname,
+          route: router.route,
+          elements: visibleElements,
+          metadata: {
+            query: router.query,
+            asPath: router.asPath,
+          },
+        });
+
+        // Only log if there's an actual change
+        if (locationChanged) {
+          console.log(`[LocationTracking] Updated location: ${router.pathname}`);
+        }
+        if (elementsChanged) {
+          console.log(`[LocationTracking] Visible elements changed: ${visibleElements.length} elements`);
+        }
+
+        // Update refs
+        lastLocationRef.current = router.pathname;
+        lastElementsRef.current = visibleElements;
+      }
     };
 
     // Set initial location after a brief delay to ensure DOM is ready
