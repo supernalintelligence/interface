@@ -350,10 +350,10 @@ export const ChatBubble = ({
       // Determine effective variant (considering displayMode and mobile state)
       const effectiveVariant = displayMode !== 'auto'
         ? displayMode
-        : (isMobile ? 'drawer' : variant);
+        : (isMobile ? 'subtitle' : variant);
 
-      // Double-escape detected when chat is NOT expanded (bubble icon is showing)
-      if (!isExpanded && timeSinceLastEscape < DOUBLE_ESCAPE_THRESHOLD_MS) {
+      // Double-escape detected - works regardless of expanded state for easy variant switching
+      if (timeSinceLastEscape < DOUBLE_ESCAPE_THRESHOLD_MS) {
         console.log('[ChatBubble] Double-escape detected - cycling variant from:', effectiveVariant);
 
         // Cycle between 'full' and 'subtitle' (skip 'floating' and 'drawer')
@@ -422,9 +422,10 @@ export const ChatBubble = ({
       return displayMode as Variant;
     }
 
-    // Auto mode: convert 'full' to 'drawer' on mobile for better UX.
+    // Auto mode: convert 'full' to 'subtitle' on mobile for better UX.
+    // Subtitle provides a cleaner mobile experience than drawer (which has visibility issues).
     // Other explicit variants (subtitle, floating, drawer) are respected as-is.
-    return (isMobile && variant === 'full') ? 'drawer' : variant;
+    return (isMobile && variant === 'full') ? 'subtitle' : variant;
   }, [displayMode, isMobile, variant]);
 
   // Reset displayMode to 'auto' when variant prop changes externally
@@ -1199,7 +1200,7 @@ export const ChatBubble = ({
         </div>
         {!drawerOpen && (
           <div
-            className={`fixed ${drawerSide === 'right' ? 'right-0' : 'left-0'} bottom-20 opacity-30 hover:opacity-90 transition-opacity duration-300 z-[999999] cursor-pointer`}
+            className={`fixed ${drawerSide === 'right' ? 'right-0' : 'left-0'} bottom-20 opacity-70 hover:opacity-100 transition-opacity duration-300 z-[999999] cursor-pointer`}
             style={{ zIndex: 999999 }}  // Super high z-index for drawer trigger
             onClick={() => setDrawerOpen(true)}
           >

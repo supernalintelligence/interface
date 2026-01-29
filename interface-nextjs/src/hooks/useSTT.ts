@@ -152,7 +152,8 @@ export function useSTT(): UseSTTResult {
       // Native mobile: Capacitor Speech Recognition
       if (Platform.isNative) {
         // @ts-ignore - Capacitor types
-        const { SpeechRecognition: CapSpeech } = await import('@capacitor-community/speech-recognition');
+        // webpackIgnore tells bundlers to skip resolving this at build time
+        const { SpeechRecognition: CapSpeech } = await import(/* webpackIgnore: true */ '@capacitor-community/speech-recognition');
 
         // Request permissions
         await CapSpeech.requestPermissions();

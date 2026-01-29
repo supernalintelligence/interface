@@ -125,7 +125,8 @@ export function useTTS(): UseTTSResult {
       if (Platform.isNative) {
         try {
           // @ts-ignore - Capacitor types
-          const { TextToSpeech } = await import('@capacitor/text-to-speech');
+          // webpackIgnore tells bundlers to skip resolving this at build time
+          const { TextToSpeech } = await import(/* webpackIgnore: true */ '@capacitor/text-to-speech');
           await TextToSpeech.speak({
             text,
             lang: 'en-US',
