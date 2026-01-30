@@ -11,7 +11,7 @@ import {
   AIInterface,
   type AICommand,
   type AIResponse
-} from '@supernal/interface';
+} from '@supernal/interface/browser';
 import { ToolManager, type ToolExecutionResult } from './ToolManager';
 
 // Re-export types for convenience

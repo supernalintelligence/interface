@@ -3,6 +3,7 @@
 import React, { useEffect } from 'react';
 import { ChatInputProvider } from '../contexts/ChatInputContext';
 import { ChatProvider, useChatContext } from '../contexts/ChatProvider';
+import { ApiKeyProvider } from '../contexts/ApiKeyContext';
 import { ChatBubble } from './ChatBubble';
 import { AutoNavigationContext } from './AutoNavigationContext';
 import { ExposureCollector, ToolRegistry } from '@supernal/interface/browser';
@@ -168,26 +169,28 @@ export function SupernalProvider({
   }, []);
 
   return (
-    <ChatInputProvider>
-      <ChatProvider mode={mode} apiKey={apiKey} onToolExecute={onToolExecute}>
-        <AutoNavigationContext routes={routes} onNavigate={onNavigate}>
-          {children}
-        </AutoNavigationContext>
-        {/* Render ChatBubble OUTSIDE AutoNavigationContext, after all children */}
-        {shouldRenderChatBubble ? (
-          <ChatBubbleConnector
-            theme={theme}
-            position={position}
-            welcomeMessage={welcomeMessage}
-            glassMode={glassMode}
-            logo={logo}
-            variant={variant}
-            displayMode={effectiveDisplayMode}
-            drawerSide={drawerSide}
-          />
-        ) : null}
-        {!disabled && <ToolMenuPopupTrigger />}
-      </ChatProvider>
-    </ChatInputProvider>
+    <ApiKeyProvider initialApiKey={apiKey}>
+      <ChatInputProvider>
+        <ChatProvider mode={mode} apiKey={apiKey} onToolExecute={onToolExecute}>
+          <AutoNavigationContext routes={routes} onNavigate={onNavigate}>
+            {children}
+          </AutoNavigationContext>
+          {/* Render ChatBubble OUTSIDE AutoNavigationContext, after all children */}
+          {shouldRenderChatBubble ? (
+            <ChatBubbleConnector
+              theme={theme}
+              position={position}
+              welcomeMessage={welcomeMessage}
+              glassMode={glassMode}
+              logo={logo}
+              variant={variant}
+              displayMode={effectiveDisplayMode}
+              drawerSide={drawerSide}
+            />
+          ) : null}
+          {!disabled && <ToolMenuPopupTrigger />}
+        </ChatProvider>
+      </ChatInputProvider>
+    </ApiKeyProvider>
   );
 }

@@ -18,6 +18,20 @@ export const Components = {
   ChatToggleButton: 'chat-bubble-toggle',
   ChatMessageList: 'chat-message-list',
   ChatTypingIndicator: 'chat-typing-indicator',
+  ChatMoreMenu: 'chat-more-menu',
+  ChatMoreMenuButton: 'chat-more-menu-button',
+
+  // API Key configuration components (BYOK mode)
+  ApiKeySection: 'api-key-section',
+  ApiKeyInput: 'api-key-input',
+  ApiKeySubmitButton: 'api-key-submit-button',
+  ApiKeyClearButton: 'api-key-clear-button',
+  ApiKeyConfigureButton: 'api-key-configure-button',
+  ApiKeyStatus: 'api-key-status',
+  ApiKeyMasked: 'api-key-masked',
+  ApiKeyError: 'api-key-error',
+  ApiKeyShowToggle: 'api-key-show-toggle',
+  ApiKeyCancelButton: 'api-key-cancel-button',
 
   // Demo widget components - buttons
   OpenMenuButton: 'open-main-menu',

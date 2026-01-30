@@ -1,7 +1,9 @@
 'use client';
 
-import React, { createContext, useContext, useState, useCallback, useEffect } from 'react';
+import React, { createContext, useContext, useState, useCallback, useEffect, useRef } from 'react';
 import { DemoAIInterface } from '../lib/ChatAIInterface';
+import { ClaudeClient, ClaudeMessage } from '../lib/ClaudeClient';
+import { useApiKeyOptional } from './ApiKeyContext';
 
 interface Message {
   id: string;
@@ -15,6 +17,8 @@ interface ChatContextType {
   sendMessage: (text: string) => Promise<void>;
   clearMessages: () => void;
   isLoading: boolean;
+  /** Whether real AI mode is active (API key is valid) */
+  isAiMode: boolean;
 }
 
 const ChatContext = createContext<ChatContextType | null>(null);
@@ -74,7 +78,7 @@ function getInitialMessages(): Message[] {
 export function ChatProvider({
   children,
   mode = 'fuzzy',
-  apiKey,
+  apiKey: propApiKey,
   onToolExecute,
 }: {
   children: React.ReactNode;
@@ -84,6 +88,28 @@ export function ChatProvider({
 }) {
   // Always start with empty messages to prevent hydration mismatch
   const [messages, setMessages] = useState<Message[]>([]);
+
+  // Get API key from context (managed by ApiKeyProvider)
+  const apiKeyContext = useApiKeyOptional();
+  const activeApiKey = apiKeyContext?.hasApiKey ? apiKeyContext.apiKey : propApiKey;
+  const isAiMode = !!activeApiKey;
+
+  // Claude client ref - created/updated when API key changes
+  const claudeClientRef = useRef<ClaudeClient | null>(null);
+
+  // Update Claude client when API key changes
+  useEffect(() => {
+    if (activeApiKey) {
+      claudeClientRef.current = new ClaudeClient({
+        apiKey: activeApiKey,
+        systemPrompt: `You are a helpful AI assistant integrated into a web application powered by Supernal Interface.
+You can help users navigate the application and perform tasks.
+Be concise, friendly, and helpful. Use markdown formatting when appropriate.`,
+      });
+    } else {
+      claudeClientRef.current = null;
+    }
+  }, [activeApiKey]);
 
   // Load messages from localStorage after hydration
   useEffect(() => {
@@ -141,17 +167,40 @@ export function ChatProvider({
     setIsLoading(true);
 
     try {
-      // Execute command
-      const result = await aiInterface.findAndExecuteCommand(text);
+      // Use Claude API if API key is available, otherwise use demo interface
+      if (claudeClientRef.current) {
+        // Build conversation history for Claude (last 20 messages for context)
+        const conversationHistory: ClaudeMessage[] = messages
+          .slice(-20)
+          .filter(m => m.type === 'user' || m.type === 'ai')
+          .map(m => ({
+            role: m.type === 'user' ? 'user' as const : 'assistant' as const,
+            content: m.text,
+          }));
 
-      // Add AI response
-      const aiMessage: Message = {
-        id: (Date.now() + 1).toString(),
-        text: result.message,
-        type: result.success ? 'ai' : 'system',
-        timestamp: new Date().toISOString(),
-      };
-      setMessages(prev => [...prev, aiMessage]);
+        const result = await claudeClientRef.current.sendMessage(text, {
+          messages: conversationHistory,
+        });
+
+        const aiMessage: Message = {
+          id: (Date.now() + 1).toString(),
+          text: result.message,
+          type: result.success ? 'ai' : 'system',
+          timestamp: new Date().toISOString(),
+        };
+        setMessages(prev => [...prev, aiMessage]);
+      } else {
+        // Fall back to demo interface
+        const result = await aiInterface.findAndExecuteCommand(text);
+
+        const aiMessage: Message = {
+          id: (Date.now() + 1).toString(),
+          text: result.message,
+          type: result.success ? 'ai' : 'system',
+          timestamp: new Date().toISOString(),
+        };
+        setMessages(prev => [...prev, aiMessage]);
+      }
     } catch (error) {
       // Add error message
       const errorMessage: Message = {
@@ -164,7 +213,7 @@ export function ChatProvider({
     } finally {
       setIsLoading(false);
     }
-  }, [aiInterface]);
+  }, [aiInterface, messages]);
 
   const clearMessages = useCallback(() => {
     setMessages([]);
@@ -172,7 +221,7 @@ export function ChatProvider({
   }, []);
 
   return (
-    <ChatContext.Provider value={{ messages, sendMessage, clearMessages, isLoading }}>
+    <ChatContext.Provider value={{ messages, sendMessage, clearMessages, isLoading, isAiMode }}>
       {children}
     </ChatContext.Provider>
   );

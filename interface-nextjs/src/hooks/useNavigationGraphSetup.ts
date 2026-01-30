@@ -82,15 +82,13 @@ export function useNavigationGraphSetup() {
       // Set the navigation handler
       graph.setNavigationHandler(navigate);
 
-      // Create a router-like object for browser tools (back/forward/refresh)
+      // Set router for browser tools (back/forward/refresh)
       const browserRouter = {
         push: navigate,
         back: () => router?.back?.() ?? window.history.back(),
         forward: () => router?.forward?.() ?? window.history.forward(),
         refresh: () => router?.refresh?.() ?? window.location.reload(),
       };
-
-      // Set router for browser tools
       graph.setRouter(browserRouter);
 
       // Set initial context

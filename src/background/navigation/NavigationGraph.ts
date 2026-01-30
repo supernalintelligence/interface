@@ -41,6 +41,9 @@ export class NavigationGraph implements INavigationGraph {
   private contextTools: Map<string, string> = new Map(); // toolId -> contextId
   private navigationHandler: ((path: string | RouteInfo) => void | Promise<void>) | null = null;
 
+  // Router for browser navigation tools (back/forward/refresh)
+  private router: { push?: (path: string) => void; back?: () => void; forward?: () => void; refresh?: () => void } | null = null;
+
   // Context change listeners
   private contextListeners = new Set<(ctx: string) => void>();
   private locationUnsubscribe: (() => void) | null = null;
@@ -196,6 +199,54 @@ export class NavigationGraph implements INavigationGraph {
   
   setNavigationHandler(handler: (path: string | RouteInfo) => void | Promise<void>): void {
     this.navigationHandler = handler;
+  }
+
+  /**
+   * Set router for browser navigation tools (back/forward/refresh)
+   * Called by framework adapters (e.g., useNavigationGraphSetup in @supernal/interface-nextjs)
+   */
+  setRouter(router: { push?: (path: string) => void; back?: () => void; forward?: () => void; refresh?: () => void }): void {
+    this.router = router;
+  }
+
+  /**
+   * Get the registered router
+   */
+  getRouter(): { push?: (path: string) => void; back?: () => void; forward?: () => void; refresh?: () => void } | null {
+    return this.router;
+  }
+
+  /**
+   * Navigate back in browser history
+   */
+  back(): void {
+    if (this.router?.back) {
+      this.router.back();
+    } else if (typeof window !== 'undefined') {
+      window.history.back();
+    }
+  }
+
+  /**
+   * Navigate forward in browser history
+   */
+  forward(): void {
+    if (this.router?.forward) {
+      this.router.forward();
+    } else if (typeof window !== 'undefined') {
+      window.history.forward();
+    }
+  }
+
+  /**
+   * Refresh the current page
+   */
+  refresh(): void {
+    if (this.router?.refresh) {
+      this.router.refresh();
+    } else if (typeof window !== 'undefined') {
+      window.location.reload();
+    }
   }
   
   getNavigationHandler(): ((pageName: string) => void | Promise<void>) | null {

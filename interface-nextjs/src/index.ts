@@ -14,6 +14,30 @@ export {
 
 export { useChatContext, ChatProvider } from './contexts/ChatProvider';
 
+// API Key management (BYOK mode)
+export {
+  ApiKeyProvider,
+  useApiKey,
+  useApiKeyOptional,
+  type ApiKeyStatus,
+  type UseApiKeyStorageReturn,
+} from './contexts/ApiKeyContext';
+
+export {
+  useApiKeyStorage,
+} from './hooks/useApiKeyStorage';
+
+// Claude client for direct API calls
+export {
+  ClaudeClient,
+  createClaudeClient,
+  type ClaudeClientConfig,
+  type ClaudeMessage,
+  type ClaudeResponse,
+  type SendMessageOptions,
+  type SendMessageResult,
+} from './lib/ClaudeClient';
+
 // Optional exports for customization
 export { ChatBubble } from './components/ChatBubble';
 export { SubtitleOverlay } from './components/SubtitleOverlay';

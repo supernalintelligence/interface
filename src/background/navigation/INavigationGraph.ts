@@ -58,6 +58,13 @@ export interface INavigationGraph {
   // Navigation
   navigate?(path: string | RouteInfo): void;
   navigateToContext?(contextId: string): Promise<boolean>;
+
+  // Browser router (back/forward/refresh)
+  setRouter?(router: { push?: (path: string) => void; back?: () => void; forward?: () => void; refresh?: () => void }): void;
+  getRouter?(): { push?: (path: string) => void; back?: () => void; forward?: () => void; refresh?: () => void } | null;
+  back?(): void;
+  forward?(): void;
+  refresh?(): void;
   
   // Tree tracking (open-source stubs only)
   trackComponent?(id: string, parent?: string): void;

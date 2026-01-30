@@ -2,6 +2,7 @@
  * SettingsMenu Component - Extracted from ChatBubble
  *
  * Provides the settings dropdown menu with options for:
+ * - API Key configuration (BYOK mode)
  * - Glass mode (Off, Low, Medium, High)
  * - Theme toggle (Light/Dark)
  * - Voice control toggle
@@ -10,8 +11,9 @@
  * - Clear chat
  */
 
-import React from 'react';
+import React, { useState } from 'react';
 import { THEME_CLASSES, INLINE_STYLES } from './constants';
+import { ApiKeyStatus } from '../../hooks/useApiKeyStorage';
 
 export interface SettingsMenuProps {
   showMoreMenu: boolean;
@@ -27,7 +29,45 @@ export interface SettingsMenuProps {
   onInfo: () => void;
   onClearChat?: () => void;
   onSendMessage: (message: string) => void;
+  // API Key props
+  apiKeyStatus?: ApiKeyStatus;
+  apiKeyMasked?: string | null;
+  apiKeyError?: string | null;
+  onApiKeyChange?: (key: string) => Promise<boolean>;
+  onApiKeyClear?: () => void;
 }
+
+// Status indicator component
+const StatusIcon: React.FC<{ status: ApiKeyStatus }> = ({ status }) => {
+  switch (status) {
+    case 'valid':
+      return (
+        <span className="text-green-500" title="API key is valid">
+          <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
+            <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
+          </svg>
+        </span>
+      );
+    case 'invalid':
+      return (
+        <span className="text-red-500" title="API key is invalid">
+          <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
+            <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clipRule="evenodd" />
+          </svg>
+        </span>
+      );
+    case 'validating':
+      return (
+        <span className="text-blue-500 animate-spin" title="Validating...">
+          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+          </svg>
+        </span>
+      );
+    default:
+      return null;
+  }
+};
 
 export const SettingsMenu: React.FC<SettingsMenuProps> = ({
   showMoreMenu,
@@ -43,14 +83,135 @@ export const SettingsMenu: React.FC<SettingsMenuProps> = ({
   onInfo,
   onClearChat,
   onSendMessage,
+  // API Key props
+  apiKeyStatus = 'none',
+  apiKeyMasked,
+  apiKeyError,
+  onApiKeyChange,
+  onApiKeyClear,
 }) => {
+  const [showApiKeyInput, setShowApiKeyInput] = useState(false);
+  const [apiKeyInput, setApiKeyInput] = useState('');
+  const [showKey, setShowKey] = useState(false);
+
+  const handleApiKeySubmit = async () => {
+    if (!apiKeyInput.trim() || !onApiKeyChange) return;
+    const success = await onApiKeyChange(apiKeyInput.trim());
+    if (success) {
+      setApiKeyInput('');
+      setShowApiKeyInput(false);
+    }
+  };
+
   if (!showMoreMenu) return null;
 
   return (
     <div
-      className="absolute right-0 top-10 bg-white dark:bg-gray-800 rounded-lg shadow-xl border border-gray-200 dark:border-gray-600 p-2 min-w-[220px] z-50"
+      className="absolute right-0 top-10 bg-white dark:bg-gray-800 rounded-lg shadow-xl border border-gray-200 dark:border-gray-600 p-2 min-w-[280px] z-50"
       data-more-menu
     >
+      {/* API Key Configuration */}
+      {onApiKeyChange && (
+        <div className="px-3 py-2 border-b border-gray-200 dark:border-gray-600 mb-2">
+          <div className="flex items-center justify-between mb-2">
+            <span className="text-sm font-medium text-gray-700 dark:text-gray-200 flex items-center gap-2">
+              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 7a2 2 0 012 2m4 0a6 6 0 01-7.743 5.743L11 17H9v2H7v2H4a1 1 0 01-1-1v-2.586a1 1 0 01.293-.707l5.964-5.964A6 6 0 1121 9z" />
+              </svg>
+              API Key
+            </span>
+            <StatusIcon status={apiKeyStatus} />
+          </div>
+
+          {apiKeyStatus === 'valid' && apiKeyMasked ? (
+            // Key is set - show masked key and clear button
+            <div className="flex items-center gap-2">
+              <code className="flex-1 text-xs bg-gray-100 dark:bg-gray-700 px-2 py-1 rounded text-gray-600 dark:text-gray-300 font-mono">
+                {apiKeyMasked}
+              </code>
+              <button
+                onClick={() => {
+                  onApiKeyClear?.();
+                  setApiKeyInput('');
+                }}
+                className="text-xs text-red-500 hover:text-red-600 px-2 py-1"
+                title="Remove API key"
+              >
+                Clear
+              </button>
+            </div>
+          ) : showApiKeyInput ? (
+            // Input mode - show form
+            <div className="space-y-2">
+              <div className="flex gap-1">
+                <input
+                  type={showKey ? 'text' : 'password'}
+                  value={apiKeyInput}
+                  onChange={(e) => setApiKeyInput(e.target.value)}
+                  placeholder="sk-ant-..."
+                  className="flex-1 text-sm px-2 py-1.5 border border-gray-300 dark:border-gray-600 rounded bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-1 focus:ring-blue-500"
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter') {
+                      e.preventDefault();
+                      handleApiKeySubmit();
+                    }
+                    if (e.key === 'Escape') {
+                      setShowApiKeyInput(false);
+                      setApiKeyInput('');
+                    }
+                  }}
+                  autoFocus
+                />
+                <button
+                  onClick={() => setShowKey(!showKey)}
+                  className="px-2 text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200"
+                  title={showKey ? 'Hide' : 'Show'}
+                >
+                  {showKey ? '🙈' : '👁️'}
+                </button>
+              </div>
+              <div className="flex gap-2">
+                <button
+                  onClick={handleApiKeySubmit}
+                  disabled={!apiKeyInput.trim() || apiKeyStatus === 'validating'}
+                  className="flex-1 text-xs px-3 py-1.5 bg-blue-600 text-white rounded hover:bg-blue-700 disabled:bg-gray-400 disabled:cursor-not-allowed"
+                >
+                  {apiKeyStatus === 'validating' ? 'Validating...' : 'Save'}
+                </button>
+                <button
+                  onClick={() => {
+                    setShowApiKeyInput(false);
+                    setApiKeyInput('');
+                  }}
+                  className="text-xs px-3 py-1.5 text-gray-600 dark:text-gray-300 hover:text-gray-800 dark:hover:text-gray-100"
+                >
+                  Cancel
+                </button>
+              </div>
+              {apiKeyError && (
+                <p className="text-xs text-red-500">{apiKeyError}</p>
+              )}
+              <a
+                href="https://console.anthropic.com/settings/keys"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="block text-xs text-blue-500 hover:underline"
+              >
+                Get an API key from Anthropic →
+              </a>
+            </div>
+          ) : (
+            // No key - show configure button
+            <button
+              onClick={() => setShowApiKeyInput(true)}
+              className="w-full text-sm px-3 py-2 bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-200 rounded hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors"
+            >
+              Configure API Key
+            </button>
+          )}
+        </div>
+      )}
+
       {/* Glass Mode - 4 icon buttons (Off, Low, Medium, High) */}
       <div className="px-3 py-2 border-b border-gray-200 dark:border-gray-600 mb-2">
         <div className="grid grid-cols-4 gap-1">
