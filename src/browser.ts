@@ -67,6 +67,10 @@ export {
   type ContainerId
 } from './background/architecture';
 
+// Container creation (browser-safe)
+export { createContainer, createContainers } from './architecture/createContainer';
+export type { ContainerConfig } from './architecture/createContainer';
+
 // Exposure tracking
 export { ExposureCollector } from './exposure/ExposureCollector';
 export { NavigationGraph } from './background/navigation/NavigationGraph';
