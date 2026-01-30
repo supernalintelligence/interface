@@ -12,6 +12,7 @@
 
 import React, { useState, useRef, useEffect, useMemo } from 'react';
 import { useChatInput } from '../../contexts/ChatInputContext';
+import { useApiKeyOptional } from '../../contexts/ApiKeyContext';
 import { MessageRenderer } from '../MessageRenderer';
 import { useTTS } from '../../hooks/useTTS';
 import { useSTT } from '../../hooks/useSTT';
@@ -90,6 +91,12 @@ export const ChatBubble = ({
   // Initialize voice hooks
   const { speak: speakTTS, stop: stopTTS, isPlaying: isTTSPlaying } = useTTS();
   const { startListening, stopListening, transcript: sttTranscript, isListening, resetTranscript } = useSTT();
+
+  // API Key management (optional - only available when ApiKeyProvider is present)
+  const apiKey = useApiKeyOptional();
+  const [showApiKeyInput, setShowApiKeyInput] = useState(false);
+  const [apiKeyInputValue, setApiKeyInputValue] = useState('');
+  const [showApiKey, setShowApiKey] = useState(false);
 
   // Slash command autocomplete (type "/" in input to trigger)
   const slashCommand = useSlashCommand(inputValue, (command) => {
@@ -1123,7 +1130,7 @@ export const ChatBubble = ({
               </svg>
             </button>
           </div>
-          <div className="flex-1 overflow-y-auto p-4 space-y-2">
+          <div className="flex-1 overflow-y-auto p-4 space-y-2" data-testid="chat-messages">
             {showWelcome && messages.length === 0 && config.welcome?.enabled && (
               <div className={THEME_CLASSES.welcome.container}>
                 {config.welcome.title && (
@@ -1529,6 +1536,7 @@ export const ChatBubble = ({
                   onClick={() => setShowMoreMenu(!showMoreMenu)}
                   className={THEME_CLASSES.button.more}
                   title="More options"
+                  data-testid="chat-more-menu-button"
                 >
                   <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 5v.01M12 12v.01M12 19v.01M12 6a1 1 0 110-2 1 1 0 010 2zm0 7a1 1 0 110-2 1 1 0 010 2zm0 7a1 1 0 110-2 1 1 0 010 2z" />
@@ -1537,7 +1545,151 @@ export const ChatBubble = ({
 
                 {/* More menu dropdown */}
                 {showMoreMenu && (
-                  <div className="absolute right-0 top-10 bg-white dark:bg-gray-800 rounded-lg shadow-xl border border-gray-200 dark:border-gray-600 p-2 min-w-[220px] z-50" data-more-menu>
+                  <div className="absolute right-0 top-10 bg-white dark:bg-gray-800 rounded-lg shadow-xl border border-gray-200 dark:border-gray-600 p-2 min-w-[280px] z-50" data-more-menu data-testid="chat-more-menu">
+                    {/* API Key Configuration */}
+                    {apiKey && (
+                      <div className="px-3 py-2 border-b border-gray-200 dark:border-gray-600 mb-2" data-testid="api-key-section">
+                        <div className="flex items-center justify-between mb-2">
+                          <span className="text-sm font-medium text-gray-700 dark:text-gray-200 flex items-center gap-2">
+                            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 7a2 2 0 012 2m4 0a6 6 0 01-7.743 5.743L11 17H9v2H7v2H4a1 1 0 01-1-1v-2.586a1 1 0 01.293-.707l5.964-5.964A6 6 0 1121 9z" />
+                            </svg>
+                            API Key
+                          </span>
+                          {/* Status indicator */}
+                          {apiKey.status === 'valid' && (
+                            <span className="text-green-500" title="API key is valid" data-testid="api-key-status" data-status="valid">
+                              <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
+                                <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
+                              </svg>
+                            </span>
+                          )}
+                          {apiKey.status === 'invalid' && (
+                            <span className="text-red-500" title="API key is invalid" data-testid="api-key-status" data-status="invalid">
+                              <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
+                                <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clipRule="evenodd" />
+                              </svg>
+                            </span>
+                          )}
+                          {apiKey.status === 'validating' && (
+                            <span className="text-blue-500 animate-spin" title="Validating..." data-testid="api-key-status" data-status="validating">
+                              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                              </svg>
+                            </span>
+                          )}
+                        </div>
+
+                        {apiKey.status === 'valid' && apiKey.maskedKey ? (
+                          // Key is set - show masked key and clear button
+                          <div className="flex items-center gap-2">
+                            <code className="flex-1 text-xs bg-gray-100 dark:bg-gray-700 px-2 py-1 rounded text-gray-600 dark:text-gray-300 font-mono" data-testid="api-key-masked">
+                              {apiKey.maskedKey}
+                            </code>
+                            <button
+                              onClick={() => {
+                                apiKey.clearApiKey();
+                                setApiKeyInputValue('');
+                              }}
+                              className="text-xs text-red-500 hover:text-red-600 px-2 py-1"
+                              title="Remove API key"
+                              data-testid="api-key-clear-button"
+                            >
+                              Clear
+                            </button>
+                          </div>
+                        ) : showApiKeyInput ? (
+                          // Input mode - show form
+                          <div className="space-y-2">
+                            <div className="flex gap-1">
+                              <input
+                                type={showApiKey ? 'text' : 'password'}
+                                value={apiKeyInputValue}
+                                onChange={(e) => setApiKeyInputValue(e.target.value)}
+                                placeholder="sk-ant-..."
+                                className="flex-1 text-sm px-2 py-1.5 border border-gray-300 dark:border-gray-600 rounded bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-1 focus:ring-blue-500"
+                                data-testid="api-key-input"
+                                onKeyDown={(e) => {
+                                  if (e.key === 'Enter') {
+                                    e.preventDefault();
+                                    if (apiKeyInputValue.trim()) {
+                                      apiKey.setApiKey(apiKeyInputValue.trim()).then((success) => {
+                                        if (success) {
+                                          setApiKeyInputValue('');
+                                          setShowApiKeyInput(false);
+                                        }
+                                      });
+                                    }
+                                  }
+                                  if (e.key === 'Escape') {
+                                    setShowApiKeyInput(false);
+                                    setApiKeyInputValue('');
+                                  }
+                                }}
+                                autoFocus
+                              />
+                              <button
+                                onClick={() => setShowApiKey(!showApiKey)}
+                                className="px-2 text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200"
+                                title={showApiKey ? 'Hide' : 'Show'}
+                                data-testid="api-key-show-toggle"
+                              >
+                                {showApiKey ? '🙈' : '👁️'}
+                              </button>
+                            </div>
+                            <div className="flex gap-2">
+                              <button
+                                onClick={async () => {
+                                  if (apiKeyInputValue.trim()) {
+                                    const success = await apiKey.setApiKey(apiKeyInputValue.trim());
+                                    if (success) {
+                                      setApiKeyInputValue('');
+                                      setShowApiKeyInput(false);
+                                    }
+                                  }
+                                }}
+                                disabled={!apiKeyInputValue.trim() || apiKey.status === 'validating'}
+                                className="flex-1 text-xs px-3 py-1.5 bg-blue-600 text-white rounded hover:bg-blue-700 disabled:bg-gray-400 disabled:cursor-not-allowed"
+                                data-testid="api-key-submit-button"
+                              >
+                                {apiKey.status === 'validating' ? 'Validating...' : 'Save'}
+                              </button>
+                              <button
+                                onClick={() => {
+                                  setShowApiKeyInput(false);
+                                  setApiKeyInputValue('');
+                                }}
+                                className="text-xs px-3 py-1.5 text-gray-600 dark:text-gray-300 hover:text-gray-800 dark:hover:text-gray-100"
+                                data-testid="api-key-cancel-button"
+                              >
+                                Cancel
+                              </button>
+                            </div>
+                            {apiKey.error && (
+                              <p className="text-xs text-red-500" data-testid="api-key-error">{apiKey.error}</p>
+                            )}
+                            <a
+                              href="https://console.anthropic.com/settings/keys"
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="block text-xs text-blue-500 hover:underline"
+                            >
+                              Get an API key from Anthropic →
+                            </a>
+                          </div>
+                        ) : (
+                          // No key - show configure button
+                          <button
+                            onClick={() => setShowApiKeyInput(true)}
+                            className="w-full text-sm px-3 py-2 bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-200 rounded hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors"
+                            data-testid="api-key-configure-button"
+                          >
+                            Configure API Key
+                          </button>
+                        )}
+                      </div>
+                    )}
+
                     {/* Glass Mode - 4 icon buttons (Off, Low, Medium, High) */}
                     <div className="px-3 py-2 border-b border-gray-200 dark:border-gray-600 mb-2">
                       <div className="grid grid-cols-4 gap-1">
@@ -1725,7 +1877,7 @@ export const ChatBubble = ({
 
 
             {/* Messages */}
-            <div className="flex-1 overflow-y-auto p-4 space-y-2">
+            <div className="flex-1 overflow-y-auto p-4 space-y-2" data-testid="chat-messages">
               {/* Welcome Message */}
               {showWelcome && messages.length === 0 && config.welcome?.enabled && (
                 <div className={THEME_CLASSES.welcome.container}>
