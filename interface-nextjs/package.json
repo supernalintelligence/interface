@@ -1,6 +1,6 @@
 {
   "name": "@supernal/interface-nextjs",
-  "version": "1.0.28",
+  "version": "1.0.32",
   "description": "Next.js integration for Supernal Intelligence Interface - enables agentic UX with one line of code",
   "main": "./dist/index.js",
   "module": "./dist/index.mjs",
@@ -24,15 +24,14 @@
   "peerDependencies": {
     "@supernal/interface": "*",
     "next": "^14.0.0 || ^15.0.0",
-    "react": "^18.0.0",
-    "react-dom": "^18.0.0"
+    "react": "^18.0.0 || ^19.0.0",
+    "react-dom": "^18.0.0 || ^19.0.0"
   },
   "devDependencies": {
     "@supernal/interface": "file:../",
     "@types/node": "^20.0.0",
     "@types/react": "^18.0.0",
     "@types/react-dom": "^18.0.0",
-    "@types/react-syntax-highlighter": "^15.5.13",
     "tsup": "^8.0.0",
     "typescript": "^5.0.0"
   },
@@ -61,13 +60,13 @@
   },
   "dependencies": {
     "cac": "^6.7.14",
-    "react-markdown": "^9.0.1",
-    "remark-gfm": "^4.0.0",
-    "remark-math": "^6.0.0",
-    "remark-directive": "^3.0.0",
-    "rehype-katex": "^7.0.0",
-    "react-syntax-highlighter": "^15.5.0",
+    "katex": "^0.16.11",
     "mermaid": "^11.4.1",
-    "katex": "^0.16.11"
+    "prism-react-renderer": "^2.4.1",
+    "react-markdown": "^9.0.1",
+    "rehype-katex": "^7.0.0",
+    "remark-directive": "^3.0.0",
+    "remark-gfm": "^4.0.0",
+    "remark-math": "^6.0.0"
   }
 }

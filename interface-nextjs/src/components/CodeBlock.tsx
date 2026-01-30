@@ -1,8 +1,7 @@
 'use client';
 
 import React, { useState } from 'react';
-import { Prism as SyntaxHighlighter } from 'react-syntax-highlighter';
-import { vscDarkPlus, vs } from 'react-syntax-highlighter/dist/esm/styles/prism';
+import { Highlight, themes } from 'prism-react-renderer';
 
 interface CodeBlockProps {
   children: string;
@@ -42,7 +41,7 @@ export function CodeBlock({ children, className, inline, theme = 'dark' }: CodeB
     <div className="relative group my-4">
       <button
         onClick={handleCopy}
-        className={`absolute top-2 right-2 px-3 py-1.5 text-xs font-medium rounded transition-all ${
+        className={`absolute top-2 right-2 px-3 py-1.5 text-xs font-medium rounded transition-all z-10 ${
           theme === 'dark'
             ? 'bg-gray-700 hover:bg-gray-600 text-gray-200'
             : 'bg-gray-200 hover:bg-gray-300 text-gray-700'
@@ -66,19 +65,46 @@ export function CodeBlock({ children, className, inline, theme = 'dark' }: CodeB
         )}
       </button>
 
-      {React.createElement(SyntaxHighlighter as any, {
-        language,
-        style: theme === 'dark' ? vscDarkPlus : vs,
-        customStyle: {
-          margin: 0,
-          borderRadius: '0.5rem',
-          fontSize: '0.875rem',
-          padding: '1rem',
-        },
-        showLineNumbers: true,
-        wrapLines: true,
-        children,
-      })}
+      <Highlight
+        theme={theme === 'dark' ? themes.vsDark : themes.vsLight}
+        code={children.trim()}
+        language={language}
+      >
+        {({ className: highlightClassName, style, tokens, getLineProps, getTokenProps }) => (
+          <pre
+            className={highlightClassName}
+            style={{
+              ...style,
+              margin: 0,
+              borderRadius: '0.5rem',
+              fontSize: '0.875rem',
+              padding: '1rem',
+              overflow: 'auto',
+            }}
+          >
+            {tokens.map((line, i) => (
+              <div key={i} {...getLineProps({ line })} style={{ display: 'table-row' }}>
+                <span
+                  style={{
+                    display: 'table-cell',
+                    textAlign: 'right',
+                    paddingRight: '1em',
+                    userSelect: 'none',
+                    opacity: 0.5,
+                  }}
+                >
+                  {i + 1}
+                </span>
+                <span style={{ display: 'table-cell' }}>
+                  {line.map((token, key) => (
+                    <span key={key} {...getTokenProps({ token })} />
+                  ))}
+                </span>
+              </div>
+            ))}
+          </pre>
+        )}
+      </Highlight>
     </div>
   );
 }
