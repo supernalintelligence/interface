@@ -1,6 +1,6 @@
 {
   "name": "@supernal/interface",
-  "version": "1.0.11",
+  "version": "1.0.12",
   "description": "Universal AI Interface - Make any application AI-controllable with decorators (Open Source Edition)",
   "main": "./dist/cjs/src/index.js",
   "module": "./dist/esm/src/index.js",
@@ -137,6 +137,7 @@
   },
   "files": [
     "dist",
+    "src/claude",
     "README.md",
     "LICENSE"
   ],
