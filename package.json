@@ -61,6 +61,11 @@
       "types": "./dist/esm/src/storage/index.d.ts",
       "import": "./dist/esm/src/storage/index.js",
       "require": "./dist/cjs/src/storage/index.js"
+    },
+    "./tracking": {
+      "types": "./dist/esm/src/tracking/index.d.ts",
+      "import": "./dist/esm/src/tracking/index.js",
+      "require": "./dist/cjs/src/tracking/index.js"
     }
   },
   "scripts": {

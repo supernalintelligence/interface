@@ -211,6 +211,33 @@ export { LocationContext } from './background/location/LocationContext';
 export const VERSION = '1.1.0'; // Updated for MCP + State Management
 export const PACKAGE_NAME = '@supernal/interface';
 
+// Interaction Tracking
+export {
+  SITracker,
+  createTracker,
+  type SITrackerConfig,
+  type SIInteraction,
+  type SIBaseAction,
+} from './tracking/tracker';
+
+export {
+  SITrackerProvider,
+  useTracker,
+  useSITrackingInit,
+  useTrackClick,
+  useTrackView,
+  useTrackEngagement,
+  useTrackScrollDepth,
+  useTrackVisibility,
+  createComponentTrackingHook,
+} from './tracking/hooks';
+
+export {
+  TrackingProvider,
+  withTracking,
+  type SITrackingProviderProps,
+} from './tracking/SITrackingProvider';
+
 // Enterprise features not included in open source
 // Available at https://supernal.ai/enterprise:
 // - Test Generation (TestGenerator, ComponentTestGenerator, DocumentationGenerator)
