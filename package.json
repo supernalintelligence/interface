@@ -81,7 +81,8 @@
     "test:coverage": "NODE_ENV=test npx jest --coverage",
     "lint": "eslint src --ext .ts,.tsx",
     "lint:fix": "eslint src --ext .ts,.tsx --fix",
-    "prepack": "npm run build"
+    "prepack": "npm run build",
+    "postpublish": "clawhub publish ../skills/supernal-interface --slug supernal-interface --name 'Supernal Interface' --version $npm_package_version --tags latest --no-input || true"
   },
   "keywords": [
     "ai",
