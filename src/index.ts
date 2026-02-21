@@ -68,6 +68,8 @@ export * from './storage';
 
 // System tools
 export { SystemTools } from './tools/SystemTools';
+export { ModalAgentTools } from './tools/modal-agent-tools';
+export type { ModalResult, SpawnAgentOptions } from './tools/modal-agent-tools';
 
 // Testing utilities (basic - no generation)
 export * from './testing';

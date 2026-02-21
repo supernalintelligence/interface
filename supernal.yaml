@@ -1,5 +1,6 @@
 project:
   name: open-source
+  emoji: "🌐"
   description: Project managed with Supernal Coding
   version: 1.0.0
 docs:
