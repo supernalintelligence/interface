@@ -48,6 +48,18 @@ export {
   testIdEndsWith,
 } from './selectors';
 
+// Gherkin execution and CLI/TUI planning utilities
+export { GherkinParser } from './GherkinParser';
+export { TestRunner } from './TestRunner';
+export { CliStepMapper, type CliStepMapping, type TerminalMode } from './CliStepMapper';
+export {
+  StepExecutor,
+  type StepExecutionResult,
+  type StepExecutionContext,
+  type StepExecutionKind,
+  type StepExecutorOptions,
+} from './StepExecutor';
+
 // NOTE: ComponentStateHelpers are NOT exported here because they import Playwright
 // which cannot be bundled in client code. Import directly in test files:
 // import { assertComponentState } from '@supernal-interface/core/testing/ComponentStateHelpers';

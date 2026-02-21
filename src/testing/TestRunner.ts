@@ -10,6 +10,8 @@
 // import { StoryRegistry, StoryExecutor } from '../background/stories';
 import { GherkinParser } from './GherkinParser';
 import { ToolRegistry } from '../background/registry/ToolRegistry';
+import { StepExecutor, StepExecutionResult } from './StepExecutor';
+import { CliStepMapping, TerminalMode } from './CliStepMapper';
 // import { ToolPromptGenerator } from '../background/registry/ToolPromptGenerator';
 
 export interface TestRunOptions {
@@ -20,6 +22,26 @@ export interface TestRunOptions {
   includeStories?: boolean;
   filterByTag?: string;
   filterByCategory?: string;
+  executionMode?: 'generate-only' | 'execute';
+  stepExecutors?: ('tool' | 'cli' | 'http')[];
+  cliAllowlist?: string[];
+  cliTimeoutMs?: number;
+  cliTerminalMode?: TerminalMode;
+  cliStepMappings?: CliStepMapping[];
+  artifactDir?: string;
+  variables?: Record<string, string>;
+}
+
+export interface ExecutedScenarioResult {
+  scenario: string;
+  success: boolean;
+  steps: StepExecutionResult[];
+}
+
+export interface ExecutedFeatureResult {
+  feature: string;
+  success: boolean;
+  scenarios: ExecutedScenarioResult[];
 }
 
 export class TestRunner {
@@ -162,5 +184,59 @@ export class TestRunner {
     await this.writeFiles(tests, outputDir);
     
     console.log(`✅ Test generation complete!`);
+  }
+
+  static async runFeatureContent(
+    content: string,
+    options: TestRunOptions = {},
+  ): Promise<ExecutedFeatureResult> {
+    const parsed = GherkinParser.parseFeature(content);
+    const resolvedScenarios = parsed.scenarios.map((scenario) => ({
+      ...scenario,
+      steps: GherkinParser.resolveSteps(scenario.steps),
+    }));
+
+    const executor = new StepExecutor({
+      enabledExecutors: options.stepExecutors ?? ['tool'],
+      cli: {
+        enabled: options.stepExecutors?.includes('cli') ?? false,
+        allowlist: options.cliAllowlist ?? [],
+        timeoutMs: options.cliTimeoutMs ?? 15_000,
+        terminalMode: options.cliTerminalMode ?? 'stdio',
+        mappings: options.cliStepMappings ?? [],
+      },
+    });
+
+    const scenarioResults: ExecutedScenarioResult[] = [];
+    for (const scenario of resolvedScenarios) {
+      const steps: StepExecutionResult[] = [];
+      for (const step of scenario.steps) {
+        const result = await executor.execute(step, { variables: options.variables });
+        steps.push(result);
+        if (!result.success) {
+          break;
+        }
+      }
+      scenarioResults.push({
+        scenario: scenario.name,
+        success: steps.every((step) => step.success),
+        steps,
+      });
+    }
+
+    return {
+      feature: parsed.name,
+      success: scenarioResults.every((scenario) => scenario.success),
+      scenarios: scenarioResults,
+    };
+  }
+
+  static async runFeatureFile(
+    featurePath: string,
+    options: TestRunOptions = {},
+  ): Promise<ExecutedFeatureResult> {
+    const fs = await import('fs/promises');
+    const content = await fs.readFile(featurePath, 'utf8');
+    return this.runFeatureContent(content, options);
   }
 }
