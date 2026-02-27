@@ -225,6 +225,14 @@ export interface ExecutionConfig {
 
   /** Whether to fail fast on first error */
   failFast?: boolean;
+
+  /** 
+   * Wait strategy for page navigation.
+   * - 'load': Wait for load event (default, works with real-time apps)
+   * - 'domcontentloaded': Wait for DOMContentLoaded
+   * - 'networkidle': Wait until no network activity for 500ms (may timeout on apps with polling)
+   */
+  waitUntil?: 'load' | 'domcontentloaded' | 'networkidle';
 }
 
 /**

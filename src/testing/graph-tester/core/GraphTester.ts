@@ -266,7 +266,8 @@ export class GraphTester {
 
       // Navigate to route
       const url = `${this.config.baseUrl}${route.route}`;
-      await page.goto(url, { waitUntil: 'networkidle', timeout: this.config.execution?.timeout });
+      const waitUntil = this.config.execution?.waitUntil || 'load'; // Default to 'load' (works with real-time apps)
+      await page.goto(url, { waitUntil, timeout: this.config.execution?.timeout });
 
       // Create test context
       const testContext: TestContext = {
