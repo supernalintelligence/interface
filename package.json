@@ -69,6 +69,7 @@
     }
   },
   "scripts": {
+    "postinstall": "node scripts/postinstall.js",
     "clean": "rm -rf dist node_modules/.cache",
     "build": "npm run clean && npm run build:esm && npm run fix-esm && npm run build:cjs",
     "build:esm": "tsc -p tsconfig.json",
@@ -147,6 +148,8 @@
   "files": [
     "dist",
     "src/claude",
+    "skill",
+    "scripts/postinstall.js",
     "README.md",
     "LICENSE"
   ],
