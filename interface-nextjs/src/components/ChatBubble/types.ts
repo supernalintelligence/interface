@@ -80,7 +80,7 @@ export interface InputFieldProps {
   placeholder?: string;
   glassClasses: string;
   theme: 'light' | 'dark';
-  inputRef?: React.RefObject<HTMLInputElement>;
+  inputRef?: React.RefObject<HTMLInputElement | null>;
   sendButtonLabel?: string;
   // Voice control
   voiceEnabled?: boolean;

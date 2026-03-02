@@ -10,71 +10,57 @@
  *
  * Called automatically by SupernalProvider - no manual setup needed!
  *
- * Compatible with both Next.js App Router and Pages Router.
+ * Uses browser APIs directly to ensure compatibility with both
+ * App Router and Pages Router, and to avoid SSR/SSG issues.
  */
 
 import { useEffect, useState, useCallback } from 'react';
-
-// Try to import App Router hooks
-let useAppRouter: (() => { push: (path: string) => void; back: () => void; forward: () => void; refresh: () => void }) | undefined;
-let usePathname: (() => string) | undefined;
-
-try {
-  const navigation = require('next/navigation');
-  useAppRouter = navigation.useRouter;
-  usePathname = navigation.usePathname;
-} catch {
-  // App Router not available
-}
 
 /**
  * Hook to auto-setup NavigationGraph with Next.js router
  *
  * This eliminates boilerplate by automatically:
- * 1. Creating a navigation handler from Next.js router
+ * 1. Creating a navigation handler
  * 2. Setting it on NavigationGraph
  * 3. Updating context when routes change
  *
  * Called automatically by SupernalProvider.
  *
- * Works with both App Router (next/navigation) and Pages Router (next/router).
+ * Uses browser navigation APIs for maximum compatibility.
  */
 export function useNavigationGraphSetup() {
   const [isInitialized, setIsInitialized] = useState(false);
+  const [currentPath, setCurrentPath] = useState('/');
 
-  // Try to use App Router hooks
-  let router: { push: (path: string) => void; back: () => void; forward: () => void; refresh: () => void } | null = null;
-  let pathname: string | null = null;
+  // Initialize on client mount
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
 
-  try {
-    if (useAppRouter) {
-      router = useAppRouter();
-    }
-    if (usePathname) {
-      pathname = usePathname();
-    }
-  } catch {
-    // Hooks not available in this context
-  }
+    // Set current path
+    setCurrentPath(window.location.pathname + window.location.search);
 
-  // Create navigation handler that works with any router
+    // Listen for route changes
+    const handleRouteChange = () => {
+      setCurrentPath(window.location.pathname + window.location.search);
+    };
+
+    window.addEventListener('popstate', handleRouteChange);
+    return () => window.removeEventListener('popstate', handleRouteChange);
+  }, []);
+
+  // Create navigation handler using browser APIs
   const navigate = useCallback((path: string) => {
+    if (typeof window === 'undefined') return;
+    
     // Normalize path: ensure it starts with / to make it absolute
     const normalizedPath = path.startsWith('/') ? path : `/${path}`;
-
-    if (router?.push) {
-      router.push(normalizedPath);
-    } else if (typeof window !== 'undefined') {
-      // Fallback to browser navigation
-      window.location.href = normalizedPath;
-    }
-  }, [router]);
-
-  // Get current path
-  const currentPath = pathname ?? (typeof window !== 'undefined' ? window.location.pathname + window.location.search : '/');
+    window.location.href = normalizedPath;
+  }, []);
 
   // Setup navigation handler on mount
   useEffect(() => {
+    if (typeof window === 'undefined') return;
+
     // Dynamically import NavigationGraph to avoid SSR issues
     import('@supernal/interface/browser').then(({ NavigationGraph }) => {
       const graph = NavigationGraph.getInstance();
@@ -85,9 +71,9 @@ export function useNavigationGraphSetup() {
       // Set router for browser tools (back/forward/refresh)
       const browserRouter = {
         push: navigate,
-        back: () => router?.back?.() ?? window.history.back(),
-        forward: () => router?.forward?.() ?? window.history.forward(),
-        refresh: () => router?.refresh?.() ?? window.location.reload(),
+        back: () => window.history.back(),
+        forward: () => window.history.forward(),
+        refresh: () => window.location.reload(),
       };
       graph.setRouter(browserRouter);
 
@@ -96,13 +82,15 @@ export function useNavigationGraphSetup() {
 
       setIsInitialized(true);
 
-      console.log('[NavigationGraphSetup] Auto-configured with Next.js router');
+      console.log('[NavigationGraphSetup] Auto-configured with browser APIs');
+    }).catch(err => {
+      console.warn('[NavigationGraphSetup] Failed to setup:', err);
     });
   }, [navigate, currentPath]);
 
   // Update context on route changes (only after initialization)
   useEffect(() => {
-    if (!isInitialized) return;
+    if (!isInitialized || typeof window === 'undefined') return;
 
     import('@supernal/interface/browser').then(({ NavigationGraph }) => {
       const graph = NavigationGraph.getInstance();

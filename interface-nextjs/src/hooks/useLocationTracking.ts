@@ -11,23 +11,11 @@
  * CRITICAL: This must be called in SupernalProvider to enable tool scoping!
  *
  * Compatible with both Next.js App Router and Pages Router.
+ * Uses browser APIs to avoid SSR/SSG issues with Next.js hooks.
  */
 
 import { useEffect, useRef } from 'react';
 import { LocationContext } from '@supernal/interface/browser';
-
-// Try to import App Router hooks (will be undefined in Pages Router)
-let usePathname: (() => string) | undefined;
-let useSearchParams: (() => URLSearchParams) | undefined;
-
-try {
-  // Dynamic import check for App Router
-  const navigation = require('next/navigation');
-  usePathname = navigation.usePathname;
-  useSearchParams = navigation.useSearchParams;
-} catch {
-  // App Router not available, will use browser APIs
-}
 
 /**
  * Scan the DOM for visible elements with data-testid attributes
@@ -51,20 +39,6 @@ function arraysEqual(a: string[], b: string[]): boolean {
 }
 
 /**
- * Get current location from browser
- */
-function getCurrentLocation() {
-  if (typeof window === 'undefined') {
-    return { pathname: '/', search: '', asPath: '/' };
-  }
-  return {
-    pathname: window.location.pathname,
-    search: window.location.search,
-    asPath: window.location.pathname + window.location.search,
-  };
-}
-
-/**
  * Hook to track current location and visible elements
  *
  * This enables zero-config tool scoping - tools with elementId
@@ -72,63 +46,52 @@ function getCurrentLocation() {
  *
  * Called automatically by SupernalProvider - no need for manual setup.
  *
- * Works with both App Router (next/navigation) and Pages Router (next/router).
+ * Uses browser APIs directly to ensure compatibility with both
+ * App Router and Pages Router, and to avoid SSR/SSG issues.
  */
 export function useLocationTracking() {
   const lastLocationRef = useRef<string>('');
   const lastElementsRef = useRef<string[]>([]);
 
-  // Try to use App Router hooks if available
-  let pathname: string | null = null;
-  let searchParams: URLSearchParams | null = null;
-
-  try {
-    if (usePathname) {
-      pathname = usePathname();
-    }
-    if (useSearchParams) {
-      searchParams = useSearchParams();
-    }
-  } catch {
-    // Hooks not available in this context, will use browser APIs
-  }
-
   useEffect(() => {
+    // Only run on client
+    if (typeof window === 'undefined') return;
+
     const updateLocation = () => {
-      // Get current location (prefer App Router hooks, fall back to browser)
-      const location = pathname !== null
-        ? { pathname, search: searchParams?.toString() || '', asPath: pathname + (searchParams?.toString() ? `?${searchParams.toString()}` : '') }
-        : getCurrentLocation();
+      // Get current location from browser
+      const pathname = window.location.pathname;
+      const search = window.location.search;
+      const asPath = pathname + search;
 
       // Scan DOM for visible elements
       const visibleElements = getVisibleElements();
 
       // Check if anything has actually changed
-      const locationChanged = lastLocationRef.current !== location.pathname;
+      const locationChanged = lastLocationRef.current !== pathname;
       const elementsChanged = !arraysEqual(lastElementsRef.current, visibleElements);
 
       // Only update and log if something changed
       if (locationChanged || elementsChanged) {
         LocationContext.setCurrent({
-          page: location.pathname,
-          route: location.pathname,
+          page: pathname,
+          route: pathname,
           elements: visibleElements,
           metadata: {
-            search: location.search,
-            asPath: location.asPath,
+            search,
+            asPath,
           },
         });
 
         // Only log if there's an actual change
         if (locationChanged) {
-          console.log(`[LocationTracking] Updated location: ${location.pathname}`);
+          console.log(`[LocationTracking] Updated location: ${pathname}`);
         }
         if (elementsChanged) {
           console.log(`[LocationTracking] Visible elements changed: ${visibleElements.length} elements`);
         }
 
         // Update refs
-        lastLocationRef.current = location.pathname;
+        lastLocationRef.current = pathname;
         lastElementsRef.current = visibleElements;
       }
     };
@@ -139,18 +102,13 @@ export function useLocationTracking() {
     // Periodically re-scan for elements (handles dynamic content)
     const intervalId = setInterval(updateLocation, 1000);
 
-    // Listen for browser navigation events (works for both routers)
-    const handleNavigation = () => {
-      // Delay to ensure new page DOM is rendered
-      setTimeout(updateLocation, 100);
-    };
-
-    window.addEventListener('popstate', handleNavigation);
+    // Listen for browser navigation events
+    window.addEventListener('popstate', updateLocation);
 
     return () => {
       clearTimeout(initialTimer);
       clearInterval(intervalId);
-      window.removeEventListener('popstate', handleNavigation);
+      window.removeEventListener('popstate', updateLocation);
     };
-  }, [pathname, searchParams]);
+  }, []);
 }
