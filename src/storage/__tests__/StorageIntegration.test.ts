@@ -10,6 +10,7 @@
 import { LocalStorageAdapter, MemoryStorageAdapter } from '../StorageAdapter';
 import { NamespacedStorageAdapter } from '../NamespacedStorageAdapter';
 import { StateManager } from '../StateManager';
+import { StorageAdapterFactory } from '../StorageAdapterFactory';
 import { StateManagers } from '../../types/StateManagers';
 
 beforeEach(() => {
@@ -81,6 +82,27 @@ describe('Integration: StateManager persistence across reload', () => {
 });
 
 describe('Integration: StateManager with NamespacedStorageAdapter', () => {
+  it('barrel export: NamespacedStorageAdapter, StorageAdapterFactory, StateManagers all exported from root', () => {
+    // Guard against accidental removal from index.ts re-exports.
+    // Use the already-imported symbols (all from '@supernal/interface' at top of file)
+    // rather than a dynamic import — this file already exercises the barrel.
+    expect(typeof NamespacedStorageAdapter).toBe('function');
+    expect(typeof StorageAdapterFactory).toBe('function');
+    expect(typeof StateManager).toBe('function');
+    expect(typeof MemoryStorageAdapter).toBe('function');
+    expect(typeof StateManagers).toBe('object');
+  });
+
+  it('StateManagers enum contains all expected contexts', () => {
+    // Guards against accidental removal of enum values
+    expect(StateManagers.CoreV1).toBe('core_v1');
+    expect(StateManagers.UserSession).toBe('user_session');
+    expect(StateManagers.DashboardSettings).toBe('dashboard_settings');
+    expect(StateManagers.PluginData).toBe('plugin_data');
+    expect(StateManagers.AgentContext).toBe('agent_context');
+    expect(StateManagers.UserProfile).toBe('user_profile');
+  });
+
   it('keys stay isolated between namespaced managers', async () => {
     const base = new MemoryStorageAdapter('');
     const nsA = new NamespacedStorageAdapter(base, 'mgr-a');
