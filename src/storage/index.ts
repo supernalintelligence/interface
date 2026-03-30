@@ -9,12 +9,22 @@
  */
 
 // Export browser-safe adapters
-export { 
+export {
   StorageAdapter,
   LocalStorageAdapter,
   ChromeStorageAdapter,
-  MemoryStorageAdapter 
+  MemoryStorageAdapter
 } from './StorageAdapter';
+
+// Export NamespacedStorageAdapter
+export { NamespacedStorageAdapter } from './NamespacedStorageAdapter';
+
+// Export StorageAdapterFactory
+export {
+  StorageAdapterFactory,
+  type StorageEnvironment,
+  type StorageAdapterFactoryOptions,
+} from './StorageAdapterFactory';
 
 // Export StateManager
 export * from './StateManager';

@@ -8,6 +8,7 @@
 // Basic hooks (open source)
 export { useToolBinding } from './useToolBinding';
 export { usePersistedState } from './usePersistedState';
+export { useStateManagerSettings } from './useStateManagerSettings';
 export { useNavigationHandler } from './useNavigationHandler';
 
 // Chat integration hook

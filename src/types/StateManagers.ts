@@ -34,5 +34,29 @@ export enum StateManagers {
    * For demo/example scenarios
    */
   Demo = 'demo',
+
+  /**
+   * Dashboard settings state manager
+   * All dashboard UI preferences (panel sizes, theme, view modes)
+   */
+  DashboardSettings = 'dashboard_settings',
+
+  /**
+   * Plugin-isolated storage
+   * Each plugin gets its own namespace within this manager
+   */
+  PluginData = 'plugin_data',
+
+  /**
+   * Agent session state
+   * Tracks agent context, conversation state, tool usage
+   */
+  AgentContext = 'agent_context',
+
+  /**
+   * Cross-device user preferences
+   * Settings that sync across devices via server
+   */
+  UserProfile = 'user_profile',
 }
 
