@@ -113,5 +113,11 @@ export { ParameterExtractor } from './ai/ParameterExtractor';
 export { ToolExecutor } from './ai/ToolExecutor';
 export { SuggestionEngine } from './ai/SuggestionEngine';
 
+// Storage (browser-safe — used by dashboard settings layer)
+export { StateManager } from './storage/StateManager';
+export { LocalStorageAdapter, MemoryStorageAdapter, NamespacedStorageAdapter } from './storage';
+export type { StorageAdapter } from './storage';
+export type { StateSubscriber, SubscriptionHandle, StateManagerOptions } from './storage/StateManager';
+
 // Note: CLI tools, generators, and Node.js-specific functionality
 // are excluded from browser builds
