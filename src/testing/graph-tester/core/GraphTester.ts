@@ -269,6 +269,11 @@ export class GraphTester {
       const waitUntil = this.config.execution?.waitUntil || 'load'; // Default to 'load' (works with real-time apps)
       await page.goto(url, { waitUntil, timeout: this.config.execution?.timeout });
 
+      // Optional additional wait (allows useEffect/hydration to complete)
+      if (this.config.waitAfter && this.config.waitAfter > 0) {
+        await page.waitForTimeout(this.config.waitAfter);
+      }
+
       // Create test context
       const testContext: TestContext = {
         route: route.route,
@@ -333,6 +338,16 @@ export class GraphTester {
 
       // Initialize browser
       await this.initBrowser();
+
+      // Visit setup URL (e.g. one-time auth token) before running any tests
+      if (this.config.setupUrl && this.context) {
+        const setupPage = await this.context.newPage();
+        try {
+          await setupPage.goto(this.config.setupUrl, { waitUntil: 'load', timeout: 15000 });
+        } finally {
+          await setupPage.close();
+        }
+      }
 
       // Execute tests
       const resultsByRoute = new Map<string, TestResult[]>();

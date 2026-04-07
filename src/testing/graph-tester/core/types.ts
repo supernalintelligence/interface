@@ -191,6 +191,19 @@ export interface GraphTesterConfig {
 
   /** Browser configuration */
   browser?: BrowserConfig;
+
+  /**
+   * URL to visit before running any tests (e.g. a one-time auth token URL).
+   * Playwright visits this page first so that any cookies/session state it
+   * sets are available for all subsequent test routes.
+   */
+  setupUrl?: string;
+
+  /**
+   * Additional milliseconds to wait after each page navigation before
+   * running tests. Useful for apps that render content in useEffect hooks.
+   */
+  waitAfter?: number;
 }
 
 /**
