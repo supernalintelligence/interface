@@ -185,13 +185,37 @@ export class AccessibilityMode extends TestFunction {
   }
 
   private async injectAxe(page: Page): Promise<void> {
+    // Try local axe-core first (walk up from __dirname to find node_modules/axe-core).
+    // Falls back to CDN if not found locally. This allows offline/CI use.
+    // eslint-disable-next-line @typescript-eslint/no-var-requires
+    const nodePath = require('path') as typeof import('path');
+    let localAxePath: string | null = null;
+    let searchDir = __dirname;
+    for (let i = 0; i < 10; i++) {
+      const candidate = nodePath.join(searchDir, 'node_modules', 'axe-core', 'axe.min.js');
+      // eslint-disable-next-line @typescript-eslint/no-var-requires
+      if ((require('fs') as typeof import('fs')).existsSync(candidate)) {
+        localAxePath = candidate;
+        break;
+      }
+      const parent = nodePath.dirname(searchDir);
+      if (parent === searchDir) break;
+      searchDir = parent;
+    }
+    if (localAxePath) {
+      try {
+        await page.addScriptTag({ path: localAxePath });
+        return;
+      } catch (_localErr) {
+        // local path failed, fall through to CDN
+      }
+    }
     try {
-      // Try to load axe-core from CDN
       await page.addScriptTag({
         url: 'https://cdnjs.cloudflare.com/ajax/libs/axe-core/4.8.3/axe.min.js',
       });
     } catch (error) {
-      throw new Error('Failed to inject axe-core from CDN. Please check your network connection or use a local axe-core installation.');
+      throw new Error('Failed to inject axe-core (tried local and CDN). Install axe-core: npm install axe-core');
     }
   }
 
