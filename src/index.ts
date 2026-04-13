@@ -65,6 +65,7 @@ export { StatefulComponent, isStatefulComponent } from './interfaces/StatefulCom
 
 // Storage (basic adapters only - browser/memory)
 export * from './storage';
+export { defineKeyRegistry, defineStaticKeys } from './storage/KeyRegistry';
 
 // System tools
 export { SystemTools } from './tools/SystemTools';
@@ -106,7 +107,8 @@ export {
 export { DOMExecutor } from './execution/DOMExecutor';
 
 // React hooks
-export { useToolBinding } from './react';
+export { useToolBinding, useTools } from './react';
+export type { ToolDefinition, ToolParameterSchema } from './react';
 
 // Types
 export * from './types';

@@ -6,6 +6,8 @@
  */
 
 // Basic hooks (open source)
+export { useTools } from './hooks/useTools';
+export type { ToolDefinition, ToolParameterSchema } from './hooks/useTools';
 export { useToolBinding } from './useToolBinding';
 export { usePersistedState } from './usePersistedState';
 export { useStateManagerSettings } from './useStateManagerSettings';

@@ -755,6 +755,15 @@ export class ToolRegistry {
   }
 
   /**
+   * Unregister a tool by its tool ID (e.g. "inbox.refresh")
+   * Used by useTools() hook on component unmount.
+   */
+  static unregisterTool(toolId: string): void {
+    this.tools.delete(toolId);
+    DEBUG && console.log(`🗑️ ToolRegistry: Unregistered tool ${toolId}`);
+  }
+
+  /**
    * Clear all tools (for testing)
    */
   static clear(): void {
