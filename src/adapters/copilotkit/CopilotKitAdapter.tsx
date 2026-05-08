@@ -31,9 +31,13 @@ let useCopilotReadable: ((config: any) => void) | null = null;
 // Dynamic import to avoid hard dependency
 async function loadCopilotKit() {
   try {
-    // Dynamic imports - these will fail if packages not installed
-    const reactCore = await import(/* webpackIgnore: true */ '@copilotkit/react-core');
-    const reactUI = await import(/* webpackIgnore: true */ '@copilotkit/react-ui');
+    // Dynamic imports — string vars prevent TS from resolving at compile time
+    const ckCore = '@copilotkit/react-core';
+    const ckUI = '@copilotkit/react-ui';
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const reactCore = await import(/* webpackIgnore: true */ ckCore as any);
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const reactUI = await import(/* webpackIgnore: true */ ckUI as any);
 
     useCopilotAction = reactCore.useCopilotAction;
     useCopilotReadable = reactCore.useCopilotReadable;
