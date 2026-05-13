@@ -11,6 +11,7 @@
 // Core decorators and registry
 export { Tool, ToolConfig, ToolMetadata } from './decorators/Tool';
 export { getStandaloneTools, getStandaloneTool } from './decorators/Tool';
+export { fromCommand } from './decorators/fromCommand';
 export {
   ToolProvider,
   ToolProviderConfig,
