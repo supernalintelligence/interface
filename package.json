@@ -125,6 +125,8 @@
     }
   },
   "devDependencies": {
+    "@copilotkit/react-core": "^1.57.1",
+    "@copilotkit/react-ui": "^1.57.1",
     "@jest/globals": "^29.7.0",
     "@playwright/test": "^1.57.0",
     "@testing-library/dom": "^10.4.1",

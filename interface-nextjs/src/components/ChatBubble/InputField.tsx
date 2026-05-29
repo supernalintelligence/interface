@@ -26,7 +26,7 @@ export const InputField: React.FC<InputFieldProps> = ({
   <form onSubmit={onSubmit} className={compact ? 'flex space-x-2' : THEME_CLASSES.bg.inputForm + ' ' + 'bg-transparent'}>
     <div className={compact ? 'flex space-x-2 flex-1' : 'relative'}>
       <input
-        ref={compact ? undefined : inputRef}
+        ref={compact ? undefined : (inputRef as React.RefObject<HTMLInputElement>)}
         type="text"
         value={inputValue}
         onChange={(e) => onInputChange(e.target.value)}

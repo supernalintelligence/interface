@@ -102,7 +102,7 @@ export function SupernalProvider({
   onNavigate,
   onToolExecute,
 }: SupernalProviderProps) {
-  const shouldRenderChatBubble = !disabled;
+  const shouldRenderChatBubble = false; // Hard-disabled - chat bubble not functional
 
   // If variant is explicitly set (not 'full'), use it as displayMode to prevent auto-override
   const effectiveDisplayMode = variant !== 'full' ? variant : displayMode;
