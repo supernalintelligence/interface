@@ -3,14 +3,14 @@ project:
   description: Project managed with Supernal Coding
   version: 1.0.0
 docs:
-  root: docs
-  features: docs/features
-  requirements: docs/requirements
-  architecture: docs/architecture
-  planning: docs/planning
-  guides: docs/guides
-  compliance: docs/compliance
-  handoffs: docs/handoffs
+  root: .supernal/docs
+  features: .supernal/docs/features
+  requirements: .supernal/docs/requirements
+  architecture: .supernal/docs/architecture
+  planning: .supernal/docs/planning
+  guides: .supernal/docs/guides
+  compliance: .supernal/docs/compliance
+  handoffs: .supernal/docs/handoffs
 git:
   signing:
     enabled: false
@@ -21,7 +21,7 @@ git:
       require_signature: false
     agent_registry: .supernal/config/agents.yaml
 requirements:
-  path: docs/requirements
+  path: .supernal/docs/requirements
   format: gherkin
   id_prefix: REQ
   categories:
@@ -30,7 +30,7 @@ requirements:
     - workflow
     - compliance
 features:
-  path: docs/features
+  path: .supernal/docs/features
   domains:
     - ai-workflow-system
     - compliance-framework
@@ -40,7 +40,7 @@ features:
 compliance:
   enabled: false
   framework: null
-  evidence_path: docs/compliance/evidence
+  evidence_path: .supernal/docs/compliance/evidence
 cli:
   verbose: false
   colors: true
