@@ -67,6 +67,16 @@
       "import": "./dist/esm/src/tracking/index.js",
       "require": "./dist/cjs/src/tracking/index.js"
     },
+    "./formatters": {
+      "types": "./dist/esm/src/formatters/index.d.ts",
+      "import": "./dist/esm/src/formatters/index.js",
+      "require": "./dist/cjs/src/formatters/index.js"
+    },
+    "./formatters/react": {
+      "types": "./dist/esm/src/formatters/react/index.d.ts",
+      "import": "./dist/esm/src/formatters/react/index.js",
+      "require": "./dist/cjs/src/formatters/react/index.js"
+    },
     "./src/components/ComponentScanner": {
       "types": "./dist/esm/src/components/ComponentScanner.d.ts",
       "import": "./dist/esm/src/components/ComponentScanner.js",

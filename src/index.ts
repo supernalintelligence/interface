@@ -249,3 +249,7 @@ export {
 // - Advanced AI (LLMProvider, ParameterExtractor, SuggestionEngine)
 // - File Storage Adapter (Node.js)
 // - Navigation Graph (runtime tracking)
+
+// Formatters — unified time, currency, number formatting
+export { createFormatter, resolveLocaleConfig, LOCALE_MAP, DEFAULT_CONFIG } from './formatters'
+export type { Formatter, FormatterConfig, TimeFormat, CurrencyCode, TimeOptions, CurrencyOptions, NumberOptions } from './formatters'
