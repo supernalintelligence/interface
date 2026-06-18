@@ -1,9 +1,9 @@
 /**
  * @supernal/interface - Open Source Edition
- * 
+ *
  * Universal AI Interface - Make any application AI-controllable with decorators.
  * Core framework, basic features, and adapter system.
- * 
+ *
  * Enterprise features (test generation, architecture visualization, story system)
  * available at https://supernal.ai/enterprise
  */
@@ -21,12 +21,12 @@ export {
 
 // Tool HOC helpers
 export {
-  ClickTool, 
-  ChangeTool, 
-  TypeTool, 
-  HoverTool, 
-  MultiActionTool, 
-  FormTool 
+  ClickTool,
+  ChangeTool,
+  TypeTool,
+  HoverTool,
+  MultiActionTool,
+  FormTool,
 } from './decorators/ToolHelpers';
 
 // Specialized decorators and presets
@@ -56,13 +56,19 @@ export {
 
 // Registries
 export { ToolRegistry } from './background/registry/ToolRegistry';
-export { ComponentRegistry, ComponentMetadata } from './background/registry/ComponentRegistry';
+export {
+  ComponentRegistry,
+  ComponentMetadata,
+} from './background/registry/ComponentRegistry';
 
 // Component decorators
 export { Component, ComponentConfig } from './decorators/Component';
 
 // Stateful components
-export { StatefulComponent, isStatefulComponent } from './interfaces/StatefulComponent';
+export {
+  StatefulComponent,
+  isStatefulComponent,
+} from './interfaces/StatefulComponent';
 
 // Storage (basic adapters only - browser/memory)
 export * from './storage';
@@ -127,15 +133,44 @@ export {
   createAutoInitializer,
   ContainerRegistry,
 } from './background/architecture';
-export { architectureRegistry, inferNavToContainerMap } from './architecture/registry';
-export { createContainer, createContainers } from './architecture/createContainer';
+export {
+  architectureRegistry,
+  inferNavToContainerMap,
+} from './architecture/registry';
+export {
+  createContainer,
+  createContainers,
+} from './architecture/createContainer';
 export type { ContainerConfig } from './architecture/createContainer';
-export type { ArchitectureOptions, InitializedArchitecture } from './architecture/initialize';
+export type {
+  ArchitectureOptions,
+  InitializedArchitecture,
+} from './architecture/initialize';
 export type { ContainerDefinition } from './background/architecture/Containers';
 
 // Names
-export { createNames, getComponentIds, isComponentId } from './names/createNames';
+export {
+  createNames,
+  getComponentIds,
+  isComponentId,
+} from './names/createNames';
 export type { ComponentId } from './names/createNames';
+// Terminals — typed CLI execution-context registry (sibling of createNames; resolves like Routes.X)
+export {
+  createTerminals,
+  Terminal,
+  TERMINAL_METADATA,
+  getTerminalMetadata,
+  getTerminalIds,
+  isTerminalId,
+  resolveTerminalRef,
+} from './names/createTerminals';
+export type {
+  TerminalTier,
+  TerminalConfig,
+  TerminalMetadata,
+  TerminalId,
+} from './names/createTerminals';
 
 // Chat UI Adapters (ALL OPEN - Key value proposition!)
 export {
@@ -173,7 +208,7 @@ export type {
 // Re-export commonly used types
 export type {
   UniversalExecutionContext,
-  UniversalToolResult
+  UniversalToolResult,
 } from './background/registry/ToolRegistry';
 
 // MCP (Model Context Protocol) - NEW in v1.1.0
@@ -190,7 +225,7 @@ export type {
   MCPTool,
   MCPToolsListResponse,
   MCPToolCallRequest,
-  MCPToolCallResponse
+  MCPToolCallResponse,
 } from './mcp';
 
 // State Management - NEW in v1.1.0
@@ -200,7 +235,7 @@ export {
   getStateFromDom,
   waitForState,
   onStateChange,
-  type StateChangeEventDetail
+  type StateChangeEventDetail,
 } from './state/StateSync';
 
 // Enterprise feature stubs (warn users, drive upgrade)
@@ -251,5 +286,18 @@ export {
 // - Navigation Graph (runtime tracking)
 
 // Formatters — unified time, currency, number formatting
-export { createFormatter, resolveLocaleConfig, LOCALE_MAP, DEFAULT_CONFIG } from './formatters'
-export type { Formatter, FormatterConfig, TimeFormat, CurrencyCode, TimeOptions, CurrencyOptions, NumberOptions } from './formatters'
+export {
+  createFormatter,
+  resolveLocaleConfig,
+  LOCALE_MAP,
+  DEFAULT_CONFIG,
+} from './formatters';
+export type {
+  Formatter,
+  FormatterConfig,
+  TimeFormat,
+  CurrencyCode,
+  TimeOptions,
+  CurrencyOptions,
+  NumberOptions,
+} from './formatters';
