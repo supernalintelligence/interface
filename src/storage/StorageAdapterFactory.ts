@@ -15,13 +15,26 @@
  * // Node.js file-based storage (provide your own FileStorageAdapter)
  * import { FileStorageAdapter } from '@supernal/interface-enterprise';
  * const adapter = StorageAdapterFactory.createFrom(new FileStorageAdapter('./state.json'), { namespace: 'data' });
+ *
+ * // Register a custom adapter (e.g., Capacitor on mobile):
+ * StorageAdapterFactory.register('capacitor', () => new CapacitorStorageAdapter());
+ * const adapter = StorageAdapterFactory.create('capacitor');
  * ```
  */
 
-import { StorageAdapter, LocalStorageAdapter, MemoryStorageAdapter, ChromeStorageAdapter } from './StorageAdapter';
+import {
+  StorageAdapter,
+  LocalStorageAdapter,
+  MemoryStorageAdapter,
+  ChromeStorageAdapter,
+} from './StorageAdapter';
 import { NamespacedStorageAdapter } from './NamespacedStorageAdapter';
 
-export type StorageEnvironment = 'browser' | 'chrome-mv3' | 'memory';
+export type StorageEnvironment =
+  | 'browser'
+  | 'chrome-mv3'
+  | 'memory'
+  | 'capacitor';
 
 export interface StorageAdapterFactoryOptions {
   /** Wrap the adapter in a NamespacedStorageAdapter with this namespace */
@@ -31,14 +44,36 @@ export interface StorageAdapterFactoryOptions {
 }
 
 export class StorageAdapterFactory {
+  private static registry = new Map<string, () => StorageAdapter>();
+
+  /**
+   * Register a factory for a custom environment identifier.
+   * Call this at app startup before any StorageAdapterFactory.create() calls.
+   *
+   * @example
+   * StorageAdapterFactory.register('capacitor', () => new CapacitorStorageAdapter());
+   */
+  static register(env: string, factory: () => StorageAdapter): void {
+    StorageAdapterFactory.registry.set(env, factory);
+  }
+
   /**
    * Create a StorageAdapter for the given (or auto-detected) environment.
    */
   static create(
-    env?: StorageEnvironment,
+    env?: StorageEnvironment | string,
     options: StorageAdapterFactoryOptions = {}
   ): StorageAdapter {
     const resolved = env ?? StorageAdapterFactory.detectEnvironment();
+
+    // Check registry first — registered adapters take precedence for their env key
+    const registered = StorageAdapterFactory.registry.get(resolved);
+    if (registered) {
+      const adapter = registered();
+      return options.namespace
+        ? new NamespacedStorageAdapter(adapter, options.namespace)
+        : adapter;
+    }
 
     let adapter: StorageAdapter;
 
@@ -91,8 +126,19 @@ export class StorageAdapterFactory {
       return 'chrome-mv3';
     }
 
+    // Capacitor native platform (only when the adapter is registered)
+    if (
+      StorageAdapterFactory.registry.has('capacitor') &&
+      (globalThis as any).Capacitor?.isNativePlatform?.() === true
+    ) {
+      return 'capacitor';
+    }
+
     // Browser with localStorage
-    if (typeof window !== 'undefined' && typeof window.localStorage !== 'undefined') {
+    if (
+      typeof window !== 'undefined' &&
+      typeof window.localStorage !== 'undefined'
+    ) {
       return 'browser';
     }
 

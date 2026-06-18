@@ -36,19 +36,25 @@ describe('StorageAdapterFactory', () => {
   });
 
   it('create with namespace wraps adapter', async () => {
-    const adapter = StorageAdapterFactory.create('memory', { namespace: 'test-ns' });
+    const adapter = StorageAdapterFactory.create('memory', {
+      namespace: 'test-ns',
+    });
 
     // Should behave as namespaced
     await adapter.set('key', 'value');
     expect(await adapter.get('key')).toBe('value');
 
     // Another namespace should be isolated
-    const adapter2 = StorageAdapterFactory.create('memory', { namespace: 'other' });
+    const adapter2 = StorageAdapterFactory.create('memory', {
+      namespace: 'other',
+    });
     expect(await adapter2.get('key')).toBeNull();
   });
 
   it('create with custom prefix', async () => {
-    const adapter = StorageAdapterFactory.create('memory', { prefix: 'custom:' });
+    const adapter = StorageAdapterFactory.create('memory', {
+      prefix: 'custom:',
+    });
     await adapter.set('k', 'v');
     expect(await adapter.get('k')).toBe('v');
   });
@@ -56,7 +62,9 @@ describe('StorageAdapterFactory', () => {
   it('createFrom wraps an existing adapter with namespace', async () => {
     const { MemoryStorageAdapter } = await import('../StorageAdapter');
     const base = new MemoryStorageAdapter('');
-    const wrapped = StorageAdapterFactory.createFrom(base, { namespace: 'wrap' });
+    const wrapped = StorageAdapterFactory.createFrom(base, {
+      namespace: 'wrap',
+    });
 
     await wrapped.set('key', 'val');
     expect(await wrapped.get('key')).toBe('val');
@@ -87,5 +95,75 @@ describe('StorageAdapterFactory', () => {
     } finally {
       globalThis.window = origWindow;
     }
+  });
+
+  describe('register()', () => {
+    afterEach(() => {
+      // Clean up any registered adapters between tests
+      (StorageAdapterFactory as any).registry.delete('test-env');
+      (StorageAdapterFactory as any).registry.delete('capacitor');
+    });
+
+    it('register() + create() returns the registered adapter', async () => {
+      const { MemoryStorageAdapter } = await import('../StorageAdapter');
+      const customAdapter = new MemoryStorageAdapter('custom:');
+      StorageAdapterFactory.register('test-env', () => customAdapter);
+
+      const adapter = StorageAdapterFactory.create('test-env' as any);
+      expect(adapter).toBe(customAdapter);
+    });
+
+    it('register() + create() with namespace wraps in NamespacedStorageAdapter', async () => {
+      const { MemoryStorageAdapter } = await import('../StorageAdapter');
+      StorageAdapterFactory.register(
+        'test-env',
+        () => new MemoryStorageAdapter('')
+      );
+
+      const adapter = StorageAdapterFactory.create('test-env' as any, {
+        namespace: 'ns',
+      });
+      await adapter.set('k', 'v');
+      expect(await adapter.get('k')).toBe('v');
+    });
+
+    it('detectEnvironment() returns "capacitor" when registered and Capacitor.isNativePlatform() is true', () => {
+      const { MemoryStorageAdapter } = require('../StorageAdapter');
+      StorageAdapterFactory.register(
+        'capacitor',
+        () => new MemoryStorageAdapter('')
+      );
+
+      const origCapacitor = (globalThis as any).Capacitor;
+      (globalThis as any).Capacitor = { isNativePlatform: () => true };
+
+      try {
+        const env = StorageAdapterFactory.detectEnvironment();
+        expect(env).toBe('capacitor');
+      } finally {
+        if (origCapacitor === undefined) {
+          delete (globalThis as any).Capacitor;
+        } else {
+          (globalThis as any).Capacitor = origCapacitor;
+        }
+      }
+    });
+
+    it('detectEnvironment() does NOT return "capacitor" when adapter is not registered', () => {
+      const origCapacitor = (globalThis as any).Capacitor;
+      (globalThis as any).Capacitor = { isNativePlatform: () => true };
+
+      try {
+        const env = StorageAdapterFactory.detectEnvironment();
+        // Should fall through to 'browser' (jsdom) since capacitor is not registered
+        expect(env).not.toBe('capacitor');
+      } finally {
+        if (origCapacitor === undefined) {
+          delete (globalThis as any).Capacitor;
+        } else {
+          (globalThis as any).Capacitor = origCapacitor;
+        }
+      }
+    });
   });
 });
