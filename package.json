@@ -47,6 +47,11 @@
       "import": "./dist/esm/src/testing/ComponentStateHelpers.js",
       "require": "./dist/cjs/src/testing/ComponentStateHelpers.js"
     },
+    "./names/createTerminals": {
+      "types": "./dist/esm/src/names/createTerminals.d.ts",
+      "import": "./dist/esm/src/names/createTerminals.js",
+      "require": "./dist/cjs/src/names/createTerminals.js"
+    },
     "./adapters": {
       "types": "./dist/esm/src/adapters/index.d.ts",
       "import": "./dist/esm/src/adapters/index.js",
