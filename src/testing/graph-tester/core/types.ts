@@ -216,6 +216,17 @@ export interface GraphTesterConfig {
    * the indicator never appears (production builds, non-Next.js targets).
    */
   waitForDevCompile?: number;
+
+  /**
+   * Max milliseconds to wait for the page body's own text content to STOP
+   * GROWING before a capture proceeds -- catches an app whose real content
+   * (a fetched list, a table) arrives asynchronously after mount, after the
+   * static shell (a header, a subheading) has already rendered. A single
+   * "is body non-empty" check is not enough for this -- the static shell
+   * alone can make the body non-empty well before the real content does.
+   * Set to 0 to disable. Default 8000ms.
+   */
+  waitForContentSettle?: number;
 }
 
 /**

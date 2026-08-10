@@ -1,4 +1,9 @@
-import { waitForDevCompileIdle, type PollablePage } from '../devCompileWait';
+import {
+  waitForDevCompileIdle,
+  waitForContentSettle,
+  type PollablePage,
+  type ContentPollablePage,
+} from '../devCompileWait';
 
 function fakePage(visibleSequence: boolean[]): {
   page: PollablePage;
@@ -117,5 +122,74 @@ describe('waitForDevCompileIdle', () => {
       await waitForDevCompileIdle(page, 20000);
       expect(waits[0]).toBeGreaterThan(0); // the settle wait fired before the (only) check
     });
+  });
+});
+
+describe('waitForContentSettle -- the real bug found live: a static shell renders instantly, real content arrives later', () => {
+  function fakeContentPage(lengths: number[]): ContentPollablePage {
+    let now = 0;
+    let index = 0;
+    return {
+      locator: () => ({
+        textContent: async () => {
+          const len = lengths[Math.min(index, lengths.length - 1)];
+          index++;
+          return 'x'.repeat(len);
+        },
+      }),
+      waitForTimeout: async (ms: number) => {
+        now += ms;
+      },
+    };
+  }
+
+  it('settles immediately when the SAME length is observed on the first two consecutive polls', async () => {
+    const page = fakeContentPage([50, 50]);
+    const result = await waitForContentSettle(page, 8000, Date.now, 2);
+    expect(result.settled).toBe(true);
+    expect(result.finalLength).toBe(50);
+  });
+
+  it('does NOT settle on a non-empty body alone if the length is still growing -- the exact live bug', async () => {
+    // Models the real /agency-ops finding: static shell renders at length 40,
+    // then the async company list streams in, growing the body across
+    // several polls before it finally stabilizes at 900.
+    const page = fakeContentPage([40, 120, 400, 900, 900]);
+    const result = await waitForContentSettle(page, 8000, Date.now, 2);
+    expect(result.settled).toBe(true);
+    expect(result.finalLength).toBe(900); // NOT 40 -- a naive "non-empty" check would have stopped there
+  });
+
+  it('gives up when the length never stops growing within the timeout', async () => {
+    let now = 0;
+    const clock = () => now;
+    let n = 0;
+    const page: ContentPollablePage = {
+      locator: () => ({
+        textContent: async () => {
+          n += 10;
+          return 'x'.repeat(n); // always growing, never stabilizes
+        },
+      }),
+      waitForTimeout: async (ms: number) => {
+        now += ms;
+      },
+    };
+    const result = await waitForContentSettle(page, 1000, clock, 2);
+    expect(result.settled).toBe(false);
+  });
+
+  it('treats a textContent() error as empty (fail open, never hang)', async () => {
+    const page: ContentPollablePage = {
+      locator: () => ({
+        textContent: async () => {
+          throw new Error('detached');
+        },
+      }),
+      waitForTimeout: async () => {},
+    };
+    const result = await waitForContentSettle(page, 8000, Date.now, 2);
+    expect(result.settled).toBe(true);
+    expect(result.finalLength).toBe(0);
   });
 });

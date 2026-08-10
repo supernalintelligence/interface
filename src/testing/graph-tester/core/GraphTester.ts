@@ -27,7 +27,7 @@ import type {
 } from './types';
 import { TestFunction, isTestFunction } from './TestFunction';
 import { ViewportPresets } from './types';
-import { waitForDevCompileIdle } from './devCompileWait';
+import { waitForDevCompileIdle, waitForContentSettle } from './devCompileWait';
 
 /**
  * Main orchestrator for graph-based testing.
@@ -352,6 +352,16 @@ export class GraphTester {
       const devCompileTimeout = this.config.waitForDevCompile ?? 20000;
       if (devCompileTimeout > 0 && typeof page.getByText === 'function') {
         await waitForDevCompileIdle(page, devCompileTimeout).catch(() => {});
+      }
+
+      // Wait for the body's own content to stop growing before capturing --
+      // a route's static shell (a header) can render well before its real,
+      // asynchronously-fetched content (a list, a table) does. See
+      // waitForContentSettle's doc comment for the live incident this
+      // closes. Fail-open, same contract as the compile-wait check above.
+      const contentSettleTimeout = this.config.waitForContentSettle ?? 8000;
+      if (contentSettleTimeout > 0 && typeof page.locator === 'function') {
+        await waitForContentSettle(page, contentSettleTimeout).catch(() => {});
       }
 
       // Optional additional wait (allows useEffect/hydration to complete)
