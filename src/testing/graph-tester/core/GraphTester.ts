@@ -9,7 +9,12 @@
  * @packageDocumentation
  */
 
-import { chromium, type Browser, type Page, type BrowserContext } from '@playwright/test';
+import {
+  chromium,
+  type Browser,
+  type Page,
+  type BrowserContext,
+} from '@playwright/test';
 import type {
   GraphTesterConfig,
   RouteDescriptor,
@@ -112,7 +117,9 @@ export class GraphTester {
 
     const validationErrors = testFunction.validate();
     if (validationErrors.length > 0) {
-      throw new Error(`Test function validation failed: ${validationErrors.join(', ')}`);
+      throw new Error(
+        `Test function validation failed: ${validationErrors.join(', ')}`
+      );
     }
 
     this.testFunctions.set(testFunction.mode, testFunction);
@@ -206,6 +213,18 @@ export class GraphTester {
 
   /**
    * Initialize browser and context.
+   *
+   * LOAD-BEARING SAFETY INVARIANT (do not weaken without reading this):
+   * this context is ALWAYS fresh and disposable -- created once per
+   * `runTests()` call, closed in `closeBrowser()`, never passed a
+   * `storageState` (or any other persisted-session option). InteractionMode
+   * (modes/InteractionMode.ts) depends on this: it makes every local-only
+   * side effect (localStorage/sessionStorage/cookie mutations a freeform
+   * click might trigger) inconsequential by construction, since nothing
+   * persists past this one run. If a future change ever threads a
+   * `storageState`/persistent-context option through to this call, it must
+   * ALSO update InteractionMode's own safety assumptions (see that file's
+   * module doc) -- do not add persistent-context support here silently.
    */
   private async initBrowser(): Promise<void> {
     const browserConfig = this.config.browser || {};
@@ -218,6 +237,21 @@ export class GraphTester {
     this.context = await this.browser.newContext({
       viewport: browserConfig.viewport || { width: 1280, height: 720 },
     });
+
+    // Give registered test functions a chance to arm request/response
+    // interception (or anything else that must be in place) BEFORE any
+    // navigation happens -- including this.config.setupUrl's own visit and
+    // each route's own page.goto(), both of which occur after this method
+    // returns. Only InteractionMode uses this today (see its own
+    // configureContext); every other mode (visual/perf/seo/accessibility)
+    // simply doesn't define it and is completely unaffected.
+    if (this.context) {
+      for (const testFunction of this.testFunctions.values()) {
+        if (testFunction.configureContext) {
+          await testFunction.configureContext(this.context, this.config);
+        }
+      }
+    }
   }
 
   /**
@@ -257,7 +291,10 @@ export class GraphTester {
     try {
       // Set viewport if provided
       if (viewport) {
-        await page.setViewportSize({ width: viewport.width, height: viewport.height });
+        await page.setViewportSize({
+          width: viewport.width,
+          height: viewport.height,
+        });
 
         // Note: Device scale factor and mobile emulation would require creating
         // a new context per viewport for full mobile emulation.
@@ -267,7 +304,10 @@ export class GraphTester {
       // Navigate to route
       const url = `${this.config.baseUrl}${route.route}`;
       const waitUntil = this.config.execution?.waitUntil || 'load'; // Default to 'load' (works with real-time apps)
-      await page.goto(url, { waitUntil, timeout: this.config.execution?.timeout });
+      await page.goto(url, {
+        waitUntil,
+        timeout: this.config.execution?.timeout,
+      });
 
       // Optional additional wait (allows useEffect/hydration to complete)
       if (this.config.waitAfter && this.config.waitAfter > 0) {
@@ -331,10 +371,12 @@ export class GraphTester {
       const viewports: ViewportConfig[] = browserConfig.viewports || [
         browserConfig.viewport
           ? { name: 'default', ...browserConfig.viewport }
-          : ViewportPresets.Desktop
+          : ViewportPresets.Desktop,
       ];
 
-      console.log(`Testing with ${viewports.length} viewport(s): ${viewports.map(v => v.name).join(', ')}`);
+      console.log(
+        `Testing with ${viewports.length} viewport(s): ${viewports.map((v) => v.name).join(', ')}`
+      );
 
       // Initialize browser
       await this.initBrowser();
@@ -343,7 +385,10 @@ export class GraphTester {
       if (this.config.setupUrl && this.context) {
         const setupPage = await this.context.newPage();
         try {
-          await setupPage.goto(this.config.setupUrl, { waitUntil: 'load', timeout: 15000 });
+          await setupPage.goto(this.config.setupUrl, {
+            waitUntil: 'load',
+            timeout: 15000,
+          });
         } finally {
           await setupPage.close();
         }
@@ -356,12 +401,15 @@ export class GraphTester {
 
       // Test each viewport
       for (const viewport of viewports) {
-        console.log(`\n📱 Testing viewport: ${viewport.name} (${viewport.width}x${viewport.height})`);
+        console.log(
+          `\n📱 Testing viewport: ${viewport.name} (${viewport.width}x${viewport.height})`
+        );
 
         for (const route of routes) {
-          const routeKey = viewports.length > 1
-            ? `${route.route} [${viewport.name}]`
-            : route.route;
+          const routeKey =
+            viewports.length > 1
+              ? `${route.route} [${viewport.name}]`
+              : route.route;
 
           console.log(`  Testing route: ${routeKey}`);
 
@@ -370,7 +418,11 @@ export class GraphTester {
           for (const [mode, testFunction] of this.testFunctions) {
             console.log(`    Running ${mode} test...`);
 
-            const result = await this.applyTestFunction(route, testFunction, viewport);
+            const result = await this.applyTestFunction(
+              route,
+              testFunction,
+              viewport
+            );
             routeResults.push(result);
 
             // Aggregate by mode
@@ -388,12 +440,14 @@ export class GraphTester {
       }
 
       // Calculate statistics
-      const testCount = routes.length * this.testFunctions.size * viewports.length;
+      const testCount =
+        routes.length * this.testFunctions.size * viewports.length;
       const passedCount = Array.from(resultsByRoute.values())
         .flat()
         .filter((r) => r.passed).length;
       const failedCount = testCount - passedCount;
-      const passRate = testCount > 0 ? Math.round((passedCount / testCount) * 100) : 0;
+      const passRate =
+        testCount > 0 ? Math.round((passedCount / testCount) * 100) : 0;
 
       return {
         routeCount: routes.length,

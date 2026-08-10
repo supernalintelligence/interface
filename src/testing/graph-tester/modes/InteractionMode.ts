@@ -23,15 +23,22 @@
  * @packageDocumentation
  */
 
-import type { Page } from '@playwright/test';
+import type { Page, BrowserContext } from '@playwright/test';
 import { TestFunction } from '../core/TestFunction';
-import type { TestContext, TestResult, TestError } from '../core/types';
+import type {
+  TestContext,
+  TestResult,
+  TestError,
+  GraphTesterConfig,
+} from '../core/types';
 import {
   findInteractiveElements,
   snapshotLiveness,
   hasObservableChange,
   type DiscoveredElement,
 } from '../core/interactiveElements';
+import { loadApiFixtures, type ApiFixture } from '../core/apiFixtures';
+import { classifyInterceptedRequest } from '../core/interceptionPolicy';
 
 /**
  * Configuration for interaction mode.
@@ -73,6 +80,38 @@ export interface InteractionConfig {
    * Default: 60. Found during self-critique of the first implementation.
    */
   maxTotalInteractions?: number;
+
+  /**
+   * SAFETY-CRITICAL, REQUIRED. Directory of captured API-response fixtures
+   * (see core/apiFixtures.ts). Every same-origin request under
+   * `apiPathPrefixes` is answered from a fixture here during a run -- the
+   * real backend is never reached. A request with no matching fixture
+   * fails the run loud (an "unstubbed route hit" error), never silently
+   * passes through. Populate this directory ONCE via
+   * `attachFixtureCapture()` against a live instance of the target before
+   * running interaction mode for real -- see that function's own doc
+   * comment.
+   */
+  apiFixturesDir: string;
+
+  /**
+   * SAFETY-CRITICAL, REQUIRED. Same-origin path prefixes treated as API
+   * routes for fixture substitution (e.g. `['/api/', '/account/api/']`).
+   * Anything same-origin NOT matching one of these prefixes passes through
+   * normally (it's the page's own HTML/JS/CSS/assets, needed to render).
+   */
+  apiPathPrefixes: string[];
+
+  /**
+   * SAFETY-CRITICAL, REQUIRED. The cookie name this target uses to grant an
+   * authenticated session (e.g. `si42-access-token`). If this cookie is
+   * EVER observed on an outgoing request during a run, the run fails
+   * immediately -- freeform mode only covers a target's public,
+   * unauthenticated surface (see this org's own spec, Piece D4). Required,
+   * not optional, so this safety check can't be silently skipped by
+   * omission.
+   */
+  authCookieName: string;
 }
 
 /** One tested element's outcome, for reporting. */
@@ -106,6 +145,14 @@ export class InteractionMode extends TestFunction {
 
   private config: Required<InteractionConfig>;
 
+  /** Loaded once in configureContext(), before any navigation. */
+  private fixtures: Map<string, ApiFixture> = new Map();
+  private targetOrigin: string | null = null;
+  /** Same-origin /api/** requests with no matching fixture -- fails the run loud if non-empty. */
+  private unstubbedApiHits: string[] = [];
+  /** Set the instant the auth-invariant (D4) is violated -- checked before every interaction. */
+  private authViolation: string | null = null;
+
   constructor(config: InteractionConfig) {
     super();
     this.config = {
@@ -115,7 +162,84 @@ export class InteractionMode extends TestFunction {
       settleMs: config.settleMs ?? 500,
       initialSettleMs: config.initialSettleMs ?? 300,
       maxTotalInteractions: config.maxTotalInteractions ?? 60,
+      apiFixturesDir: config.apiFixturesDir,
+      apiPathPrefixes: config.apiPathPrefixes,
+      authCookieName: config.authCookieName,
     };
+  }
+
+  /**
+   * Arms D2 (same-origin /api/** fixture substitution), D3 (cross-origin
+   * block, HTTP and WebSocket), and D4 (auth-invariant check) BEFORE any
+   * navigation happens -- called once by GraphTester right after the shared
+   * BrowserContext is created, per TestFunction.configureContext's own
+   * contract. See this org's own spec (search for "Piece D") for the full
+   * design rationale -- this is the safety-critical core of freeform
+   * interaction mode; do not weaken any of these three checks without
+   * re-reading that spec's adversarial-review history first.
+   */
+  async configureContext(
+    context: BrowserContext,
+    config: GraphTesterConfig
+  ): Promise<void> {
+    this.fixtures = await loadApiFixtures(this.config.apiFixturesDir);
+    this.targetOrigin = new URL(config.baseUrl).origin;
+
+    const authCookieName = this.config.authCookieName;
+    const apiPathPrefixes = this.config.apiPathPrefixes;
+    const fixtures = this.fixtures;
+    const targetOrigin = this.targetOrigin;
+
+    await context.route('**/*', async (route) => {
+      const request = route.request();
+      const classification = classifyInterceptedRequest({
+        requestUrl: request.url(),
+        method: request.method(),
+        cookieHeader: request.headers()['cookie'] ?? '',
+        targetOrigin,
+        apiPathPrefixes,
+        authCookieName,
+        fixtures,
+      });
+
+      switch (classification.action) {
+        case 'block-auth-violation':
+          this.authViolation = classification.message;
+          await route.abort('blockedbyclient');
+          return;
+        case 'block-cross-origin':
+          await route.abort('blockedbyclient');
+          return;
+        case 'continue':
+          await route.continue();
+          return;
+        case 'block-unstubbed':
+          this.unstubbedApiHits.push(classification.key);
+          await route.abort('blockedbyclient');
+          return;
+        case 'fulfill':
+          await route.fulfill({
+            status: classification.fixture.status,
+            contentType: classification.fixture.contentType,
+            body: classification.fixture.body,
+          });
+          return;
+      }
+    });
+
+    // No fixture/mock mechanism exists for WebSocket traffic -- deny by
+    // default, same posture as an unstubbed /api/** hit. Not calling
+    // connectToServer() means Playwright never opens a real connection to
+    // any server (same-origin or not); see WebSocketRoute's own doc
+    // comment ("By default, the routed WebSocket will not connect to the
+    // server"). Playwright does not route WebSocket connections through
+    // context.route()/page.route() at all -- this is a SEPARATE API
+    // (context.routeWebSocket), confirmed necessary during this feature's
+    // own adversarial review (a plain page.route()-only design was found to
+    // let a real-time chat widget's WebSocket connection through unblocked).
+    await context.routeWebSocket('**/*', (ws) => {
+      ws.close({ code: 1000, reason: 'blocked-by-freeform-mode-safety' });
+    });
   }
 
   async execute(page: Page, context: TestContext): Promise<TestResult> {
@@ -173,6 +297,10 @@ export class InteractionMode extends TestFunction {
         errors,
         budget
       );
+
+      // D4 -- stop testing further elements the instant a violation is
+      // detected. This is a safety abort, not a normal budget/error path.
+      if (this.authViolation) break;
     }
 
     // `skipped` findings carry live:false as a placeholder (no verdict was
@@ -182,13 +310,33 @@ export class InteractionMode extends TestFunction {
     // implementation, same pass as the opensNewContext/budget fixes above.
     const deadFindings = findings.filter((f) => !f.live && !f.skipped);
     const skippedFindings = findings.filter((f) => f.skipped);
-    const passed = deadFindings.length === 0;
+    let passed = deadFindings.length === 0;
 
     for (const dead of deadFindings) {
       errors.push({
         severity: 'critical',
         message: `Dead element: tapping "${dead.textContent ?? dead.selector}" (${dead.selector}, depth ${dead.depth}) produced no observable change`,
         location: dead.selector,
+      });
+    }
+
+    // D4 -- a checked-auth-invariant violation is a safety failure, always
+    // reported and always fails the route regardless of any dead/live
+    // findings above.
+    if (this.authViolation) {
+      passed = false;
+      errors.push({ severity: 'critical', message: this.authViolation });
+    }
+
+    // D2 -- any same-origin /api/** request with no matching fixture is a
+    // safety failure (deny-by-default, per this org's own spec) -- never
+    // silently passed through or ignored.
+    if (this.unstubbedApiHits.length > 0) {
+      passed = false;
+      const unique = Array.from(new Set(this.unstubbedApiHits));
+      errors.push({
+        severity: 'critical',
+        message: `Unstubbed API route(s) hit during this run -- no fixture exists, request was blocked rather than reaching the real backend: ${unique.join(', ')}. Capture a fixture for each (see core/apiFixtures.ts) before re-running.`,
       });
     }
 
@@ -262,10 +410,15 @@ export class InteractionMode extends TestFunction {
     }
 
     if (element.opensNewContext) {
-      // Clicking would open a real new tab or trigger a real download --
-      // neither is observable via same-page diffing, and both are unwanted
-      // side effects of an automated test run. Record it as skipped, not
-      // as a live/dead verdict.
+      // Clicking would open a real new tab, trigger a real download, or
+      // hand off to an external app (mailto:/tel:) -- none of these are
+      // observable via same-page diffing, and all are unwanted side
+      // effects of an automated test run. Record it as skipped, not as a
+      // live/dead verdict, with a message accurate to which case matched.
+      const skipReason =
+        element.unclickableReason === 'external-protocol'
+          ? 'navigates to an external app (mailto:/tel:) -- not observable via same-page diff'
+          : 'opens a new tab/download -- not observable via same-page diff';
       findings.push({
         selector: element.selector,
         tagName: element.tagName,
@@ -273,8 +426,7 @@ export class InteractionMode extends TestFunction {
         depth,
         live: false,
         skipped: true,
-        skipReason:
-          'opens a new tab/download -- not observable via same-page diff',
+        skipReason,
       });
       return;
     }

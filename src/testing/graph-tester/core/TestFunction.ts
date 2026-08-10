@@ -10,7 +10,7 @@
  * @packageDocumentation
  */
 
-import type { Page } from '@playwright/test';
+import type { Page, BrowserContext } from '@playwright/test';
 import type {
   TestContext,
   TestResult,
@@ -18,6 +18,7 @@ import type {
   SetupOptions,
   TeardownOptions,
   ExecuteOptions,
+  GraphTesterConfig,
 } from './types';
 
 /**
@@ -70,6 +71,24 @@ export abstract class TestFunction {
    * @returns Test result with pass/fail status and metadata
    */
   abstract execute(page: Page, context: TestContext): Promise<TestResult>;
+
+  /**
+   * Optional hook called ONCE, right after the shared BrowserContext is
+   * created, BEFORE any navigation happens -- including GraphTester's own
+   * `setupUrl` visit and every route's own `page.goto()`. Use this (not
+   * `setup()`, which runs per-route AFTER that route's own navigation) for
+   * anything that must be armed pre-navigation, e.g. `context.route(...)`
+   * request interception. Most test functions don't need this and should
+   * leave it undefined -- GraphTester calls it for every registered mode
+   * that defines it, so an undefined one is simply skipped, no-op.
+   *
+   * @param context - The shared Playwright BrowserContext for this run
+   * @param config - The full GraphTesterConfig (e.g. to read `baseUrl`)
+   */
+  async configureContext?(
+    context: BrowserContext,
+    config: GraphTesterConfig
+  ): Promise<void>;
 
   /**
    * Optional setup hook called before execute().

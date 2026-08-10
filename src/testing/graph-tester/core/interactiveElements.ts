@@ -33,16 +33,25 @@ export interface DiscoveredElement {
   /** Trimmed visible text, for readable reporting (e.g. "next", "Submit"). */
   textContent?: string;
   /**
-   * True for a link that opens a new browsing context (target="_blank") or
-   * triggers a file download (a `download` attribute) -- clicking it is
-   * expected to produce NO same-page/same-tab observable change, so a
-   * liveness diff against the current page cannot tell live from dead for
-   * it. Callers should skip diffing (and skip clicking, to avoid opening
-   * real tabs/downloads during an automated run) rather than risk a false
-   * "dead" flag on a working link. Found during self-critique of the first
-   * implementation.
+   * True for a link that opens a new browsing context (target="_blank"),
+   * triggers a file download (a `download` attribute), OR navigates to an
+   * external protocol (`mailto:`/`tel:`, which hands off to the user's real
+   * mail/phone app rather than doing anything observable in the page) --
+   * clicking it is expected to produce NO same-page/same-tab observable
+   * change, so a liveness diff against the current page cannot tell live
+   * from dead for it. Callers should skip diffing (and skip clicking, to
+   * avoid opening real tabs/downloads/external apps during an automated
+   * run) rather than risk a false "dead" flag on a working link. Found
+   * during self-critique of the first implementation; mailto:/tel: added
+   * later after an adversarial review found this check only covered
+   * target="_blank"/download.
    */
   opensNewContext?: boolean;
+  /**
+   * Which case above matched, for a context-aware skip-reason message.
+   * Only meaningful when `opensNewContext` is true.
+   */
+  unclickableReason?: 'new-tab-or-download' | 'external-protocol';
 }
 
 /**
@@ -122,17 +131,26 @@ export function discoverInteractiveElements(): DiscoveredElement[] {
 
     if (!interactionType) continue;
 
-    const opensNewContext =
+    const isNewTabOrDownload =
       tagName === 'a' &&
       (element.getAttribute('target') === '_blank' ||
         element.hasAttribute('download'));
+    const href = tagName === 'a' ? (element.getAttribute('href') ?? '') : '';
+    const isExternalProtocol =
+      tagName === 'a' &&
+      (href.startsWith('mailto:') || href.startsWith('tel:'));
 
     results.push({
       selector: getCssSelector(element),
       tagName,
       interactionType,
       textContent: element.textContent?.trim().slice(0, 80) || undefined,
-      opensNewContext: opensNewContext || undefined,
+      opensNewContext: isNewTabOrDownload || isExternalProtocol || undefined,
+      unclickableReason: isNewTabOrDownload
+        ? 'new-tab-or-download'
+        : isExternalProtocol
+          ? 'external-protocol'
+          : undefined,
     });
   }
 
