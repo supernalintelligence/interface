@@ -86,6 +86,26 @@ export type { AccessibilityConfig } from './modes/AccessibilityMode';
 export { SEOMode } from './modes/SEOMode';
 export type { SEOConfig } from './modes/SEOMode';
 
+export { InteractionMode } from './modes/InteractionMode';
+export type {
+  InteractionConfig,
+  InteractionFinding,
+} from './modes/InteractionMode';
+
+// ==================== Interactive Element Discovery ====================
+
+export {
+  discoverInteractiveElements,
+  findInteractiveElements,
+  captureLivenessSnapshot,
+  snapshotLiveness,
+  hasObservableChange,
+} from './core/interactiveElements';
+export type {
+  DiscoveredElement,
+  LivenessSnapshot,
+} from './core/interactiveElements';
+
 // ==================== Reporters ====================
 
 export { UnifiedReporter } from './reporters/UnifiedReporter';
@@ -102,5 +122,9 @@ export type { MarkdownReporterConfig } from './reporters/MarkdownReporter';
 
 // ==================== Fixtures ====================
 
-export { test as testWithPortPool, expect, cleanupPortPool } from './fixtures/portPool';
+export {
+  test as testWithPortPool,
+  expect,
+  cleanupPortPool,
+} from './fixtures/portPool';
 export type { PortPoolFixture } from './fixtures/portPool';

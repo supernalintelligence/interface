@@ -15,3 +15,6 @@ export type { AccessibilityConfig } from './AccessibilityMode';
 
 export { SEOMode } from './SEOMode';
 export type { SEOConfig } from './SEOMode';
+
+export { InteractionMode } from './InteractionMode';
+export type { InteractionConfig, InteractionFinding } from './InteractionMode';
