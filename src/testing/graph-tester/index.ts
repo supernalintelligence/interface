@@ -92,6 +92,16 @@ export type {
   InteractionFinding,
 } from './modes/InteractionMode';
 
+// ==================== API Fixtures (freeform interaction mode's D2 same-origin /api/** substitution) ====================
+
+export {
+  attachFixtureCapture,
+  loadApiFixtures,
+  writeApiFixture,
+  fixtureKey,
+} from './core/apiFixtures';
+export type { ApiFixture } from './core/apiFixtures';
+
 // ==================== Interactive Element Discovery ====================
 
 export {

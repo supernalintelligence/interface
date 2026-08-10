@@ -34,10 +34,18 @@ export function fixtureKey(method: string, pathname: string): string {
   return `${method.toUpperCase()} ${pathname}`;
 }
 
-/** Build the on-disk filename for a fixture (one JSON file per method+path). */
+/**
+ * Build the on-disk filename for a fixture (one JSON file per method+path).
+ * base64url-encodes the FULL pathname -- injective (no collision possible),
+ * unlike an earlier `/`-to-`__` substitution that collided on a real path
+ * segment containing a literal `__` (e.g. `/api/foo__bar` encoded to the
+ * SAME string as `/api/foo/bar`, and the reverse-parse in
+ * `loadApiFixtures()` could silently reconstruct the wrong pathname). Found
+ * in adversarial review of the first implementation.
+ */
 function fixtureFilename(method: string, pathname: string): string {
-  const safePath = pathname.replace(/^\//, '').replace(/\//g, '__') || 'root';
-  return `${method.toUpperCase()}__${safePath}.json`;
+  const encoded = Buffer.from(pathname, 'utf-8').toString('base64url');
+  return `${method.toUpperCase()}__${encoded}.json`;
 }
 
 /**
@@ -63,8 +71,8 @@ export async function loadApiFixtures(
     if (!entry.endsWith('.json')) continue;
     const match = entry.match(/^([A-Z]+)__(.+)\.json$/);
     if (!match) continue;
-    const [, method, safePath] = match;
-    const pathname = '/' + safePath.replace(/__/g, '/');
+    const [, method, encoded] = match;
+    const pathname = Buffer.from(encoded, 'base64url').toString('utf-8');
     const raw = await fs.readFile(path.join(dir, entry), 'utf-8');
     const parsed = JSON.parse(raw) as ApiFixture;
     fixtures.set(fixtureKey(method, pathname), parsed);

@@ -86,6 +86,33 @@ describe('loadApiFixtures / writeApiFixture round-trip', () => {
     expect(loaded.size).toBe(2);
   });
 
+  it('does NOT collide a path segment containing a literal "__" with a real "/" separator', async () => {
+    // Regression: the earlier `/`-to-`__` substitution encoded both of
+    // these to the SAME on-disk filename, and the reverse-parse could
+    // silently reconstruct the wrong pathname for one of them.
+    const collideFixture: ApiFixture = {
+      status: 200,
+      contentType: 'application/json',
+      body: '{"which":"foo__bar"}',
+    };
+    const nestedFixture: ApiFixture = {
+      status: 200,
+      contentType: 'application/json',
+      body: '{"which":"foo/bar"}',
+    };
+    await writeApiFixture(dir, 'GET', '/api/foo__bar', collideFixture);
+    await writeApiFixture(dir, 'GET', '/api/foo/bar', nestedFixture);
+
+    const loaded = await loadApiFixtures(dir);
+    expect(loaded.size).toBe(2);
+    expect(loaded.get(fixtureKey('GET', '/api/foo__bar'))).toEqual(
+      collideFixture
+    );
+    expect(loaded.get(fixtureKey('GET', '/api/foo/bar'))).toEqual(
+      nestedFixture
+    );
+  });
+
   it('ignores non-JSON files in the fixtures directory', async () => {
     await writeApiFixture(dir, 'GET', '/api/faq', {
       status: 200,

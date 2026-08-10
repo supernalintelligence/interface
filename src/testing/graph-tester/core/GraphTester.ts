@@ -55,6 +55,22 @@ export class GraphTester {
   private testFunctions: Map<TestMode, TestFunction> = new Map();
   private browser: Browser | null = null;
   private context: BrowserContext | null = null;
+  /**
+   * Dedicated, isolated BrowserContext for any mode that defines
+   * `configureContext()` (currently only InteractionMode). This exists so a
+   * mode's network-interception rules (block cross-origin, fixture-
+   * substitute /api/**, auth-invariant enforcement -- see InteractionMode's
+   * own doc comment) apply ONLY to that mode's own pages, never bleed into
+   * the shared context every other mode (visual/perf/seo/accessibility)
+   * uses. Before this existed, `configureContext()`'s `context.route(...)`
+   * calls were armed on the SAME shared context every mode's `newPage()`
+   * drew from -- so running `--modes all,interaction` together silently
+   * applied InteractionMode's cross-origin/fixture blocking to every other
+   * mode's page loads too, contradicting the explicit "every other mode is
+   * completely unaffected" guarantee. Found in adversarial review of the
+   * first implementation.
+   */
+  private modeContexts: Map<TestMode, BrowserContext> = new Map();
 
   /**
    * Create a new GraphTester instance.
@@ -238,30 +254,40 @@ export class GraphTester {
       viewport: browserConfig.viewport || { width: 1280, height: 720 },
     });
 
-    // Give registered test functions a chance to arm request/response
-    // interception (or anything else that must be in place) BEFORE any
-    // navigation happens -- including this.config.setupUrl's own visit and
-    // each route's own page.goto(), both of which occur after this method
-    // returns. Only InteractionMode uses this today (see its own
-    // configureContext); every other mode (visual/perf/seo/accessibility)
-    // simply doesn't define it and is completely unaffected.
-    if (this.context) {
-      for (const testFunction of this.testFunctions.values()) {
-        if (testFunction.configureContext) {
-          await testFunction.configureContext(this.context, this.config);
-        }
-      }
+    // Any test function that defines `configureContext()` (currently only
+    // InteractionMode) gets its OWN dedicated, isolated BrowserContext --
+    // never the shared one above -- so its network-interception rules can
+    // never bleed into another mode's page loads. This context is created,
+    // configured, and ARMED before any navigation happens on it (including
+    // this.config.setupUrl -- deliberately NOT visited here; see the note
+    // below), same "configure before first navigation" contract as before,
+    // just scoped to one mode's own context instead of the shared one.
+    // Every mode that doesn't define configureContext() is completely
+    // unaffected -- it keeps using the single shared `this.context` exactly
+    // as before this change.
+    for (const testFunction of this.testFunctions.values()) {
+      if (!testFunction.configureContext) continue;
+      const dedicated = await this.browser.newContext({
+        viewport: browserConfig.viewport || { width: 1280, height: 720 },
+      });
+      await testFunction.configureContext(dedicated, this.config);
+      this.modeContexts.set(testFunction.mode, dedicated);
     }
   }
 
   /**
-   * Close browser and context.
+   * Close browser and every context (shared + per-mode dedicated).
    */
   private async closeBrowser(): Promise<void> {
     if (this.context) {
       await this.context.close();
       this.context = null;
     }
+
+    for (const dedicated of this.modeContexts.values()) {
+      await dedicated.close();
+    }
+    this.modeContexts.clear();
 
     if (this.browser) {
       await this.browser.close();
@@ -282,11 +308,18 @@ export class GraphTester {
     testFunction: TestFunction,
     viewport?: ViewportConfig
   ): Promise<TestResult> {
-    if (!this.context) {
+    // A mode with its own dedicated context (configureContext() was
+    // defined) ALWAYS uses that one, never the shared context -- this is
+    // the isolation guarantee; falling back to the shared context here
+    // would silently reintroduce the cross-mode bleed this dedication
+    // exists to prevent.
+    const dedicated = this.modeContexts.get(testFunction.mode);
+    const targetContext = dedicated ?? this.context;
+    if (!targetContext) {
       throw new Error('Browser context not initialized');
     }
 
-    const page = await this.context.newPage();
+    const page = await targetContext.newPage();
 
     try {
       // Set viewport if provided
@@ -381,7 +414,12 @@ export class GraphTester {
       // Initialize browser
       await this.initBrowser();
 
-      // Visit setup URL (e.g. one-time auth token) before running any tests
+      // Visit setup URL (e.g. one-time auth token) before running any tests.
+      // Deliberately visited ONLY on the shared context, never on any mode's
+      // own dedicated context (this.modeContexts) -- a mode with a dedicated
+      // context (InteractionMode) relies on never receiving an authenticated
+      // session (see its own D4 safety invariant); auto-applying setupUrl
+      // there would silently undermine that guarantee.
       if (this.config.setupUrl && this.context) {
         const setupPage = await this.context.newPage();
         try {
