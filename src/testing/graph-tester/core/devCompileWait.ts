@@ -11,9 +11,15 @@
  * SECOND pass (all routes already visited once) because Turbopack can still
  * recompile a route on a fresh full navigation even after an earlier visit.
  *
- * The check is near-zero-cost when the indicator never appears (production
- * builds, non-Next.js targets): one `isVisible()` poll returns false
- * immediately and the wait returns without delay.
+ * A SECOND, more subtle race surfaced verifying the first version of this
+ * fix live: the toast doesn't always exist in the DOM the instant `load`
+ * fires -- a compile that starts a beat AFTER navigation (e.g. triggered by
+ * the app's own first data fetch) can render its toast a moment after an
+ * immediate single isVisible() check already returned "not visible" and
+ * declared victory. `waitForSettleMs` (default 300ms) gives a delayed-onset
+ * compile time to actually appear before the poll loop starts checking for
+ * its absence -- this is the near-zero-cost floor for every navigation
+ * (dev or not), not a per-poll cost, so it stays cheap.
  */
 
 export interface PollablePage {
@@ -32,6 +38,7 @@ export interface DevCompileWaitResult {
 
 const COMPILING_PATTERN = /^\s*compiling\s*\.*\s*$/i;
 const POLL_INTERVAL_MS = 250;
+const DEFAULT_SETTLE_MS = 300;
 
 /**
  * Polls for absence of Next.js's dev-mode compiling toast. Takes a `now`
@@ -40,11 +47,18 @@ const POLL_INTERVAL_MS = 250;
 export async function waitForDevCompileIdle(
   page: PollablePage,
   timeoutMs: number,
-  now: () => number = Date.now
+  now: () => number = Date.now,
+  waitForSettleMs: number = DEFAULT_SETTLE_MS
 ): Promise<DevCompileWaitResult> {
   const start = now();
   const deadline = start + timeoutMs;
   const locator = page.getByText(COMPILING_PATTERN);
+
+  // Give a delayed-onset compile a chance to render its toast before the
+  // very first check -- see the "second race" note above.
+  if (waitForSettleMs > 0) {
+    await page.waitForTimeout(waitForSettleMs);
+  }
 
   let wasCompiling = false;
   for (;;) {
