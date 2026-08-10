@@ -152,7 +152,8 @@ export interface RouteDiscoveryConfig {
 /**
  * Available test modes.
  */
-export type TestMode = 'visual' | 'performance' | 'accessibility' | 'seo' | string;
+export type TestMode =
+  'visual' | 'performance' | 'accessibility' | 'seo' | string;
 
 /**
  * Configuration for a test mode.
@@ -204,6 +205,17 @@ export interface GraphTesterConfig {
    * running tests. Useful for apps that render content in useEffect hooks.
    */
   waitAfter?: number;
+
+  /**
+   * Max milliseconds to wait for Next.js's own dev-mode "Compiling .."
+   * toast to clear after navigation, before proceeding. `page.goto()`'s
+   * 'load' event only covers the HTML shell -- a route's own JS chunk can
+   * still be compiling server-side on a fresh full navigation, even if that
+   * route was already visited once this run (Turbopack can recompile on a
+   * renewed hit). Set to 0 to disable. Default 20000ms; near-zero-cost when
+   * the indicator never appears (production builds, non-Next.js targets).
+   */
+  waitForDevCompile?: number;
 }
 
 /**
@@ -239,7 +251,7 @@ export interface ExecutionConfig {
   /** Whether to fail fast on first error */
   failFast?: boolean;
 
-  /** 
+  /**
    * Wait strategy for page navigation.
    * - 'load': Wait for load event (default, works with real-time apps)
    * - 'domcontentloaded': Wait for DOMContentLoaded
@@ -281,11 +293,41 @@ export const ViewportPresets = {
   Desktop: { name: 'desktop', width: 1920, height: 1080 },
   DesktopSmall: { name: 'desktop-small', width: 1366, height: 768 },
   Laptop: { name: 'laptop', width: 1280, height: 720 },
-  TabletLandscape: { name: 'tablet-landscape', width: 1024, height: 768, isMobile: true, hasTouch: true },
-  TabletPortrait: { name: 'tablet-portrait', width: 768, height: 1024, isMobile: true, hasTouch: true },
-  MobileLarge: { name: 'mobile-large', width: 414, height: 896, isMobile: true, hasTouch: true },
-  Mobile: { name: 'mobile', width: 375, height: 812, isMobile: true, hasTouch: true },
-  MobileSmall: { name: 'mobile-small', width: 320, height: 568, isMobile: true, hasTouch: true },
+  TabletLandscape: {
+    name: 'tablet-landscape',
+    width: 1024,
+    height: 768,
+    isMobile: true,
+    hasTouch: true,
+  },
+  TabletPortrait: {
+    name: 'tablet-portrait',
+    width: 768,
+    height: 1024,
+    isMobile: true,
+    hasTouch: true,
+  },
+  MobileLarge: {
+    name: 'mobile-large',
+    width: 414,
+    height: 896,
+    isMobile: true,
+    hasTouch: true,
+  },
+  Mobile: {
+    name: 'mobile',
+    width: 375,
+    height: 812,
+    isMobile: true,
+    hasTouch: true,
+  },
+  MobileSmall: {
+    name: 'mobile-small',
+    width: 320,
+    height: 568,
+    isMobile: true,
+    hasTouch: true,
+  },
 } as const;
 
 /**

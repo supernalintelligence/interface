@@ -27,6 +27,7 @@ import type {
 } from './types';
 import { TestFunction, isTestFunction } from './TestFunction';
 import { ViewportPresets } from './types';
+import { waitForDevCompileIdle } from './devCompileWait';
 
 /**
  * Main orchestrator for graph-based testing.
@@ -341,6 +342,17 @@ export class GraphTester {
         waitUntil,
         timeout: this.config.execution?.timeout,
       });
+
+      // Wait out Next.js's own dev-mode "Compiling .." toast, if present --
+      // 'load' only covers the HTML shell, not a route's own JS chunk still
+      // compiling server-side on this navigation. See devCompileWait.ts.
+      // Fail-open: a Page-like object that doesn't support getByText() (a
+      // test double, a non-Playwright Page) must never break navigation --
+      // this is a best-effort dev-mode nicety, not a hard requirement.
+      const devCompileTimeout = this.config.waitForDevCompile ?? 20000;
+      if (devCompileTimeout > 0 && typeof page.getByText === 'function') {
+        await waitForDevCompileIdle(page, devCompileTimeout).catch(() => {});
+      }
 
       // Optional additional wait (allows useEffect/hydration to complete)
       if (this.config.waitAfter && this.config.waitAfter > 0) {
