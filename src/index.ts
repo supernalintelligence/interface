@@ -74,6 +74,10 @@ export {
 export * from './storage';
 export { defineKeyRegistry, defineStaticKeys } from './storage/KeyRegistry';
 
+// Events — typed, namespace-scoped DOM CustomEvent name registry
+export { defineEvents, event } from './events/EventRegistry';
+export type { EventDef, ResolvedEvent } from './events/EventRegistry';
+
 // System tools
 export { SystemTools } from './tools/SystemTools';
 
