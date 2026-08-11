@@ -98,16 +98,18 @@ export {
   type ContractEntry,
 } from './name-contracts';
 
-// Route scanning
-export {
-  RouteScanner,
-  NextjsDynamicScanner,
-  NameExtractor,
-  RouteContractGenerator,
-  RouteContractsConfig,
-  type RouteInfo,
-  type RouteScanResult,
-} from './routes';
+// Route scanning (server-only - not exported from the root barrel)
+// RouteScanner/NextjsDynamicScanner/NameExtractor/RouteContractGenerator use
+// Node.js modules (fs, path) and must never reach a browser bundle — same
+// reasoning as RouteContractScanner (name-contracts/index.ts) and
+// ComponentScanner just below. This was a real bug, not just a latent risk:
+// any browser-side consumer of an unrelated root export (e.g. defineEvents/
+// event, below) pulled in this whole barrel transitively via the bare
+// `@supernal/interface` specifier, producing "Module not found: Can't
+// resolve 'fs'" in any Next.js/Turbopack client bundle that imported
+// anything from the package root.
+// To use route scanning, import directly:
+// import { RouteScanner } from '@supernal/interface/src/routes'
 
 // Component scanning (server-only - not exported in browser bundle)
 // ComponentScanner uses Node.js modules (fs, glob) and should only be used server-side
