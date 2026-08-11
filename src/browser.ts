@@ -6,7 +6,12 @@
  */
 
 // Core decorators and registry
-export { Tool, ToolConfig, ToolMetadata, setDefaultToolReporter } from './decorators/Tool';
+export {
+  Tool,
+  ToolConfig,
+  ToolMetadata,
+  setDefaultToolReporter,
+} from './decorators/Tool';
 export { ToolProvider, ToolProviderConfig } from './decorators/ToolProvider';
 export {
   ClickTool,
@@ -16,7 +21,7 @@ export {
   MultiActionTool,
   FormTool,
   setGlobalToolReporter,
-  type ToolExecutionReporter
+  type ToolExecutionReporter,
 } from './decorators/ToolHelpers';
 export { ToolRegistry } from './background/registry/ToolRegistry';
 
@@ -64,11 +69,14 @@ export {
   findComponentContainers,
   ContainerRegistry,
   type ContainerDefinition,
-  type ContainerId
+  type ContainerId,
 } from './background/architecture';
 
 // Container creation (browser-safe)
-export { createContainer, createContainers } from './architecture/createContainer';
+export {
+  createContainer,
+  createContainers,
+} from './architecture/createContainer';
 export type { ContainerConfig } from './architecture/createContainer';
 
 // Exposure tracking
@@ -86,17 +94,33 @@ export type {
 
 // Location context (needed by NavigationGraph)
 export { LocationContext } from './background/location/LocationContext';
-export type { AppLocation, LocationScope as LocationScopeType } from './background/location/LocationContext';
+export type {
+  AppLocation,
+  LocationScope as LocationScopeType,
+} from './background/location/LocationContext';
 
 // Location scope decorator
-export { LocationScope, getLocationScope, hasLocationScope } from './decorators/LocationScope';
+export {
+  LocationScope,
+  getLocationScope,
+  hasLocationScope,
+} from './decorators/LocationScope';
 
 // Types (browser-safe)
 export * from './types';
 
 // Component Names (browser-safe)
-export { createNames, getComponentIds, isComponentId } from './names/createNames';
+export {
+  createNames,
+  getComponentIds,
+  isComponentId,
+} from './names/createNames';
 export type { ComponentId } from './names/createNames';
+
+// Events — typed, namespace-scoped DOM CustomEvent name registry (browser-safe,
+// zero imports — pure factory, no fs/node dependency)
+export { defineEvents, event } from './events/EventRegistry';
+export type { EventDef, ResolvedEvent } from './events/EventRegistry';
 
 // Execution (browser-safe)
 export { DOMExecutor } from './execution/DOMExecutor';
@@ -115,9 +139,17 @@ export { SuggestionEngine } from './ai/SuggestionEngine';
 
 // Storage (browser-safe — used by dashboard settings layer)
 export { StateManager } from './storage/StateManager';
-export { LocalStorageAdapter, MemoryStorageAdapter, NamespacedStorageAdapter } from './storage';
+export {
+  LocalStorageAdapter,
+  MemoryStorageAdapter,
+  NamespacedStorageAdapter,
+} from './storage';
 export type { StorageAdapter } from './storage';
-export type { StateSubscriber, SubscriptionHandle, StateManagerOptions } from './storage/StateManager';
+export type {
+  StateSubscriber,
+  SubscriptionHandle,
+  StateManagerOptions,
+} from './storage/StateManager';
 
 // Note: CLI tools, generators, and Node.js-specific functionality
 // are excluded from browser builds
