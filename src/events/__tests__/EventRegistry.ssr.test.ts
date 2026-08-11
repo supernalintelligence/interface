@@ -40,4 +40,17 @@ describe('defineEvents — SSR guard (node environment, no window)', () => {
       /EventRegistry: listen\(\) called outside a browser context/
     );
   });
+
+  it('event.raw() entries get the same SSR guard as event() entries', () => {
+    const LegacyEvents = defineEvents('chat', {
+      legacyRefresh: event.raw<{ force: boolean }>('legacy-refresh-event'),
+    });
+
+    expect(() => LegacyEvents.legacyRefresh.dispatch({ force: true })).toThrow(
+      /EventRegistry: dispatch\(\) called outside a browser context/
+    );
+    expect(() => LegacyEvents.legacyRefresh.listen(() => {})).toThrow(
+      /EventRegistry: listen\(\) called outside a browser context/
+    );
+  });
 });

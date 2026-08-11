@@ -10,6 +10,7 @@
  * 6. Idempotent unsubscribe (calling it twice is safe)
  * 7. Compile-time payload type checking (@ts-expect-error)
  * 8. void-payload event dispatch/listen ergonomics
+ * 9. event.raw() — exact-name preservation, no namespace prefix, coexists with event()
  */
 
 import { defineEvents, event } from '../EventRegistry';
@@ -156,5 +157,61 @@ describe('defineEvents', () => {
 
     expect(fireCount).toBe(1);
     unsubscribe();
+  });
+
+  it('event.raw() preserves the exact name with no namespace prefix', () => {
+    const LegacyEvents = defineEvents('chat', {
+      legacyRefresh: event.raw<{ force: boolean }>('legacy-refresh-event'),
+    });
+
+    expect(LegacyEvents.legacyRefresh.name).toBe('legacy-refresh-event');
+    // Not prefixed with 'chat:' despite the namespace passed to defineEvents().
+    expect(LegacyEvents.legacyRefresh.name).not.toMatch(/^chat:/);
+  });
+
+  it('event.raw() and event() coexist correctly in the same defineEvents() call', () => {
+    const MixedEvents = defineEvents('chat', {
+      viewModeChanged: event<{ mode: 'compact' | 'full' }>('view-mode-change'),
+      legacyRefresh: event.raw<{ force: boolean }>('legacy-refresh-event'),
+    });
+
+    expect(MixedEvents.viewModeChanged.name).toBe('chat:view-mode-change');
+    expect(MixedEvents.legacyRefresh.name).toBe('legacy-refresh-event');
+    // The registry's own `namespace` metadata is unaffected by a raw entry.
+    expect(MixedEvents.namespace).toBe('chat:');
+  });
+
+  it('event.raw() dispatch/listen round-trips a typed payload, same as event()', () => {
+    const LegacyEvents = defineEvents('chat', {
+      legacyRefresh: event.raw<{ force: boolean }>('legacy-refresh-event'),
+    });
+
+    const received: Array<{ force: boolean }> = [];
+    const unsubscribe = LegacyEvents.legacyRefresh.listen((detail) => {
+      received.push(detail);
+    });
+
+    LegacyEvents.legacyRefresh.dispatch({ force: true });
+
+    expect(received).toEqual([{ force: true }]);
+    unsubscribe();
+  });
+
+  it('event.raw() is reachable by a raw addEventListener on the exact string (the whole point of the migration use case)', () => {
+    const LegacyEvents = defineEvents('chat', {
+      legacyRefresh: event.raw<{ force: boolean }>('legacy-refresh-event'),
+    });
+
+    // Simulates a NOT-YET-migrated call site still listening for the raw literal directly.
+    const received: unknown[] = [];
+    const rawHandler = (evt: Event) => {
+      received.push((evt as CustomEvent).detail);
+    };
+    window.addEventListener('legacy-refresh-event', rawHandler);
+
+    LegacyEvents.legacyRefresh.dispatch({ force: false });
+
+    expect(received).toEqual([{ force: false }]);
+    window.removeEventListener('legacy-refresh-event', rawHandler);
   });
 });

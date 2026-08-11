@@ -17,9 +17,14 @@
  * const ChatEvents = defineEvents('chat', {
  *   viewModeChanged: event<{ mode: 'compact' | 'full' }>('view-mode-change'),
  *   panelHidden: event<{ hidden: boolean }>('panel-hidden-change'),
+ *   // A pre-existing/legacy name that doesn't follow the colon-namespaced
+ *   // convention (e.g. migrating an old raw-literal event onto defineEvents()
+ *   // without changing the string other listeners still check for):
+ *   legacyRefresh: event.raw<{ force: boolean }>('legacy-refresh-event'),
  * });
  *
  * ChatEvents.viewModeChanged.name              // → 'chat:view-mode-change'
+ * ChatEvents.legacyRefresh.name                // → 'legacy-refresh-event' (verbatim, no prefix)
  * ChatEvents.viewModeChanged.dispatch({ mode: 'full' });
  * const unsubscribe = ChatEvents.viewModeChanged.listen((detail) => { ... });
  * ```
@@ -28,6 +33,12 @@
 /** Phantom-type tag: attaches a payload type `T` to an event's base name at zero runtime cost. */
 export interface EventDef<T> {
   readonly baseName: string;
+  /**
+   * Internal: when true, `defineEvents()` uses `baseName` as the final event
+   * name VERBATIM — no `${namespace}:` prefix is applied. Set only via
+   * `event.raw()`, never by hand.
+   */
+  readonly __raw?: boolean;
   /** Phantom field — never assigned, exists only so TypeScript can infer `T` from an `EventDef<T>`. */
   readonly __payloadType?: T;
 }
@@ -37,16 +48,40 @@ export interface EventDef<T> {
  *
  * @param name  Base event name, WITHOUT the namespace prefix (e.g. 'view-mode-change').
  *              `defineEvents()` prepends `${namespace}:` to produce the final event name.
+ *              To preserve an exact pre-existing name with NO namespace prefix (e.g. a
+ *              legacy bare kebab-case string during a migration), use `event.raw()` instead.
  */
 export function event<T = void>(name: string): EventDef<T> {
   return { baseName: name };
+}
+
+// "function + namespace" merge, giving `event.raw<T>()` a real, independently
+// generic call signature (not a bolted-on `as any` static property).
+export namespace event {
+  /**
+   * Declare an event whose final name is used EXACTLY as `fullName` — no
+   * `${namespace}:` prefix is applied by `defineEvents()`, regardless of the
+   * namespace it was called with.
+   *
+   * For preserving a pre-existing/legacy event-name string BYTE-IDENTICALLY
+   * while migrating it onto `defineEvents()` — most commonly a bare
+   * kebab-case string (no colon) that other, not-yet-migrated call sites
+   * still dispatch/listen for directly. Using `event()` instead here would
+   * silently change the runtime string and break that shared literal match.
+   */
+  export function raw<T = void>(fullName: string): EventDef<T> {
+    return { baseName: fullName, __raw: true };
+  }
 }
 
 type EventSchema = Record<string, EventDef<any>>;
 
 /** A single resolved, dispatchable/listenable event within a `defineEvents()` registry. */
 export interface ResolvedEvent<T> {
-  /** Fully-qualified, namespace-prefixed event name (e.g. 'chat:view-mode-change'). */
+  /**
+   * Fully-qualified event name — namespace-prefixed (e.g. 'chat:view-mode-change')
+   * for an `event()` entry, or used verbatim for an `event.raw()` entry.
+   */
   readonly name: string;
   /**
    * Dispatch this event with a typed payload. Browser-only — throws if called
@@ -82,10 +117,11 @@ function assertBrowserContext(fnName: string): void {
  * Define a namespace-scoped, typed event registry.
  *
  * @param namespace  Short string prefix (e.g. 'chat', 'voice', 'openclaw').
- *                   Automatically prepended, colon-separated, to every event name —
- *                   formalizes the `supernal:`/`voice:`/`openclaw:` convention already
- *                   in live use across the dashboard.
- * @param schema     Object of `event<T>(baseName)` declarations.
+ *                   Automatically prepended, colon-separated, to every `event()` entry's
+ *                   name — formalizes the `supernal:`/`voice:`/`openclaw:` convention
+ *                   already in live use across the dashboard. An `event.raw()` entry
+ *                   ignores this prefix entirely (see `event.raw()`'s own doc comment).
+ * @param schema     Object of `event<T>(baseName)`/`event.raw<T>(fullName)` declarations.
  * @returns          A registry object with the same keys as `schema`, each now a
  *                    `ResolvedEvent<T>` with `.name`/`.dispatch()`/`.listen()`, plus a
  *                    `namespace` property.
@@ -97,7 +133,7 @@ export function defineEvents<NS extends string, S extends EventSchema>(
   const result: Record<string, unknown> = {};
 
   for (const [key, def] of Object.entries(schema)) {
-    const name = `${namespace}:${def.baseName}`;
+    const name = def.__raw ? def.baseName : `${namespace}:${def.baseName}`;
 
     const resolved: ResolvedEvent<unknown> = {
       name,
