@@ -11,6 +11,12 @@ docs:
   guides: .supernal/docs/guides
   compliance: .supernal/docs/compliance
   handoffs: .supernal/docs/handoffs
+git_sync:
+  workflow: personal-dev
+  dev_branch: ian-dev
+  protected_branches:
+    - main
+    - master
 git:
   signing:
     enabled: false
