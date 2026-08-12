@@ -7,15 +7,15 @@ import { NameExtractor } from './NameExtractor';
 
 /**
  * Scanner that extracts route names from Next.js applications.
- * 
+ *
  * Supports two discovery strategies:
  * 1. VALID_VIEWS arrays - Extracts view names from configuration files
  * 2. App directory structure - Scans Next.js App Router directories for API routes
- * 
+ *
  * @example
  * ```typescript
  * import { NextjsDynamicScanner } from '@supernal/interface-core/routes';
- * 
+ *
  * const scanner = new NextjsDynamicScanner({
  *   routingSystem: 'nextjs-name-extraction',
  *   scanPaths: {
@@ -27,21 +27,21 @@ import { NameExtractor } from './NameExtractor';
  *     moduleFormat: 'esm'
  *   }
  * });
- * 
+ *
  * const result = await scanner.scan();
  * // result.routes contains all discovered routes
  * ```
  */
 export class NextjsDynamicScanner extends RouteScanner {
   private extractor = new NameExtractor();
-  
+
   getName(): string {
     return 'Next.js Name Extraction Scanner';
   }
-  
+
   async scan(): Promise<RouteScanResult> {
     const routes: RouteInfo[] = [];
-    
+
     // Strategy 1: Extract from VALID_VIEWS array
     if (this.config.scanPaths.configs) {
       for (const configPath of this.config.scanPaths.configs) {
@@ -49,8 +49,8 @@ export class NextjsDynamicScanner extends RouteScanner {
           configPath,
           'VALID_VIEWS'
         );
-        
-        viewNames.forEach(view => {
+
+        viewNames.forEach((view) => {
           routes.push({
             id: `view-${view}`,
             pattern: `/:repo/:branch/${view}`,
@@ -63,17 +63,28 @@ export class NextjsDynamicScanner extends RouteScanner {
         });
       }
     }
-    
+
     // Strategy 2: Extract from app directory structure
     if (this.config.scanPaths.routes) {
       for (const routePath of this.config.scanPaths.routes) {
-        // Don't add prefix - let the directory structure determine the route
+        // Route files below routePath are walked relative to routePath itself,
+        // so any URL segment between the Next.js `app/` root and routePath (e.g.
+        // 'api' in 'src/app/api') is never seen by the walk and must be restored
+        // as an explicit prefix here — otherwise a route at src/app/api/users
+        // generates the pattern '/users' instead of the real '/api/users'.
+        const appSegments = routePath.split(/[\\/]/);
+        const appIndex = appSegments.lastIndexOf('app');
+        const prefixSegments =
+          appIndex >= 0 ? appSegments.slice(appIndex + 1) : [];
+        const routePrefix =
+          prefixSegments.length > 0 ? `/${prefixSegments.join('/')}` : '';
+
         const appRoutes = this.extractor.extractAppDirectoryRoutes(
           routePath,
-          ''  // Empty prefix - routes are determined by directory structure
+          routePrefix
         );
-        
-        appRoutes.forEach(route => {
+
+        appRoutes.forEach((route) => {
           routes.push({
             id: `api-${route.name}`,
             pattern: route.pattern,
@@ -88,7 +99,7 @@ export class NextjsDynamicScanner extends RouteScanner {
         });
       }
     }
-    
+
     return {
       routes,
       metadata: {
@@ -101,9 +112,9 @@ export class NextjsDynamicScanner extends RouteScanner {
       },
     };
   }
-  
+
   async validate(routes: RouteInfo[]): Promise<boolean> {
     // Basic validation - check all routes have patterns and ids
-    return routes.every(route => route.id && route.pattern);
+    return routes.every((route) => route.id && route.pattern);
   }
 }
