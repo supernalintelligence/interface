@@ -91,11 +91,11 @@ export function buildRoute(
   private generateViewsBlock(views: RouteInfo[] = []): string {
     if (views.length === 0) return '';
 
+    const names = this.dedupeNames(
+      views.map((view) => this.toPascalCase(view.id.replace('view-', '')))
+    );
     const entries = views
-      .map((view) => {
-        const name = this.toPascalCase(view.id.replace('view-', ''));
-        return `    ${name}: '${view.pattern}',`;
-      })
+      .map((view, i) => `    ${names[i]}: '${view.pattern}',`)
       .join('\n');
 
     return `  Views: {\n${entries}\n  },`;
@@ -104,9 +104,12 @@ export function buildRoute(
   private generateAPIBlock(apis: RouteInfo[] = []): string {
     if (apis.length === 0) return '';
 
+    const names = this.dedupeNames(
+      apis.map((api) => this.toPascalCase(api.id.replace('api-', '')))
+    );
     const entries = apis
-      .map((api) => {
-        const name = this.toPascalCase(api.id.replace('api-', ''));
+      .map((api, i) => {
+        const name = names[i];
         const methods = api.metadata?.methods;
         const params = api.params;
 
@@ -138,5 +141,27 @@ export function buildRoute(
       .split(/[-_]/)
       .map((part) => part.charAt(0).toUpperCase() + part.slice(1))
       .join('');
+  }
+
+  /**
+   * Two path shapes can legitimately produce the same PascalCase name — a
+   * hyphenated single directory ('chat-sessions') and a nested directory
+   * pair ('chat/sessions') both collapse to 'ChatSessions', since name
+   * casing can't always tell a real path boundary from a hyphen inside one
+   * segment. Left alone this emits a duplicate object key — a TypeScript
+   * compile error (TS1117), not a warning — so ANY collision anywhere in a
+   * large route tree makes the whole generated file unusable. Rather than
+   * try to make every scanner's segment-to-name logic perfectly
+   * unambiguous, disambiguate deterministically here so the file always
+   * compiles: first occurrence keeps the plain name, later ones get a
+   * numeric suffix.
+   */
+  private dedupeNames(names: string[]): string[] {
+    const seen = new Map<string, number>();
+    return names.map((name) => {
+      const count = (seen.get(name) || 0) + 1;
+      seen.set(name, count);
+      return count === 1 ? name : `${name}_${count}`;
+    });
   }
 }

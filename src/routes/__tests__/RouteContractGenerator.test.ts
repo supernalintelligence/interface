@@ -90,3 +90,59 @@ describe('RouteContractGenerator — wrapper validity across empty sections', ()
     expect(depth).toBe(0);
   });
 });
+
+describe('RouteContractGenerator — name collisions across path shapes', () => {
+  it('disambiguates two different routes that PascalCase to the same name', () => {
+    // A hyphenated single segment and a nested directory pair can both
+    // collapse to 'ChatSessions' — a real, observed case in
+    // apps/supernal-dashboard: /api/chat/sessions vs /api/chat-sessions.
+    const nested: RouteInfo = {
+      id: 'api-ChatSessions',
+      pattern: '/api/chat/sessions',
+      params: [],
+      metadata: { category: 'api', source: 'file-structure', methods: ['GET'] },
+    };
+    const hyphenated: RouteInfo = {
+      id: 'api-Chat-sessions',
+      pattern: '/api/chat-sessions',
+      params: [],
+      metadata: {
+        category: 'api',
+        source: 'file-structure',
+        methods: ['GET', 'POST'],
+      },
+    };
+
+    const content = new RouteContractGenerator().generate(
+      scanResult([nested, hyphenated])
+    );
+
+    // Both real patterns must be present, and no duplicate key — a
+    // duplicate object key is a TypeScript compile error (TS1117), not a
+    // warning, so a collision anywhere makes the WHOLE file unusable.
+    expect(content).toContain("pattern: '/api/chat/sessions'");
+    expect(content).toContain("pattern: '/api/chat-sessions'");
+    expect(content).toContain('ChatSessions:');
+    expect(content).toContain('ChatSessions_2:');
+
+    const body = content.slice(
+      content.indexOf('export const Routes = {') +
+        'export const Routes = {'.length,
+      content.indexOf('} as const;')
+    );
+    let depth = 0;
+    for (const ch of body) {
+      if (ch === '{') depth++;
+      if (ch === '}') depth--;
+    }
+    expect(depth).toBe(0);
+  });
+
+  it('leaves non-colliding names untouched', () => {
+    const content = new RouteContractGenerator().generate(
+      scanResult([apiRoute])
+    );
+    expect(content).toContain('Users:');
+    expect(content).not.toContain('Users_2:');
+  });
+});
