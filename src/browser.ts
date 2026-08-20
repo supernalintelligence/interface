@@ -151,5 +151,12 @@ export type {
   StateManagerOptions,
 } from './storage/StateManager';
 
+// fromCommand — browser-safe (wraps UniversalCommand as a @Tool; no Node.js deps)
+// Required: Turbopack resolves named exports against the "browser" export condition for
+// 'use client' files. Without fromCommand here, Turbopack falls back to index.js (the
+// "import" condition), which barrel-exports NextjsDynamicScanner → NameExtractor.js →
+// `import * as fs from 'fs'` → client bundle failure ("Can't resolve 'fs'").
+export { fromCommand } from './decorators/fromCommand';
+
 // Note: CLI tools, generators, and Node.js-specific functionality
 // are excluded from browser builds
